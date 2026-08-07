@@ -1,6 +1,6 @@
 onload = start();
 
-function start() { test1(); }
+function start() { test1(); test2(); }
 
 
 function test1() {
@@ -36,6 +36,56 @@ function test1() {
 	document.getElementById('trender').addEventListener('click', renderTessagon);
 	renderTessagon();
 
+}
+
+function test2() {
+	let el = mBy('dTest2'); if (el) el.remove();
+
+	function mulberry32(a) {
+		return function () {
+			a |= 0; a = (a + 0x6D2B79F5) | 0;
+			let t = Math.imul(a ^ (a >>> 15), 1 | a);
+			t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+			return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+		};
+	}
+
+	const board = buildTessellation('VoronoiTessagon', { U: 6, V: 6, random: mulberry32(1) });
+	const ser = serializeBoard(board);
+	downloadAsYaml(ser, 'board');
+	const reloaded = deserializeBoard(JSON.parse(JSON.stringify(ser)));
+
+	const rows = document.createElement('div');
+	rows.id = 'dTest2';
+	rows.style.display = 'grid';
+	rows.style.gridTemplateColumns = '1fr 1fr';
+	rows.style.gap = '1rem';
+	document.body.appendChild(rows);
+
+	function renderOne(title, b) {
+		const col = document.createElement('div');
+		const h = document.createElement('h3');
+		h.textContent = title;
+		col.appendChild(h);
+		rows.appendChild(col);
+		const svg = renderHexBoard(b, col, { strokeWidth: '0.004' });
+		addStreetsToTessellation(b, svg);
+		addCitiesToTessellation(b, svg);
+	}
+	renderOne('original', board);
+	renderOne('reloaded', reloaded);
+
+	const same = JSON.stringify(reloaded.adj) === JSON.stringify(board.adj);
+	const status = document.createElement('div');
+	status.className = 'status';
+	status.textContent = 'original: ' + board.faces.length + ' cells, ' + board.streets.length +
+		' streets, ' + board.cities.length + ' cities; reloaded: ' + reloaded.faces.length +
+		' cells, ' + reloaded.streets.length + ' streets, ' + reloaded.cities.length +
+		' cities, ' + Object.keys(reloaded.adj).length + ' adj entries (serialized ' +
+		JSON.stringify(ser).length + ' bytes), adj identical: ' + same;
+	document.body.insertBefore(status, rows);
+
+	console.log('test2 serialize round trip', same, reloaded.faces.length, 'cells,', reloaded.streets.length, 'streets,', reloaded.cities.length, 'cities');
 }
 
 function test0() {
