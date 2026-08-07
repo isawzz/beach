@@ -9,56 +9,34 @@
 </head>
 
 <body>
-  <h1>Hexagonal Board (side 4)</h1>
-  <div id="status" class="status">Building&hellip;</div>
-  <div id="board"></div>
-  <footer>Board built by clipping a <code>HexTessagon</code> patch from <code>alibs/tess.js</code> &mdash; hexagons outside the hexagon <code>max(|q|,|r|,|q+r|) &le; 3</code> are discarded.</footer>
-
-  <hr />
-  <h2>Any tessagon: streets &amp; cities</h2>
-  <div class="controls">
-    <label for="tessagon">Tessagon</label>
-    <select id="tessagon"></select>
-    <label for="tcols">Cols</label>
-    <input id="tcols" type="number" value="4" min="1" max="12" />
-    <label for="trows">Rows</label>
-    <input id="trows" type="number" value="4" min="1" max="12" />
-    <button id="trender">Render</button>
+  <div id="dTest0">
+    <h1>Hexagonal Board (side 4)</h1>
+    <div id="status" class="status">Building&hellip;</div>
+    <div id="board"></div>
+    <footer>Board built by clipping a <code>HexTessagon</code> patch from <code>alibs/tess.js</code> &mdash; hexagons
+      outside the hexagon <code>max(|q|,|r|,|q+r|) &le; 3</code> are discarded.</footer>
   </div>
-  <div id="tstatus" class="status"></div>
-  <div id="tboard"></div>
+
+  <div id="dTest1">
+    <h2>Any tessagon: streets &amp; cities</h2>
+    <div class="controls">
+      <label for="tessagon">Tessagon</label>
+      <select id="tessagon"></select>
+      <label for="tcols">Cols</label>
+      <input id="tcols" type="number" value="4" min="1" max="12" />
+      <label for="trows">Rows</label>
+      <input id="trows" type="number" value="4" min="1" max="12" />
+      <button id="trender">Render</button>
+    </div>
+    <div id="tstatus" class="status"></div>
+    <div id="tboard"></div>
+  </div>
 
   <script src="../alibs/tess.js"></script>
+  <script src="../tessgames/globals.js"></script>
+  <script src="../tessgames/codeall.js"></script>
   <script src="../tessgames/hexboard.js"></script>
-  <script>
-    const select = document.getElementById('tessagon');
-    for (const name of Object.keys(TessagonTypes)) {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      select.appendChild(opt);
-    }
-
-    function renderTessagon() {
-      const name = select.value;
-      const U = parseInt(document.getElementById('tcols').value, 10);
-      const V = parseInt(document.getElementById('trows').value, 10);
-
-      const board = buildTessellation(name, { U, V });
-      const container = document.getElementById('tboard');
-      const svg = renderHexBoard(board, container, { strokeWidth: '0.004' });
-      const streets = addStreetsToTessellation(name, svg, { U, V });
-      const cities = addCitiesToTessellation(name, svg, { U, V });
-
-      const status = document.getElementById('tstatus');
-      status.textContent = board.faces.length + ' cells, ' + streets.length +
-        ' streets, ' + cities.length + ' cities built from a ' + U + ' x ' + V +
-        ' ' + name + ' patch.';
-    }
-
-    document.getElementById('trender').addEventListener('click', renderTessagon);
-    renderTessagon();
-  </script>
+  <script src="../tessgames/start.js"></script>
 </body>
 
 </html>

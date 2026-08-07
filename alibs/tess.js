@@ -933,7 +933,8 @@ class TessagonMetadata {
 		'archimedean': 'Archimedean tiling',
 		'laves': 'Laves tiling',
 		'non_edge': 'Non-edge-to-edge tiling',
-		'non_convex': 'Non-convex tiling'
+		'non_convex': 'Non-convex tiling',
+		'irregular': 'Irregular tiling'
 	};
 	constructor(options = {}) {
 		this._name = options.name;
@@ -5511,6 +5512,476 @@ class SquareStarTile extends Tile {
 class SquareStarTessagon extends Tessagon {
   static tile_class = SquareStarTile;
   static metadata = square_star_metadata;
+}
+
+const voronoi_metadata = new TessagonMetadata({
+  name: "Voronoi",
+  num_color_patterns: 0,
+  classification: "irregular",
+  shapes: ["polygons"],
+  sides: [3, 4, 5, 6, 7, 8],
+  uv_ratio: 1.0
+});
+
+// Voronoi-style tessellation. Every cell is the intersection of the
+// half-planes that are closer to its seed than to any other seed, clipped to
+// the bounding box (u_range, v_range). Seeds are placed at random positions
+// with a minimum spacing between them (so no two seeds are ever close enough
+// to make a sliver cell) and are then Lloyd-relaxed (each seed moves to its
+// cell's centroid), which evens out the cell areas and shapes. The layout is
+// deliberately irregular, unlike a jittered grid, but no cell is tiny, thin,
+// or squished against the board edge or into a corner. The boundary cells
+// still have one or two sides along the box, so they have fewer neighbors.
+//
+// After the cells are built, mergeShortSides() collapses every edge that is
+// shorter than merge_factor-th of the longest edge in the mesh: the two
+// endpoints of a short edge are combined into a single vertex at the middle of
+// that edge. This cleans up the tiny notches and slivers that random Voronoi
+// cells can produce.
+//
+// neighborStats(mesh) reports the actual neighbor-count range of a produced
+// mesh, and getNeighborStats() returns it for the last mesh this tessagon built.
+//
+// Options:
+//   u_num, v_num      : number of seeds (cells = u_num * v_num)
+//   min_spacing       : minimum distance between seeds as a fraction of the
+//                       cell size (default 0.6)
+//   border_fraction   : minimum distance of the seeds from the box, as a
+//                       fraction of the cell size (0..0.5, default 0.4)
+//   iterations        : Lloyd relaxation steps (default 3)
+//   merge_factor      : longest edge divided by this is the minimum valid side
+//                       length; shorter sides are merged (default 3, use 0 to
+//                       disable)
+//   random            : a function returning a uniform random number in [0, 1)
+//   seeds             : an explicit list of [x, y] seeds (builds the plain
+//                       Voronoi diagram of those seeds, no relaxation or merge)
+class VoronoiTessagon extends Tessagon {
+  static tile_class = null;
+  static metadata = voronoi_metadata;
+
+  constructor(options = {}) {
+    super(options);
+    this.u_range = options.u_range || [0, 1];
+    this.v_range = options.v_range || [0, 1];
+    this.u_num = options.u_num || 6;
+    this.v_num = options.v_num || 6;
+    this.random = options.random || Math.random;
+    this.explicit_seeds = options.hasOwnProperty('seeds');
+    this.seeds = options.hasOwnProperty('seeds') ? options.seeds : null;
+    this.min_spacing = options.hasOwnProperty('min_spacing') ? options.min_spacing : 0.6;
+    const border = options.hasOwnProperty('border_fraction') ? options.border_fraction : 0.4;
+    this.border_fraction = Math.max(0, Math.min(0.5, border));
+    this.iterations = options.hasOwnProperty('iterations') ? options.iterations : 3;
+    this.merge_factor = options.hasOwnProperty('merge_factor') ? options.merge_factor : 3;
+    this.last_mesh = null;
+  }
+
+  create_mesh() {
+    this.mesh_adaptor.create_empty_mesh();
+    this._build_mesh();
+    this.mesh_adaptor.finish_mesh();
+    if (this.post_process) {
+      this.post_process(this);
+    }
+    this.last_mesh = this.mesh_adaptor.get_mesh();
+    if (this.merge_factor > 0 && this.last_mesh.face_list && this.last_mesh.vert_list) {
+      const merged = mergeShortSides(this.last_mesh.face_list, this.last_mesh.vert_list, this.merge_factor);
+      this.last_mesh.face_list = merged.face_list;
+      this.last_mesh.vert_list = merged.vert_list;
+    }
+    return this.last_mesh;
+  }
+
+  // Neighbor counts of the last created mesh, or null before create_mesh().
+  getNeighborStats() {
+    return this.last_mesh ? neighborStats(this.last_mesh) : null;
+  }
+
+  // Random seeds with a minimum spacing (so no two seeds can produce a sliver
+  // cell), kept a border_fraction of a cell away from the box so edge and
+  // corner cells are not squished. This is deliberately irregular, unlike a
+  // jittered grid.
+  _generate_seeds() {
+    if (this.explicit_seeds) {
+      return this.seeds;
+    }
+    const x0 = this.u_range[0];
+    const y0 = this.v_range[0];
+    const x1 = this.u_range[1];
+    const y1 = this.v_range[1];
+    const n = this.u_num * this.v_num;
+    const cell = Math.min((x1 - x0) / this.u_num, (y1 - y0) / this.v_num);
+    const margin = Math.max(0, Math.min(
+      this.border_fraction * cell,
+      (x1 - x0) / 2 - 1e-6,
+      (y1 - y0) / 2 - 1e-6
+    ));
+    const minDist = this.min_spacing * cell;
+    const seeds = [];
+    for (let k = 0; k < n; k++) {
+      let best = null;
+      let bestD = -1;
+      // Rejection sample; if no candidate is far enough, keep the one that is
+      // furthest from every already-placed seed so the loop always ends.
+      for (let tries = 0; tries < 50; tries++) {
+        const sx = x0 + margin + this.random() * (x1 - x0 - 2 * margin);
+        const sy = y0 + margin + this.random() * (y1 - y0 - 2 * margin);
+        let d = Infinity;
+        for (const s of seeds) {
+          d = Math.min(d, Math.hypot(sx - s[0], sy - s[1]));
+        }
+        if (d >= minDist) {
+          seeds.push([sx, sy]);
+          best = null;
+          break;
+        }
+        if (d > bestD) {
+          bestD = d;
+          best = [sx, sy];
+        }
+      }
+      if (best) {
+        seeds.push(best);
+      }
+    }
+    return seeds;
+  }
+
+  _build_mesh() {
+    const seeds = this._generate_seeds();
+    const x0 = this.u_range[0];
+    const y0 = this.v_range[0];
+    const x1 = this.u_range[1];
+    const y1 = this.v_range[1];
+    const box = [
+      [x0, y0],
+      [x1, y0],
+      [x1, y1],
+      [x0, y1]
+    ];
+
+    let polys;
+    if (this.explicit_seeds) {
+      polys = this._cells_of(seeds, box, null);
+    } else {
+      polys = this._relaxed_cells(seeds, box, x0, y0, x1, y1);
+    }
+
+    const vertId = new Map();
+    for (const poly of polys) {
+      const face = [];
+      for (const p of poly) {
+        const key = p[0].toFixed(6) + ',' + p[1].toFixed(6);
+        let id = vertId.get(key);
+        if (id === undefined) {
+          id = this.mesh_adaptor.create_vert([p[0], p[1], 0]);
+          vertId.set(key, id);
+        }
+        if (face.length === 0 || face[face.length - 1] !== id) {
+          face.push(id);
+        }
+      }
+      if (face.length >= 3) {
+        this.mesh_adaptor.create_face(face);
+      }
+    }
+  }
+
+  // Lloyd relaxation of the seed grid. Each seed moves to the centroid of its
+  // Voronoi cell and the cells are rebuilt, which over a few iterations evens
+  // out the cell areas and shapes. Boundary cells keep the box as an outer
+  // side, so they stay full-size and are never squished into the edge or a
+  // corner.
+  _relaxed_cells(seeds, box, x0, y0, x1, y1) {
+    let s = seeds;
+    for (let iter = 0; iter < this.iterations; iter++) {
+      const polys = this._cells_of(s, box, null);
+      let moved = false;
+      s = s.map((seed, k) => {
+        const c = centroid(polys[k]);
+        if (Math.hypot(c[0] - seed[0], c[1] - seed[1]) > 1e-9) {
+          moved = true;
+        }
+        return c;
+      });
+      if (!moved) {
+        break;
+      }
+    }
+    return this._cells_of(s, box, null);
+  }
+
+  // The Voronoi cell of each seed: the box clipped by the bisector half-plane
+  // of every other seed. Cells with fewer than 3 vertices are dropped.
+  _cells_of(seeds, box, restrict) {
+    const others = restrict || seeds;
+    const polys = [];
+    for (let k = 0; k < seeds.length; k++) {
+      const s = seeds[k];
+      let poly = box.map(p => p.slice());
+      for (let j = 0; j < others.length; j++) {
+        const t = others[j];
+        if (t === s) {
+          continue;
+        }
+        poly = clipHalfPlane(poly, s, t);
+        if (poly.length < 3) {
+          break;
+        }
+      }
+      if (poly.length >= 3) {
+        polys.push(poly);
+      }
+    }
+    return polys;
+  }
+}
+
+// Area-weighted centroid of a polygon, returned as [x, y].
+function centroid(poly) {
+  let a = 0;
+  let cx = 0;
+  let cy = 0;
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % n];
+    const cross = p[0] * q[1] - q[0] * p[1];
+    a += cross;
+    cx += (p[0] + q[0]) * cross;
+    cy += (p[1] + q[1]) * cross;
+  }
+  if (Math.abs(a) < 1e-12) {
+    let sx = 0;
+    let sy = 0;
+    for (const p of poly) {
+      sx += p[0];
+      sy += p[1];
+    }
+    return [sx / n, sy / n];
+  }
+  a *= 0.5;
+  return [cx / (6 * a), cy / (6 * a)];
+}
+
+// Collapse every short edge into a single vertex at the middle of that edge.
+// An edge is short when it is shorter than the longest side of one of the two
+// cells it borders divided by mergeFactor, so the threshold adapts to each
+// cell's own size. The endpoints of each short edge are combined into one
+// vertex placed at the average of their positions, applied repeatedly until no
+// short edge remains (merging one edge can shorten its neighbours). Accepts a
+// { face_list, vert_list } mesh and returns a new one with the same shape;
+// faces left with fewer than 3 distinct vertices are dropped.
+function mergeShortSides(faceList, vertList, mergeFactor) {
+  let faces = faceList.map(f => f.slice());
+  let verts = vertList.map(v => v.slice());
+  for (let pass = 0; pass < 20; pass++) {
+    const short = shortEdges(faces, verts, mergeFactor);
+    if (short.length === 0) {
+      break;
+    }
+    const res = mergeEdges(faces, verts, short);
+    if (!res.changed) {
+      break;
+    }
+    faces = res.faces;
+    verts = res.verts;
+  }
+  return { face_list: faces, vert_list: verts };
+}
+
+// The edges of the mesh that are short: an edge counts as short when it is
+// shorter than the longest side of one of its own faces divided by
+// mergeFactor, so a small cell's edges are compared to the cell's own size,
+// not to the biggest cell in the mesh. Returned as [start, end] vertex-index
+// pairs (each short edge once).
+function shortEdges(faces, verts, mergeFactor) {
+  const marks = new Set();
+  for (const f of faces) {
+    const n = f.length;
+    let faceMax = 0;
+    const lens = new Array(n);
+    for (let k = 0; k < n; k++) {
+      const a = f[k];
+      const b = f[(k + 1) % n];
+      const len = a === b ? 0 : Math.hypot(verts[b][0] - verts[a][0], verts[b][1] - verts[a][1]);
+      lens[k] = len;
+      if (len > faceMax) {
+        faceMax = len;
+      }
+    }
+    const threshold = faceMax / mergeFactor;
+    for (let k = 0; k < n; k++) {
+      if (lens[k] > 0 && lens[k] < threshold) {
+        const a = f[k];
+        const b = f[(k + 1) % n];
+        marks.add(a < b ? a + ':' + b : b + ':' + a);
+      }
+    }
+  }
+  const out = [];
+  for (const key of marks) {
+    const split = key.split(':');
+    out.push([+split[0], +split[1]]);
+  }
+  return out;
+}
+
+// Merge the given vertex pairs: every connected group of endpoints is combined
+// into one vertex at the average of their positions, and every face that used
+// any of those vertices now uses the merged vertex (consecutive duplicates
+// removed). Returns { faces, verts, changed }.
+function mergeEdges(faces, verts, shortEdges) {
+  const n = verts.length;
+  const parent = new Array(n);
+  for (let i = 0; i < n; i++) {
+    parent[i] = i;
+  }
+  const find = x => {
+    while (parent[x] !== x) {
+      parent[x] = parent[parent[x]];
+      x = parent[x];
+    }
+    return x;
+  };
+  for (const [a, b] of shortEdges) {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) {
+      parent[Math.max(ra, rb)] = Math.min(ra, rb);
+    }
+  }
+  const groups = new Map();
+  for (let i = 0; i < n; i++) {
+    const r = find(i);
+    if (!groups.has(r)) {
+      groups.set(r, []);
+    }
+    groups.get(r).push(i);
+  }
+  const newVerts = verts.map(v => v.slice());
+  const map = new Array(n);
+  for (let i = 0; i < n; i++) {
+    map[i] = i;
+  }
+  let changed = false;
+  for (const members of groups.values()) {
+    if (members.length < 2) {
+      continue;
+    }
+    changed = true;
+    let sx = 0;
+    let sy = 0;
+    for (const i of members) {
+      sx += verts[i][0];
+      sy += verts[i][1];
+    }
+    const mid = newVerts.length;
+    newVerts.push([sx / members.length, sy / members.length, verts[members[0]][2] || 0]);
+    for (const i of members) {
+      map[i] = mid;
+    }
+  }
+  const outFaces = [];
+  for (const f of faces) {
+    const out = [];
+    for (const i of f) {
+      const j = map[i];
+      if (out.length === 0 || out[out.length - 1] !== j) {
+        out.push(j);
+      }
+    }
+    if (out.length > 1 && out[0] === out[out.length - 1]) {
+      out.pop();
+    }
+    if (out.length >= 3) {
+      outFaces.push(out);
+    }
+    if (out.length !== f.length) {
+      changed = true;
+    }
+  }
+  return { faces: outFaces, verts: newVerts, changed };
+}
+
+// Count how many cells share an edge with each cell. Accepts a mesh from
+// create_mesh() ({ face_list, vert_list }) or a board from buildTessellation()
+// ({ faces, verts }). Returns { min, max, avg, counts } where counts maps a
+// neighbor count to the number of cells that have it. Cells touching the box
+// have one or two edges along it, so they have one or two fewer neighbors.
+function neighborStats(mesh) {
+  const faces = mesh.face_list || mesh.faces || [];
+  const edges = new Map();
+  for (let i = 0; i < faces.length; i++) {
+    const f = faces[i];
+    for (let k = 0; k < f.length; k++) {
+      const a = f[k];
+      const b = f[(k + 1) % f.length];
+      const key = a < b ? a + ':' + b : b + ':' + a;
+      if (!edges.has(key)) {
+        edges.set(key, []);
+      }
+      edges.get(key).push(i);
+    }
+  }
+  const degrees = new Array(faces.length).fill(0);
+  for (const cells of edges.values()) {
+    if (cells.length === 2) {
+      degrees[cells[0]]++;
+      degrees[cells[1]]++;
+    }
+  }
+  const counts = {};
+  let min = Infinity;
+  let max = -Infinity;
+  let sum = 0;
+  for (const d of degrees) {
+    counts[d] = (counts[d] || 0) + 1;
+    if (d < min) {
+      min = d;
+    }
+    if (d > max) {
+      max = d;
+    }
+    sum += d;
+  }
+  return {
+    min: degrees.length ? min : 0,
+    max: degrees.length ? max : 0,
+    avg: degrees.length ? sum / degrees.length : 0,
+    counts
+  };
+}
+
+// Keep the points of `poly` that are closer to seed s than to seed t. The
+// boundary is the perpendicular bisector of the two seeds: a point p is on s's
+// side when dot(p - mid, t - s) <= 0.
+function clipHalfPlane(poly, s, t) {
+  const midX = (s[0] + t[0]) / 2;
+  const midY = (s[1] + t[1]) / 2;
+  const dx = t[0] - s[0];
+  const dy = t[1] - s[1];
+  const out = [];
+  const n = poly.length;
+  for (let i = 0; i < n; i++) {
+    const p = poly[i];
+    const q = poly[(i + 1) % n];
+    const dp = (p[0] - midX) * dx + (p[1] - midY) * dy;
+    const dq = (q[0] - midX) * dx + (q[1] - midY) * dy;
+    const inP = dp <= 0;
+    const inQ = dq <= 0;
+    if (inP) {
+      out.push(p);
+    }
+    if (inP !== inQ) {
+      const denom = dp - dq;
+      if (denom !== 0) {
+        const r = dp / denom;
+        out.push([p[0] + r * (q[0] - p[0]), p[1] + r * (q[1] - p[1])]);
+      }
+    }
+  }
+  return out;
 }
 
 function attachHoverHighlight(svgElement, neighborMap) {
