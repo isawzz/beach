@@ -5447,6 +5447,72 @@ class Simple1Tessagon extends SimpleBoundaryTessagon {
   });
 }
 
+const square_star_metadata = new TessagonMetadata({
+  name: "Square Star",
+  num_color_patterns: 1,
+  classification: "regular",
+  shapes: ["squares", "triangles"],
+  sides: [4, 3],
+  uv_ratio: 1.0
+});
+// Each square tile is split into a central diamond (a rotated square) and four
+// corner triangles. The diamond's vertices sit on the tile's edge midpoints,
+// which are shared with neighboring tiles, so every edge is shared exactly
+// twice and the tiles are edge-to-edge.
+class SquareStarTile extends Tile {
+  constructor(tessagon, options = {}) {
+    super(tessagon, options);
+    this.u_symmetric = true;
+    this.v_symmetric = true;
+  }
+  init_verts() {
+    return {
+      top: { mid: null, left: null, right: null },
+      bottom: { mid: null, left: null, right: null },
+      left: { mid: null },
+      right: { mid: null }
+    };
+  }
+  init_faces() {
+    return {
+      center: null,
+      corner: {
+        top: { left: null, right: null },
+        bottom: { left: null, right: null }
+      }
+    };
+  }
+  calculate_verts() {
+    // Edge midpoints; symmetry fills in the other three sides.
+    this.add_vert(['top', 'mid'], 0.5, 1.0, { v_boundary: true });
+    this.add_vert(['left', 'mid'], 0.0, 0.5, { u_boundary: true });
+    // Corner shared by the four tiles meeting here.
+    this.add_vert(['bottom', 'left'], 0.0, 0.0, { corner: true });
+  }
+  calculate_faces() {
+    // Central diamond. Symmetry mirrors the corner triangles to the other
+    // three corners.
+    this.add_face('center', [
+      ['top', 'mid'],
+      ['right', 'mid'],
+      ['bottom', 'mid'],
+      ['left', 'mid']
+    ]);
+    this.add_face(['corner', 'bottom', 'left'], [
+      ['bottom', 'left'],
+      ['bottom', 'mid'],
+      ['left', 'mid']
+    ]);
+  }
+  color_pattern1() {
+    this.color_paths([['center']], 1, 2);
+  }
+}
+class SquareStarTessagon extends Tessagon {
+  static tile_class = SquareStarTile;
+  static metadata = square_star_metadata;
+}
+
 function attachHoverHighlight(svgElement, neighborMap) {
   const faces = svgElement.querySelectorAll('.tess-face');
 

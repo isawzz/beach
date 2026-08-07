@@ -1,6 +1,6 @@
 onload = start; VERBOSE = false; TESTING = true; DEV = false; POLLING = true;
 
-function start() { test0_createGame(); }
+function start() { test0(); }
 
 // To run unit tests, change above to: function start() { runAllTests(); }
 
