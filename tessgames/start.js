@@ -50,8 +50,10 @@ function test2() {
 		};
 	}
 
-	const board = buildTessellation('VoronoiTessagon', { U: 6, V: 6, random: mulberry32(1) });
+	const board = buildTessellation('HexTessagon', { U: 6, V: 4, random: mulberry32(1) });
 	const ser = serializeBoard(board);
+
+	ser.verts = ser.verts.map(v => v.map(p => Number(p.toFixed(3))));
 	downloadAsYaml(ser, 'board');
 	const reloaded = deserializeBoard(JSON.parse(JSON.stringify(ser)));
 
