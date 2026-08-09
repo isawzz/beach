@@ -1,6 +1,6 @@
 onload = start();
 
-function start() { test1(); test2(); }
+function start() { test1();  }
 
 
 function test1() {

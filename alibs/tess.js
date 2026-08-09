@@ -5157,6 +5157,447 @@ class HexTessagon extends Tessagon {
 	static metadata = hex_metadata;
 }
 
+const hex_board_metadata = new TessagonMetadata({
+	name: "Hex Board",
+	num_color_patterns: 1,
+	classification: "regular",
+	shapes: ["hexagons"],
+	sides: [6],
+	uv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexBoardTessagon extends HexTessagon {
+	static metadata = hex_board_metadata;
+
+	// A Hex Board is an oblong hexagon cut from a (C+R) x R patch of regular
+	// hexagons, where C is the number of hexes along the top (and bottom) edge
+	// and R is the number of hexes along each slanted side edge. The special
+	// case C = R = size is the regular hexagon used by buildHexBoard(size).
+	//
+	// In the axial coordinates of the hexagon centers (q, r), the board is
+	// the set |r| <= R-1, -(R-1) <= q <= C-1, -(R-1) <= q+r <= C-1, which
+	// reduces to |q|,|r|,|q+r| <= N-1 when C = R = N (same geometry as
+	// buildHexBoard). The C and R come from the `cols`/`U` and `rows`/`V`
+	// options, or from a single `size` for a regular hexagon.
+	static default_grid(size) {
+		return { U: 2 * size, V: size };
+	}
+
+	// Resolve cols/rows from options: an explicit `size` makes a regular
+	// hexagon (cols = rows = size); otherwise cols = U/cols and rows = V/rows.
+	// The patch must be (cols + rows) x rows to contain the whole board.
+	// Returns { U, V, cols, rows }.
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.U || options.u_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		return { U: cols + rows, V: rows, cols, rows };
+	}
+
+	// The default plane stretches v so the hexagons are regular: a tile spans
+	// 1/U in u and sqrt(3)/U in v, so a v-span of V tiles is sqrt(3)*V/U.
+	static plane(U, V) {
+		const scale = Math.sqrt(3) * V / U;
+		return (u, v) => [u, v * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = HexBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = HexBoardTessagon.plane(grid.U, grid.V);
+		}
+		o.u_num = grid.U;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const U = this.tile_generator.u_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 1)[1] - this.f(0, 0)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The center cell is the one nearest the middle of the uv patch; it must
+		// be a real hexagon center for the axial coordinates to land on integers.
+		let origin = 0;
+		let bestDist = Infinity;
+		centers.forEach(([x, y], i) => {
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		const u0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		// Adjacent centers sit one tile apart horizontally (du) and half a tile
+		// over and one row down on the diagonal (du/2, dv).
+		const du = 1 / U;
+		const dv = 1 / (2 * V);
+		const kept = [];
+		faces.forEach((face, i) => {
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - u0 - r * du / 2) / du);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				kept.push(face);
+			}
+		});
+		return {
+			vert_list: verts,
+			face_list: kept,
+			color_list: mesh.color_list
+		};
+	}
+}
+
+const big_hex_tri_board_metadata = new TessagonMetadata({
+	name: "Big Hex Tri Board",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["hexagons", "triangles"],
+	sides: [6, 3],
+	uv_ratio: 1.0 / Math.sqrt(3),
+	extra_parameters: {
+		hexagon_ratio: {
+			type: "float",
+			min: 0.0,
+			max: 0.70,
+			default: 0.5,
+			description: "Control the size of the Hexagons"
+		}
+	}
+});
+// A Big Hex Tri Board is a BigHexTri tessellation cut to the same oblong
+// hexagon region as a Hex Board (axial |r| <= R-1, -(R-1) <= q <= C-1,
+// -(R-1) <= q+r <= C-1 in the big-hexagon centers), plus every triangle that
+// touches a kept big hexagon. The big hexagons sit two tiles apart
+// horizontally and one tile over + one row down on the diagonal, so their
+// axial spacing is du = 2/U, dv = 1/V. Because each big hexagon is fully
+// ringed by triangles, the outer boundary of the board is a single layer of
+// triangles on every edge.
+class BigHexTriBoardTessagon extends BigHexTriTessagon {
+	static metadata = big_hex_tri_board_metadata;
+
+	static default_grid(size) {
+		const grid = BigHexTriBoardTessagon.grid_from_options({ size });
+		return { U: grid.U, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.U || options.u_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The board plus its triangle rim needs a patch several tiles larger
+		// than the board itself; 4 x (cols+rows) by 4 x rows is even (required
+		// by the alternating tiles) and leaves a generous margin.
+		return { U: 4 * (cols + rows), V: 4 * rows, cols, rows };
+	}
+
+	// Same regular-hex plane as HexBoardTessagon: a tile spans 1/U in u and
+	// sqrt(3)/U in v, so a v-span of V tiles is sqrt(3)*V/U.
+	static plane(U, V) {
+		const scale = Math.sqrt(3) * V / U;
+		return (u, v) => [u, v * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = BigHexTriBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = BigHexTriBoardTessagon.plane(grid.U, grid.V);
+		}
+		o.u_num = grid.U;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const U = this.tile_generator.u_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 1)[1] - this.f(0, 0)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The big hexagons are the six-sided faces. The origin is the one
+		// nearest the middle of the uv patch; it must be a real hexagon center
+		// for the axial coordinates to land on integers.
+		let origin = null;
+		let bestDist = Infinity;
+		faces.forEach((face, i) => {
+			if (face.length !== 6) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		if (origin === null) {
+			return mesh;
+		}
+		const u0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		const du = 2 / U;
+		const dv = 1 / V;
+		const keptBig = new Set();
+		faces.forEach((face, i) => {
+			if (face.length !== 6) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - u0 - r * du / 2) / du);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				keptBig.add(i);
+			}
+		});
+
+		// Keep every triangle that shares an edge (2 vertices) with a kept big
+		// hexagon; those are exactly the triangles of the single-layer rim.
+		const keptSet = new Set(keptBig);
+		faces.forEach((face, i) => {
+			if (keptBig.has(i)) {
+				return;
+			}
+			const faceVerts = new Set(face);
+			for (const bi of keptBig) {
+				let shared = 0;
+				for (const v of faces[bi]) {
+					if (faceVerts.has(v)) {
+						shared++;
+					}
+				}
+				if (shared >= 2) {
+					keptSet.add(i);
+					break;
+				}
+			}
+		});
+
+		const keptIdx = [...keptSet].sort((a, b) => a - b);
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const dodeca_board_metadata = new TessagonMetadata({
+	name: "Dodeca Board",
+	num_color_patterns: 1,
+	classification: "regular",
+	shapes: ["dodecagons", "squares", "hexagons"],
+	sides: [12, 4, 6],
+	uv_ratio: 1.0 / Math.sqrt(3)
+});
+// A Dodeca Board is a Dodeca tessellation cut to the same oblong hexagon
+// region as a Hex Board, keeping the twelve-sided dodecagons as the cells and
+// every square/hexagon that touches a kept dodecagon. The dodecagon centers
+// sit on the same axial lattice as a Hex Board's hexes (one tile apart
+// horizontally, half a tile over + one row down on the diagonal), so their
+// axial spacing is du = 1/U, dv = 1/(2V). Every dodecagon is ringed by its
+// squares and hexagons, so the outer boundary of the board is a layer of
+// small shapes on every edge.
+class DodecaBoardTessagon extends DodecaTessagon {
+	static metadata = dodeca_board_metadata;
+
+	static default_grid(size) {
+		const grid = DodecaBoardTessagon.grid_from_options({ size });
+		return { U: grid.U, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.U || options.u_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The dodecagon diagonal lattice reaches (cols + 2*rows) tiles wide and
+		// `rows` tiles tall; the +4 margin (even-ized) holds the frame of small
+		// shapes around the outer dodecagons.
+		const U = cols + 2 * rows + 4;
+		const V = rows + 4;
+		return { U: U % 2 ? U + 1 : U, V: V % 2 ? V + 1 : V, cols, rows };
+	}
+
+	static plane(U, V) {
+		const scale = Math.sqrt(3) * V / U;
+		return (u, v) => [u, v * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = DodecaBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = DodecaBoardTessagon.plane(grid.U, grid.V);
+		}
+		o.u_num = grid.U;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const U = this.tile_generator.u_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 1)[1] - this.f(0, 0)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The dodecagons are the twelve-sided faces; the origin is the one
+		// nearest the middle of the uv patch.
+		let origin = null;
+		let bestDist = Infinity;
+		faces.forEach((face, i) => {
+			if (face.length !== 12) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		if (origin === null) {
+			return mesh;
+		}
+		const u0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		const du = 1 / U;
+		const dv = 1 / (2 * V);
+		const keptBig = new Set();
+		faces.forEach((face, i) => {
+			if (face.length !== 12) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - u0 - r * du / 2) / du);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				keptBig.add(i);
+			}
+		});
+
+		// Keep every square/hexagon that shares an edge (2 vertices) with a
+		// kept dodecagon; those form the small-shape frame around each cell.
+		const keptSet = new Set(keptBig);
+		faces.forEach((face, i) => {
+			if (keptBig.has(i)) {
+				return;
+			}
+			const faceVerts = new Set(face);
+			for (const bi of keptBig) {
+				let shared = 0;
+				for (const v of faces[bi]) {
+					if (faceVerts.has(v)) {
+						shared++;
+					}
+				}
+				if (shared >= 2) {
+					keptSet.add(i);
+					break;
+				}
+			}
+		});
+
+		const keptIdx = [...keptSet].sort((a, b) => a - b);
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
 const brick_metadata = new TessagonMetadata({
 	name: "Bricks",
 	num_color_patterns: 1,
@@ -5226,6 +5667,84 @@ class BrickTile extends Tile {
 class BrickTessagon extends Tessagon {
 	static tile_class = BrickTile;
 	static metadata = brick_metadata;
+}
+const brickwall_metadata = new TessagonMetadata({
+	name: "Brick Wall",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["rectangles"],
+	sides: [4],
+	uv_ratio: 1.0
+});
+// BrickTessagon rotated 90 degrees. The rotation maps (u, v) -> (v, 1 - u),
+// so within each tile: 'left' <-> 'top', 'right' <-> 'bottom', the neighbor
+// helpers rotate the same way (left_tile <-> top_tile, right_tile <-> bottom_tile),
+// and boundary flags swap (u_boundary <-> v_boundary).
+class BrickWallTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.u_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { left: null, middle: null, right: null },
+			bottom: { left: null, middle: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			left: null,
+			right: null,
+			top: null,
+			bottom: null
+		};
+	}
+	calculate_verts() {
+		// BrickTile's ["left","bottom"] at (0.25, 0.0) with v_boundary
+		// rotates to ["top","left"] at (0.0, 0.75) with u_boundary.
+		this.add_vert(["top", "left"], 0.0, 0.75, { u_boundary: true });
+		// BrickTile's ["left","middle"] at (0.25, 0.5)
+		// rotates to ["top","middle"] at (0.5, 0.75).
+		this.add_vert(["top", "middle"], 0.5, 0.75);
+	}
+	calculate_faces() {
+		// BrickTile's "left" face (horizontal brick) rotates to the "top"
+		// face (a vertical brick); v_boundary handshakes with the tile above.
+		this.add_face(
+			"top",
+			[
+				["top", "right"],
+				["top", "middle"],
+				["top", "left"],
+				top_tile(["bottom", "left"]),
+				top_tile(["bottom", "middle"]),
+				top_tile(["bottom", "right"])
+			],
+			{ v_boundary: true }
+		);
+		// BrickTile's "bottom" face (vertical brick) rotates to the "left"
+		// face (a horizontal brick); u_boundary handshakes with the tile left.
+		this.add_face(
+			"left",
+			[
+				["bottom", "left"],
+				["bottom", "middle"],
+				["top", "middle"],
+				["top", "left"],
+				left_tile(["top", "middle"]),
+				left_tile(["bottom", "middle"])
+			],
+			{ u_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_paths([["top"], ["bottom"]], 1, 0);
+	}
+}
+class BrickWallTessagon extends Tessagon {
+	static tile_class = BrickWallTile;
+	static metadata = brickwall_metadata;
 }
 
 //#region new code

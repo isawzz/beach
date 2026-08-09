@@ -47,7 +47,11 @@ const TessagonTypes = {
   WeaveTessagon,
   ZigZagTessagon,
   HexTessagon,
+  HexBoardTessagon,
+  BigHexTriBoardTessagon,
+  DodecaBoardTessagon,
   BrickTessagon,
+  BrickWallTessagon,
   SimpleBoundaryTessagon,
   Simple2Tessagon,
   Simple1Tessagon,
@@ -592,29 +596,50 @@ function buildTessellation(tessagon, options = {}) {
   const U = options.U || options.cols || 6;
   const V = options.V || options.rows || 6;
 
+  let Tess = null;
+  if (typeof tessagon === 'string') {
+    Tess = TessagonTypes[tessagon] || globalThis[tessagon];
+    if (!Tess) throw new Error('Unknown tessagon: ' + tessagon);
+  } else if (typeof tessagon === 'function') {
+    Tess = tessagon;
+  }
+
+  // Some tessagons define their own grid (e.g. HexBoard always cuts a
+  // (cols + rows) x rows patch from its `size` / cols/U / rows/V options).
+  let grid = null;
+  let shape = null;
+  if (Tess && typeof Tess.grid_from_options === 'function') {
+    grid = Tess.grid_from_options(options);
+    shape = grid.cols !== undefined ? grid : null;
+  } else if (options.size !== undefined && Tess && typeof Tess.default_grid === 'function') {
+    grid = Tess.default_grid(options.size);
+  }
+  const gridU = grid ? grid.U : U;
+  const gridV = grid ? grid.V : V;
+
   const common = {
-    function: options.function || defaultPlane,
+    function: options.function || (Tess && typeof Tess.plane === 'function' ? Tess.plane(gridU, gridV) : defaultPlane),
     u_range: options.u_range || [0, 1],
     v_range: options.v_range || [0, 1],
-    u_num: U,
-    v_num: V,
+    u_num: gridU,
+    v_num: gridV,
     u_cyclic: options.u_cyclic === true,
     v_cyclic: options.v_cyclic === true,
     adaptor_class: options.adaptor_class || ListAdaptor
   };
-  for (const k of ['random', 'min_spacing', 'border_fraction', 'iterations', 'merge_factor', 'seeds']) {
+  if (shape) {
+    common.cols = shape.cols;
+    common.rows = shape.rows;
+  }
+  for (const k of ['random', 'min_spacing', 'border_fraction', 'iterations', 'merge_factor', 'seeds', 'size']) {
     if (k in options) {
       common[k] = options[k];
     }
   }
 
   let tess;
-  if (typeof tessagon === 'string') {
-    const Tess = TessagonTypes[tessagon] || globalThis[tessagon];
-    if (!Tess) throw new Error('Unknown tessagon: ' + tessagon);
+  if (Tess) {
     tess = new Tess(common);
-  } else if (typeof tessagon === 'function') {
-    tess = new tessagon(common);
   } else if (tessagon && typeof tessagon.create_mesh === 'function') {
     tess = tessagon;
   } else {
@@ -622,7 +647,7 @@ function buildTessellation(tessagon, options = {}) {
   }
 
   const mesh = tess.create_mesh();
-  const board = { faces: mesh.face_list, verts: mesh.vert_list, U, V, tess };
+  const board = { faces: mesh.face_list, verts: mesh.vert_list, U: gridU, V: gridV, tess };
   analyzeBoard(board);
   return board;
 }
