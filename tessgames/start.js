@@ -1,17 +1,20 @@
 onload = start();
 
-function start() { test1();  }
+function start() { test1(); }
 
 
 function test1() {
 	let el = mBy('dTest0'); if (el) el.remove();
 	const select = document.getElementById('tessagon');
-	for (const name of Object.keys(TessagonTypes)) {
+	for (const name of Object.keys(TessagonTypes).sort()) {
 		const opt = document.createElement('option');
 		opt.value = name;
 		opt.textContent = name;
 		select.appendChild(opt);
 	}
+	mBy('tcols').value = 2;
+	mBy('trows').value = 2;
+	select.value = 'DissectedCrossStarBoardTessagon';
 
 	function renderTessagon() {
 		const name = select.value;

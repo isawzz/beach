@@ -50,6 +50,8 @@ const TessagonTypes = {
   HexBoardTessagon,
   BigHexTriBoardTessagon,
   DodecaBoardTessagon,
+  FloretBoardTessagon,
+  DissectedCrossStarBoardTessagon,
   BrickTessagon,
   BrickWallTessagon,
   SimpleBoundaryTessagon,
