@@ -1,5 +1,5 @@
-// tess.js references this helper, so it must be in scope before building a tessagon.
 function addKeys(ofrom, oto) {
+  // tess.js references this helper, so it must be in scope before building a tessagon.
   for (const k in ofrom) if (!oto.hasOwnProperty(k)) oto[k] = ofrom[k];
   return oto;
 }
@@ -16,16 +16,16 @@ const COLORS = {
   win: '#ffd166'
 };
 
-// HexTessagon's uv_ratio is 1/sqrt(3); scaling v by sqrt(3) makes the
-// hexagons regular so the board tiles cleanly.
-function hexPlane(u, v) {
-  return [u, v * Math.sqrt(3), 0];
+function hexPlane(h, v) {
+  // HexTessagon's hv_ratio is 1/sqrt(3); scaling v by sqrt(3) makes the
+  // hexagons regular so the board tiles cleanly.
+  return [h, v * Math.sqrt(3), 0];
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const state = {
-  U: 4,
+  H: 4,
   V: 4,
   board: {},
   current: 'X',
@@ -38,10 +38,10 @@ const state = {
   marks: []
 };
 
-// Build the set of maximal straight lines on the board. A straight line is a
-// chain of edge-adjacent hexagons whose centers are collinear. Continuation is
-// the neighbor with (nearly) zero cross product with the current direction.
 function buildLines(faces, verts, neighborMap) {
+  // Build the set of maximal straight lines on the board. A straight line is a
+  // chain of edge-adjacent hexagons whose centers are collinear. Continuation is
+  // the neighbor with (nearly) zero cross product with the current direction.
   const centers = faces.map(face => {
     let x = 0;
     let y = 0;
@@ -103,9 +103,9 @@ function buildLines(faces, verts, neighborMap) {
   return { centers, lines };
 }
 
-// Find the longest run of WIN same-player cells on any line. Returns the run
-// (array of cell indices) or null.
 function findWin() {
+  // Find the longest run of WIN same-player cells on any line. Returns the run
+  // (array of cell indices) or null.
   for (const line of state.lines) {
     let run = [];
     for (const idx of line) {
@@ -175,14 +175,14 @@ function handleClick(idx) {
   }
 }
 
-function buildBoard(U, V) {
+function buildBoard(H, V) {
   const options = {
     function: hexPlane,
-    u_range: [0, 1],
+    h_range: [0, 1],
     v_range: [0, 1],
-    u_num: U,
+    h_num: H,
     v_num: V,
-    u_cyclic: false,
+    h_cyclic: false,
     v_cyclic: false,
     adaptor_class: ListAdaptor
   };
@@ -195,7 +195,7 @@ function buildBoard(U, V) {
   const built = buildLines(faces, verts, neighborMap);
 
   Object.assign(state, {
-    U,
+    H,
     V,
     board: {},
     current: 'X',
@@ -279,7 +279,7 @@ function boot() {
     buildBoard(n, n);
   });
 
-  buildBoard(state.U, state.V);
+  buildBoard(state.H, state.V);
 }
 
 if (typeof document !== 'undefined') {

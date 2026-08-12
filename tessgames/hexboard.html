@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hexagonal Board</title>
+  <title>Beach!!!</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 
@@ -26,7 +26,15 @@
       <input id="tcols" type="number" value="1" min="1" max="12" />
       <label for="trows">Rows</label>
       <input id="trows" type="number" value="1" min="1" max="12" />
+      <label for="tpattern">Pattern</label>
+      <select id="tpattern"></select>
       <button id="trender">Render</button>
+    </div>
+    <div class="controls">
+      <label><input type="checkbox" id="lblCells" checked /> cells</label>
+      <label><input type="checkbox" id="lblStreets" checked /> streets</label>
+      <label><input type="checkbox" id="lblCities" checked /> cities</label>
+      <label><input type="checkbox" id="lblIsolated" /> isolated cities</label>
     </div>
     <div id="tstatus" class="status"></div>
     <div id="tboard"></div>

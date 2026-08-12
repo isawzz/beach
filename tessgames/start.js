@@ -12,28 +12,60 @@ function test1() {
 		opt.textContent = name;
 		select.appendChild(opt);
 	}
-	mBy('tcols').value = 2;
-	mBy('trows').value = 2;
-	select.value = 'DissectedCrossStarBoardTessagon';
+	mBy('tcols').value = 12;
+	mBy('trows').value = 12;
+	select.value = 'WeaveTessagon';
+
+	const patternSelect = document.getElementById('tpattern');
+	const PATTERN_PALETTE = ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'];
+
+	function refreshPatterns() {
+		patternSelect.innerHTML = '';
+		const klass = TessagonTypes[select.value];
+		const n = klass && typeof klass.num_color_patterns === 'function' ? klass.num_color_patterns() : 0;
+		for (let i = 1; i <= n; i++) {
+			const opt = document.createElement('option');
+			opt.value = i;
+			opt.textContent = 'Pattern ' + i;
+			patternSelect.appendChild(opt);
+		}
+		patternSelect.disabled = n === 0;
+	}
+	select.addEventListener('change', refreshPatterns);
+	refreshPatterns();
 
 	function renderTessagon() {
 		const name = select.value;
-		const U = parseInt(document.getElementById('tcols').value, 10);
-		const V = parseInt(document.getElementById('trows').value, 10);
+		let H = parseInt(document.getElementById('tcols').value, 10);
+		let V = parseInt(document.getElementById('trows').value, 10);
+		let [h_cyclic, v_cyclic] = [false, false];
+		//if (name.toLowerCase().includes('weave')) [H,V,h_cyclic,v_cyclic] = [5,5,true,true];
 
-		const board = buildTessellation(name, { U, V });
+		const buildOpts = { H, V, h_cyclic, v_cyclic };
+		const cp = parseInt(patternSelect.value, 10);
+		if (!isNaN(cp) && cp > 0) {
+			buildOpts.color_pattern = cp;
+		}
+
+		const board = buildTessellation(name, buildOpts);
 		const container = document.getElementById('tboard');
-		const svg = renderHexBoard(board, container, { strokeWidth: '0.004' });
-		const streets = addStreetsToTessellation(board, svg);
-		const cities = addCitiesToTessellation(board, svg);
+		const svg = renderHexBoard(board, container, { strokeWidth: '0.004', palette: PATTERN_PALETTE });
+
+		const showIsolated = V>4?false:document.getElementById('lblIsolated').checked;
+		const labelOpts = {
+			labelCells: V>4?false:document.getElementById('lblCells').checked,
+			labelStreets: V>4?false:document.getElementById('lblStreets').checked,
+			labelCities: V>4?false:document.getElementById('lblCities').checked,
+			showIsolatedCities: showIsolated
+		};
+		addLabels(board, svg, labelOpts);
+		if (showIsolated) {
+			addCities(board, svg, { showIsolatedCities: true });
+		}
 
 		const status = document.getElementById('tstatus');
 		const stats = neighborStats(board);
 		console.log(stats);
-		status.textContent = board.faces.length + ' cells, ' + streets.length +
-			' streets, ' + cities.length + ' cities, ' + stats.min + '-' + stats.max +
-			' neighbors per cell built from a ' + U + ' x ' + V +
-			' ' + name + ' patch.';
 	}
 
 	document.getElementById('trender').addEventListener('click', renderTessagon);
@@ -53,7 +85,7 @@ function test2() {
 		};
 	}
 
-	const board = buildTessellation('HexTessagon', { U: 6, V: 4, random: mulberry32(1) });
+	const board = buildTessellation('HexTessagon', { H: 6, V: 4, random: mulberry32(1) });
 	const ser = serializeBoard(board);
 
 	ser.verts = ser.verts.map(v => v.map(p => Number(p.toFixed(3))));
@@ -112,16 +144,28 @@ function test0() {
 		}
 	});
 	const cities = addCities(board, svg, {
+		showIsolatedCities: document.getElementById('lblIsolated') &&
+			document.getElementById('lblIsolated').checked,
 		onCityClick: city => {
 			console.log('city', city.v, city.x, city.y, 'cells', city.cells.join(','));
 		}
+	});
+	addLabels(board, svg, {
+		labelCells: !document.getElementById('lblCells') ||
+			document.getElementById('lblCells').checked,
+		labelStreets: !document.getElementById('lblStreets') ||
+			document.getElementById('lblStreets').checked,
+		labelCities: !document.getElementById('lblCities') ||
+			document.getElementById('lblCities').checked,
+		showIsolatedCities: document.getElementById('lblIsolated') &&
+			document.getElementById('lblIsolated').checked
 	});
 
 	const status = document.getElementById('status');
 	if (status) {
 		status.textContent = board.faces.length + ' cells, ' +
 			streets.length + ' streets, ' + cities.length + ' cities built from a ' +
-			board.U + ' x ' + board.V + ' HexTessagon patch.';
+			board.H + ' x ' + board.V + ' HexTessagon patch.';
 	}
 }
 

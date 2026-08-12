@@ -7447,11 +7447,11 @@ function createSvgTessellationPolygons(dParent, TessClass, styles = {}, options 
 	const rows = options.rows || 5;
 	const tessagon = new TessClass({
 		function: planeFunction,
-		u_range: [0.0, 1.0],
+		h_range: [0.0, 1.0],
 		v_range: [0.0, 1.0],
-		u_num: cols,
+		h_num: cols,
 		v_num: rows,
-		u_cyclic: false,
+		h_cyclic: false,
 		v_cyclic: false,
 		adaptor_class: SvgAdaptor
 	});
@@ -10809,11 +10809,11 @@ function generateListTessellation(cols = 10, rows = 10, name = 'HexTessagon') {
 	let shapeFunc = getTessagonDict()[name]
 	const options = {
 		function: planeFunction,
-		u_range: [0.0, 1.0],
+		h_range: [0.0, 1.0],
 		v_range: [0.0, 1.0],
-		u_num: cols,
+		h_num: cols,
 		v_num: rows,
-		u_cyclic: false,
+		h_cyclic: false,
 		v_cyclic: false,
 		adaptor_class: ListAdaptor
 	};
@@ -11018,11 +11018,11 @@ function generateSvgTessellation(cols = 10, rows = 10, name = 'HexTessagon') {
 	let shapeFunc = getTessagonDict()[name];
 	const options = {
 		function: planeFunction,
-		u_range: [0.0, 1.0],
+		h_range: [0.0, 1.0],
 		v_range: [0.0, 1.0],
-		u_num: cols,
+		h_num: cols,
 		v_num: rows,
-		u_cyclic: false,
+		h_cyclic: false,
 		v_cyclic: false,
 		adaptor_class: SvgAdaptor
 	};
@@ -13396,11 +13396,11 @@ async function getTableNames() {
 function getTessSvgFacesVerts(TessClass, cols = 3, rows = 3, options = {}) {
 	addKeys({
 		function: planeFunction,
-		u_range: [0.0, 1.0],
+		h_range: [0.0, 1.0],
 		v_range: [0.0, 1.0],
-		u_num: cols,
+		h_num: cols,
 		v_num: rows,
-		u_cyclic: false,
+		h_cyclic: false,
 		v_cyclic: false,
 		adaptor_class: SvgAdaptor
 	}, options);
@@ -19069,8 +19069,8 @@ async function placeYourMeepleME(ev) {
 		await lacunaMoveCompletedME(B.selectedPoints);
 	} else lacunaMakeSelectableME();
 }
-function planeFunction(u, v) {
-	return [u, v, 0];
+function planeFunction(h, v) {
+	return [h, 1 - v, 0];
 }
 function playA() { playTone(442); }
 function playD() { playTone(295); }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cryptid II</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <h1>Cryptid II</h1>
+  <div id="turn" class="turn"></div>
+  <div id="status" class="status">Building&hellip;</div>
+  <div class="controls">
+    <label for="tessagon">Board</label>
+    <select id="tessagon"></select>
+    <label for="tcols">Cols</label>
+    <input id="tcols" type="number" value="4" min="2" max="6" />
+    <label for="trows">Rows</label>
+    <input id="trows" type="number" value="4" min="2" max="6" />
+    <button id="newgame">New puzzle</button>
+    <button id="concede">Concede</button>
+  </div>
+  <div class="actions">
+    <button id="test">Test cell</button>
+    <button id="search">Search cell</button>
+  </div>
+  <div id="refute" class="refute hidden"></div>
+  <div id="board"></div>
+  <div id="legend" class="legend"></div>
+  <div class="hands">
+    <section class="hand">
+      <h2 id="yourtitle"></h2>
+      <div id="yourhand" class="clues"></div>
+      <div id="yourmarkers" class="markers"></div>
+    </section>
+    <section class="hand">
+      <h2 id="opptitle"></h2>
+      <div id="opphand" class="clues"></div>
+      <div id="oppmarkers" class="markers"></div>
+    </section>
+  </div>
+  <div id="publicclues" class="clues public"></div>
+  <footer>Two-player deduction on a tessellation board. Each player holds two secret clues; the habitat is the one cell
+    that matches all four. Test a cell to place a marker: the opponent must rule it out with one of their clues if they
+    can &mdash; and that clue becomes public. A marker the opponent cannot refute wins if it also matches your own
+    clues; Search accuses a cell directly. Terrains are drawn from the board's own colour pattern. Best played with a
+    screen between you.</footer>
+
+  <script src="../tessgames/tess.js"></script>
+  <script src="../tessgames/hexboard.js"></script>
+  <script src="../tessgames/cryptid2.js"></script>
+</body>
+
+</html>
