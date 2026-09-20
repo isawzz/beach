@@ -4,9 +4,11 @@
     "target": "es6"
   },
   "include": [
-    "tessgames",
+    "koala","common"
   ],
   "exclude": [
+    "alibs",
+    "assets",
     "_more",
     "**/code*.js",
     "**/eliminated.js",

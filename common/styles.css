@@ -1,0 +1,63 @@
+:root {
+	--bg: #faf7f0;
+	--surface: #ffffff;
+	--surface-ink: #1d1d1f;
+	--muted: #6b6259;
+	--accent: #e0653a;
+	--accent-x: #e0653a;
+	--accent-o: #0f766e;
+	--win: #ffeb3b;
+	--focus: #1a73e8;
+	--radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #16130f;
+		--surface: #221e19;
+		--surface-ink: #f5efe6;
+		--muted: #b8ada0;
+		--win: #8a6d00;
+		--focus: #8ab4f8;
+	}
+}
+* { box-sizing: border-box; }
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--surface-ink);
+	font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+	font-size: 16px;
+	line-height: 1.4;
+}
+#dPage { min-height: 100vh; padding: 8px; }
+h1 { font-size: 1.4rem; margin: 0 0 8px; }
+button {
+	min-height: 44px;
+	min-width: 44px;
+	font-size: 1rem;
+	border-radius: var(--radius);
+	border: 2px solid var(--muted);
+	background: var(--surface);
+	color: var(--surface-ink);
+	cursor: pointer;
+	padding: 8px 14px;
+}
+button:disabled { opacity: .55; cursor: default; }
+button:focus-visible, [tabindex]:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 2px;
+}
+.ttt-cell {
+	aspect-ratio: 1;
+	font-size: 2rem;
+	font-weight: bold;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.ttt-cell.win { background: var(--win); border-color: var(--surface-ink); }
+ul { padding-left: 20px; margin: 0; }
+li { margin: 2px 0; }
+@media (prefers-reduced-motion: reduce) {
+	* { animation: none !important; transition: none !important; }
+}

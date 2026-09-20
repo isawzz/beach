@@ -51,11 +51,11 @@ games:
     color: indigo
     defaulthandsorting: none
     options:
-      church: 'no,yes'
-      journey: 'no,yes'
-      commission: 'no,yes'
-      peasants: 'no,yes'
-      rumors: 'no,yes'
+      church: 'yes,no'
+      journey: 'yes,no'
+      commission: 'yes,no'
+      peasants: 'yes,no'
+      rumors: 'yes,no'
     game_type: turn
     def_startlevel: 4
     achieve_inc: 0
@@ -89,6 +89,29 @@ games:
       max_handsize: '3,4,5,6,7'
     ploptions:
       playmode: 'bot,human'
+  cryptid0:
+    friendly: Cryptid
+    logo: badger
+    color: maroon
+    ploptions:
+      playmode: 'bot,human'
+    options:
+      botmin: '500,1000,3000,5000'
+      botmax: '1000,3000,6000,10000'
+      radius: '4,2,3'
+    name: cryptid
+  cryptid:
+    friendly: Cryptid
+    logo: circus_tent
+    color: chrome_yellow
+    game_type: turn
+    options:
+      radius: '2,4,3'
+      botmin: '1000,2000,3000,5000'
+      botmax: '3000,5000,6000,10000'
+    ploptions:
+      playmode: 'bot,human'
+      strategy: 'clairvoyant,random'
   dinogame:
     friendly: Dino
     logo: sauropod
@@ -265,7 +288,7 @@ games:
       deck_size: '12,15,30,81'
       grid_size: '3x3,4x4,5x4,4x3'
       special_set: '2,1,0'
-      use_levels: 'no,yes'
+      use_levels: 'yes,no'
       botmin: '1000,3000,4000,5000'
       botmax: '4000,6000,8000,10000'
     name: setgame
@@ -281,6 +304,15 @@ games:
     ploptions:
       playmode: 'bot,human'
       strategy: 'clairvoyant,random'
+  clickgame:
+    friendly: Click Race
+    logo: target
+    color: coral
+    game_type: turn
+    options:
+      target: '5,10,20,50'
+    ploptions:
+      playmode: 'bot,human'
   simplegame:
     friendly: Simple
     logo: frog
@@ -341,6 +373,18 @@ games:
       - { rows: 6 }
       - { cols: 3, rows: 6 }
     winnerslist: []
+  suture:
+    friendly: Suture
+    logo: carpentry_saw
+    color: light_olive_green
+    game_type: turn
+    options:
+      radius: '2,4,3'
+      botmin: '1000,2000,3000,5000'
+      botmax: '3000,5000,6000,10000'
+    ploptions:
+      playmode: 'bot,human'
+      strategy: 'clairvoyant,random'
   ttt:
     friendly: TicTacToe
     logo: bee
