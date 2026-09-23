@@ -4,31 +4,9 @@
     "target": "es6"
   },
   "include": [
-    "koala","common"
+    "koala",
+    "common"
   ],
   "exclude": [
-    "alibs",
-    "assets",
-    "_more",
-    "**/code*.js",
-    "**/eliminated.js",
-    "**/elim.js",
-    "**/fraglich.js",
-    "**/legacy*.js",
-    "**/CODE.js",
-    "**/free*.js",
-    "**/_*.js",
-    "**/_*/*",
-    "**/z_*.js",
-    "**/_*/",
-    "**/no/",
-    "**/history/",
-    "bella/testing",
-    "bella",
-    "ilms",
-    "combu",
-    "vio*",
-    "swl*",
-    "fun0"
-  ]
+ ]
 }
