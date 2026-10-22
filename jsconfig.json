@@ -4,8 +4,7 @@
     "target": "es6"
   },
   "include": [
-    "day",
-    "common"
+    "daba",
   ],
   "exclude": [
     "*/**/closure.js",

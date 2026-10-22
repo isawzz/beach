@@ -7,7 +7,7 @@ async function separateDeadFuncs() {
 	extractListOfFunctions('../simset', ['codeall'], getListOfFuncs());
 }
 async function libsAll() {
-	codeAllInOne(`../koala`, ['legacygames','codeall0', 'glue', 'bau1']);
+	codeAllInOne(`../daba`, ['codeall','done', 'bau0','bau1','bau2','bau3','bau4']);
 }
 async function mlib_vio98() {
 	codePackSplit('../vio98', ['codebig', 'eliminated', 'experimental', 'coderest', 'closure', 'done', 'bau1', 'bau2', 'bau3', 'bau4'], ['../vio98/start.js'], ['test0']);

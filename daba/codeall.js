@@ -28512,7 +28512,6 @@ function toCharCode(uniEmoText) {
   if (uniEmoText.endsWith(';')) uniEmoText = uniEmoText.slice(0, -1);
   return String.fromCodePoint(parseInt(uniEmoText.replace('&#', '0'), 16));
 }
-function toElem(d) { return isString(d) ? mBy(d) : d; }
 function toFlatObject(o) {
   if (isString(o)) return { details: o };
   for (const k in o) { let val = o[k]; o[k] = recFlatten(val); }

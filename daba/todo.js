@@ -123,35 +123,8 @@ const __STYLES = {
   yover: 'overflow-y',
   z: 'z-index',
 };
-const NO_UNIT_STYLES = ['opa', 'flex', 'grow', 'shrink', 'grid', 'z', 'iter', 'count', 'orph', 'widow', 'weight', 'order', 'index'];
+const __NO_UNIT_STYLES = ['opa', 'flex', 'grow', 'shrink', 'grid', 'z', 'iter', 'count', 'orph', 'widow', 'weight', 'order', 'index'];
 
-function applyOpts(d, opts = {}) {
-  const aliases = {
-    classes: 'className',
-    inner: 'innerHTML',
-    html: 'innerHTML',
-    w: 'width',
-    h: 'height',
-  };
-  for (const opt in opts) {
-    let name = valf(aliases[opt], opt);
-    let val = opts[opt];
-    if (name == 'recClick') { d.onclick = async (ev) => { recUserEvent(); await val(ev); } }
-    else if (['id', 'style', 'tag', 'innerHTML', 'className', 'checked', 'value'].includes(name) || name.startsWith('on')) d[name] = val;
-    else d.setAttribute(name, val);
-  }
-}
-
-function mAppend(d, child) { toElem(d).appendChild(child); return child; }
-function mDom(dParent, styles = {}, opts = {}) {
-  let tag = valf(opts.tag, 'div');
-  let d = document.createElement(tag);
-  if (tag == 'textarea') styles.wrap = 'hard';
-  mStyle(d, styles);
-  applyOpts(d, opts);
-  if (isdef(dParent)) mAppend(dParent, d);
-  return d;
-}
 function mStyle(elem, styles = {}, opts = {}) {
   elem = toElem(elem);
   let styles1 = mStyles(styles);
@@ -180,4 +153,5 @@ function mStyles(styles) {
   }
   return res;
 }
+
 
