@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Present Moment Loop Tracker</title>
+	<style>
+		:root {
+			--bg-color: #121214;
+			--card-bg: #1a1a1e;
+			--text-main: #f0f0f2;
+			--text-muted: #a0a0aa;
+			--accent-violin: #d97706;
+			--accent-walk: #059669;
+			--accent-focus: #2563eb;
+			--border-color: #2d2d34;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			background-color: var(--bg-color);
+			color: var(--text-main);
+			margin: 0;
+			padding: 16px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+
+		.container {
+			max-width: 500px;
+			width: 100%;
+		}
+
+		header {
+			text-align: center;
+			margin-bottom: 24px;
+		}
+
+		h1 {
+			font-size: 1.5rem;
+			margin: 0 0 8px 0;
+			color: #ffffff;
+		}
+
+		p {
+			color: var(--text-muted);
+			font-size: 0.9rem;
+			margin: 0;
+		}
+
+		.stats-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 12px;
+			margin-bottom: 24px;
+		}
+
+		.stat-card {
+			background-color: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-radius: 12px;
+			padding: 16px;
+			text-align: center;
+		}
+
+		.stat-val {
+			font-size: 1.8rem;
+			font-weight: bold;
+			margin-bottom: 4px;
+		}
+
+		.stat-label {
+			font-size: 0.8rem;
+			color: var(--text-muted);
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+		}
+
+		.loop-card {
+			background-color: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-radius: 16px;
+			padding: 20px;
+			margin-bottom: 24px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		}
+
+		.loop-title {
+			font-size: 1.1rem;
+			font-weight: bold;
+			margin-top: 0;
+			margin-bottom: 16px;
+			border-bottom: 1px solid var(--border-color);
+			padding-bottom: 8px;
+		}
+
+		.timer-display {
+			font-size: 3.5rem;
+			font-weight: 700;
+			font-family: monospace;
+			text-align: center;
+			margin: 16px 0;
+			letter-spacing: -0.02em;
+		}
+
+		.btn-group {
+			display: flex;
+			gap: 8px;
+		}
+
+		button {
+			flex: 1;
+			padding: 12px;
+			border: none;
+			border-radius: 8px;
+			font-size: 0.95rem;
+			font-weight: 600;
+			cursor: pointer;
+			transition: opacity 0.1s ease;
+		}
+
+		button:active {
+			opacity: 0.8;
+		}
+
+		.btn-start {
+			background-color: #ffffff;
+			color: #000000;
+		}
+
+		.btn-pause {
+			background-color: #3f3f46;
+			color: #ffffff;
+		}
+
+		.btn-skip {
+			background-color: transparent;
+			color: var(--text-muted);
+			border: 1px solid var(--border-color);
+		}
+
+		.timeline {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+		}
+
+		.step-item {
+			display: flex;
+			align-items: center;
+			padding: 12px;
+			background-color: var(--card-bg);
+			border: 1px solid var(--border-color);
+			border-radius: 8px;
+			opacity: 0.5;
+			transition: all 0.3s ease;
+		}
+
+		.step-item.active {
+			opacity: 1;
+			border-color: currentColor;
+			transform: scale(1.01);
+		}
+
+		.step-icon {
+			font-size: 1.2rem;
+			margin-right: 12px;
+			width: 24px;
+			text-align: center;
+		}
+
+		.step-info {
+			flex-grow: 1;
+		}
+
+		.step-name {
+			font-weight: 600;
+			font-size: 0.95rem;
+		}
+
+		.step-duration {
+			font-size: 0.8rem;
+			color: var(--text-muted);
+		}
+
+		/* Color Coding Themes */
+		.theme-violin {
+			color: var(--accent-violin);
+		}
+
+		.theme-walk {
+			color: var(--accent-walk);
+		}
+
+		.theme-focus {
+			color: var(--accent-focus);
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="container">
+		<header>
+			<h1>The Present Moment</h1>
+			<p>No past, no future. Only this 90-minute cycle.</p>
+		</header>
+
+		<!-- Dynamic Day Stats -->
+		<div class="stats-grid">
+			<div class="stat-card">
+				<div class="stat-val theme-violin" id="total-violin">0 / 180</div>
+				<div class="stat-label">Violin Mins</div>
+			</div>
+			<div class="stat-card">
+				<div class="stat-val theme-walk" id="total-steps">0 / 20k</div>
+				<div class="stat-label">Est. Steps</div>
+			</div>
+		</div>
+
+		<!-- Active Timer Box -->
+		<div class="loop-card">
+			<div class="loop-title" id="current-loop-title">Loop 1 of 9</div>
+			<div class="timer-display" id="timer-text">10:00</div>
+			<div class="btn-group">
+				<button class="btn-start" id="btn-main" onclick="toggleTimer()">Start Block</button>
+				<button class="btn-skip" onclick="skipBlock()">Skip Block</button>
+			</div>
+		</div>
+
+		<!-- 4-Stage Loop Sequence Visualizer -->
+		<div class="timeline">
+			<div class="step-item" id="stage-0">
+				<div class="step-icon">🎻</div>
+				<div class="step-info">
+					<div class="step-name">Violin Practice A</div>
+					<div class="step-duration">10 minutes • Micro-focus</div>
+				</div>
+			</div>
+			<div class="step-item" id="stage-1">
+				<div class="step-icon">🚶</div>
+				<div class="step-info">
+					<div class="step-name">Safety Step-Walk</div>
+					<div class="step-duration">20 minutes • Local perimeter (~2,200 steps)</div>
+				</div>
+			</div>
+			<div class="step-item" id="stage-2">
+				<div class="step-icon">🎻</div>
+				<div class="step-info">
+					<div class="step-name">Violin Practice B</div>
+					<div class="step-duration">10 minutes • Micro-focus</div>
+				</div>
+			</div>
+			<div class="step-item" id="stage-3">
+				<div class="step-icon">💻</div>
+				<div class="step-info">
+					<div class="step-name">Deep Focus / Sensory Unwind</div>
+					<div class="step-duration">50 minutes • Code / Game / BGA / Watch / Eat</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+
+<script>
+	// Core Config
+	const stages = [
+		{ name: "Violin Practice A", duration: 10, type: "violin", theme: "theme-violin" },
+		{ name: "Safety Step-Walk", duration: 20, type: "walk", theme: "theme-walk" },
+		{ name: "Violin Practice B", duration: 10, type: "violin", theme: "theme-violin" },
+		{ name: "Deep Focus / Unwind", duration: 50, type: "focus", theme: "theme-focus" }
+	];
+
+	// State variables
+	let currentLoop = 1;
+	let currentStageIdx = 0;
+	let timeLeft = stages[0].duration * 60;
+	let timerId = null;
+	let isRunning = false;
+
+	// Cumulative Trackers
+	let totalViolinMins = 0;
+	let totalStepsCalculated = 0;
+
+	function updateUI() {
+		// Update Stats
+		document.getElementById('total-violin').innerText = `${totalViolinMins} / 180`;
+		document.getElementById('total-steps').innerText = `${(totalStepsCalculated / 1000).toFixed(1)}k / 20k`;
+		document.getElementById('current-loop-title').innerText = `Loop ${currentLoop} of 9`;
+
+		// Update Countdown Text
+		const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+		const secs = (timeLeft % 60).toString().padStart(2, '0');
+		const timerEl = document.getElementById('timer-text');
+		timerEl.innerText = `${mins}:${secs}`;
+
+		// Reset theme classes on timer text
+		timerEl.className = "timer-display " + stages[currentStageIdx].theme;
+
+		// Highlight Active Stage in the timeline
+		stages.forEach((_, idx) => {
+			const el = document.getElementById(`stage-${idx}`);
+			if (idx === currentStageIdx) {
+				el.className = `step-item active ${stages[idx].theme}`;
+			} else {
+				el.className = 'step-item';
+			}
+		});
+
+		// Update Main Action Button Styling
+		const btnMain = document.getElementById('btn-main');
+		if (isRunning) {
+			btnMain.innerText = "Pause Block";
+			btnMain.className = "btn-pause";
+		} else {
+			btnMain.innerText = `Start ${stages[currentStageIdx].name}`;
+			btnMain.className = "btn-start";
+		}
+	}
+
+	function toggleTimer() {
+		if (isRunning) {
+			clearInterval(timerId);
+			isRunning = false;
+		} else {
+			isRunning = true;
+			timerId = setInterval(() => {
+				timeLeft--;
+				if (timeLeft <= 0) {
+					handleBlockComplete();
+				}
+				updateUI();
+			}, 1000);
+		}
+		updateUI();
+	}
+
+	function handleBlockComplete() {
+		clearInterval(timerId);
+		isRunning = false;
+		// Attribute completed time/metrics to stats
+		const currentStage = stages[currentStageIdx];
+		if (currentStage.type === 'violin') { totalViolinMins += currentStage.duration; }
+		else if (currentStage.type === 'walk') { totalStepsCalculated += 2200; }
+
+
+		playBeep();// Advance state machinery
+		advanceBlock();
+	}
+	function advanceBlock() {
+		currentStageIdx++; if (currentStageIdx >= stages.length) {
+			currentStageIdx = 0; currentLoop++;
+		}
+		timeLeft = stages[currentStageIdx].duration * 60; updateUI();
+	}
+
+	function skipBlock() {
+		clearInterval(timerId);
+
+		isRunning = false; advanceBlock();
+	} function playBeep() {
+		try {
+			const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain);
+			gain.connect(ctx.destination);
+			osc.type = "sine";
+			osc.frequency.value = 523.25;
+			// C5 
+			// note
+			gain.gain.setValueAtTime(0.3, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.4);
+		} catch (e) {
+			console.log("Audio not allowed yet by user interaction context.");
+
+		}
+	}
+
+</script>
+
+</html>

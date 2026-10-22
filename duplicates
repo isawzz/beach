@@ -1,0 +1,12 @@
+koala project — top-level function duplicate check
+Date: 2026-09-29
+Scope: only top-level functions (excluding functions inside other functions or classes)
+Files (load order in koala/index.html): globals.js, codeall0.js, legacygames.js, glue.js, bau1.js, start.js
+Method: brace-depth tracking with comment/string stripping; counted `function name(` and `const/let/var name = function|=>` at depth==0 outside class bodies.
+
+Result: NO DUPLICATES at top-level scope.
+- Top-level definitions: 1101
+- Unique top-level names: 1101
+- Duplicate top-level names: 0
+
+Note: 50+ names repeat as nested functions (e.g. setup, present, activate, process, stats, state_info inside game factories like _spotit, bluff, aristo, ferro, aristoLegacy, ferroLegacy). These are scoped and safe, therefore excluded per request.

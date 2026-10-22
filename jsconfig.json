@@ -4,9 +4,11 @@
     "target": "es6"
   },
   "include": [
-    "koala",
+    "day",
     "common"
   ],
   "exclude": [
+    "*/**/closure.js",
+    "*/**/aristo0.js",
  ]
 }

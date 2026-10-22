@@ -3963,7 +3963,7 @@ function cFaceDown(item, color, texture) {
 function cFaceUp(item) {
   if (item.faceUp) return;
   if (lookup(item, ['live', 'dCover'])) mStyle(item.live.dCover, { display: 'none' });
-  else item.div.innerHTML = isdef(item.c52key) ? C52[item.c52key] : item.html;
+  else item.div.innerHTML = isdef(item.c52key) ? M.c52[item.c52key] : item.html;
   item.faceUp = true;
 }
 function cFlip(card, callback) {
@@ -9508,7 +9508,7 @@ function face_down_alt(item, bg, texture_name) {
 function face_up(item) {
   if (item.faceUp) return;
   if (lookup(item, ['live', 'dCover'])) mStyle(item.live.dCover, { display: 'none' });
-  else item.div.innerHTML = isdef(item.c52key) ? C52[item.c52key] : item.html;
+  else item.div.innerHTML = isdef(item.c52key) ? M.c52[item.c52key] : item.html;
   item.faceUp = true;
 }
 function ferro_get_card(ckey, h, w, ov = .25) {
@@ -15638,12 +15638,19 @@ function mCluster(olist, func, fout) {
   return res;
 }
 function mColFlex(dParent, chflex = [1, 5, 1], bgs) {
-  let styles = { opacity: 1, display: 'flex', aitems: 'stretch', 'flex-flow': 'nowrap' };
+  /* Divides dParent into flex columns aligned at the top */
+  let styles = {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    opacity: 1
+  };
   mStyle(dParent, styles);
   let res = [];
   for (let i = 0; i < chflex.length; i++) {
     let bg = isdef(bgs) ? bgs[i] : null;
-    let d1 = mDiv(dParent, { flex: chflex[i] });
+    let d1 = mDom(dParent, { flex: chflex[i], height: '100%' });
     if (isdef(bg)) mStyle(d1, { bg: bg });
     res.push(d1);
   }
@@ -21838,8 +21845,13 @@ function showGamesList(games) {
 }
 function showHandSortingButtonsFor(pl, ui) {
   if (pl.hand.length <= 1) return;
-  let x = ui.hand;
-  let d = x.container.parentNode;
+  let x = ui.hand; console.log('x',x);
+
+  //mClear(x.container.parentNode);
+  //assertion(false,'THE END');
+
+  // let d = x.container.parentNode; console.log('d',d);
+  let d = x.container; console.log('d',d);
   let bstyles = { z: 10000, position: 'absolute', hmin: 20, wmin: 50, h: 20, fz: 12, rounding: 6, bg: 'silver', fg: 'black' };
   let b1 = mDom(d, { ...bstyles, left: 20, bottom: 2 }, { tag: 'button', innerHTML: 'rank' });
   b1.onclick = () => {
@@ -23913,12 +23925,12 @@ function statsCount(key, n, dParent, styles = {}, opts = {}) {
   return d;
 }
 function statsInit(me, table, extras = {}) {
-  let players = table.players;
+  let players = table.players || table.fen.players;
   let sz = isdef(extras.sz) ? extras.sz : 40;
   let styles = { margin: 10, wmax: 210, rounding: 10, margin: 4, padding: 4, patop: 12, box: true }; //, 'border-style': 'solid', 'border-width': 6 }
-  let showfirst = isdef(table.players[me]) ? me : table.plorder[0];
+  let showfirst = isdef(players[me]) ? me : table.plorder[0];
   let order = arrCycle(table.plorder, table.plorder.indexOf(showfirst));
-  let d = mDom('dStats', { matop: 6, mabottom: 10 }, { className: extras.className || 'flexCC' });
+  let d = mDom(extras.dParent || 'dStats', { matop: 6, mabottom: 10 }, { className: extras.className || 'flexCC' });
   let usedPlayerColor = false;
   let bg, fg, cborder, cimgborder;
   for (const plName of order) {
@@ -23937,7 +23949,7 @@ function statsInit(me, table, extras = {}) {
     }
     let img = mDom(d1, { border: `${cimgborder == pl.color ? 2 : 1}px solid ${cimgborder}`, padding: 0, margin: 10, bg: 'beige', h: sz, w: sz, round: pl.playmode !== 'bot' }, { tag: 'img', src });
     mLinebreak(d1);
-    if (table.turn.includes(plName) && !table.pending.includes(plName)) showHourglass(plName, d1, sz / 2, { left: -4, top: 4 });
+    if (table.turn.includes(plName) && (!table.pending || !table.pending.includes(plName))) showHourglass(plName, d1, sz / 2, { left: -4, top: 4 });
   }
 }
 function stdBotMoves(botMove, table) {
@@ -25047,244 +25059,6 @@ function uiTypeStar(cards, dParent, face = 'up') {
     cards,
     topCard: cards[n - 1]
   };
-}
-function ui_add_cards_to_deck_container(cont, items, list) {
-  if (nundef(list)) list = items.map(x => x.key);
-  for (const item of items) {
-    mAppend(cont, iDiv(item));
-    mItemSplay(item, list, 4, Card.ovdeck);
-    face_down(item);
-  }
-  return items[0];
-}
-function ui_add_cards_to_hand_container(cont, items, list) {
-  if (nundef(list)) list = items.map(x => x.key);
-  for (const item of items) {
-    mAppend(cont, iDiv(item));
-    mItemSplay(item, list, 2, Card.ovw);
-  }
-}
-function ui_add_container_title(title, cont, items, show_if_empty) {
-  if (isdef(title) && (!isEmpty(items) || show_if_empty)) {
-    mDom(cont, { w100: true, align: 'center', maleft: -2, matop: 2 }, { html: title });
-  }
-}
-function ui_get_all_commission_items(uplayer, table, ui) {
-  let items = [], i = 0;
-  let comm = ui.players[uplayer].commissions;
-  for (const o of comm.items) {
-    let item = { itemtype: 'card', o: o, a: o.key, key: o.key, friendly: o.short, path: comm.path, index: i };
-    i++;
-    items.push(item);
-  }
-  return items;
-}
-function ui_get_exchange_items(uplayer) {
-  let ihand = ui_get_hand_items(uplayer);
-  let istall = ui_get_stall_items(uplayer);
-  let irepair = ui_get_all_hidden_building_items(uplayer);
-  irepair.map(x => face_up(x.o));
-  let items = ihand.concat(istall).concat(irepair);
-  reindex_items(items);
-  return items;
-}
-function ui_get_farms_estates_items(uplayer) { return ui_get_building_items_of_type(uplayer, ['farm', 'estate']); }
-function ui_get_hand_and_journey_items(uplayer) {
-  let items = ui_get_hand_items(uplayer);
-  let matching = [];
-  for (const plName of Z.plorder) {
-    let jitems = ui_get_journey_items(plName);
-    for (const j of jitems) {
-      for (const card of items) {
-        if (matches_on_either_end(card, j)) { matching.push(j); break; }
-      }
-    }
-  }
-  items = items.concat(matching);
-  reindex_items(items);
-  return items;
-}
-function ui_get_hand_and_stall_items(uplayer) {
-  let items = ui_get_hand_items(uplayer);
-  items = items.concat(ui_get_stall_items(uplayer));
-  reindex_items(items);
-  return items;
-}
-function ui_get_hand_items(uplayer) {
-  let items = [], i = 0;
-  let hand = UI.players[uplayer].hand;
-  for (const o of hand.items) {
-    o.index = i;
-    let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: hand.path, index: i };
-    i++;
-    items.push(item);
-  }
-  return items;
-}
-function ui_get_harvest_items(uplayer) {
-  let items = []; let i = 0;
-  for (const gb of UI.players[uplayer].buildinglist) {
-    if (isdef(gb.harvest)) {
-      let d = gb.harvest;
-      mStyle(d, { cursor: 'pointer', opacity: 1 });
-      gb.div = d;
-      let name = 'H' + i + ':' + (gb.list[0][0] == 'T' ? '10' : gb.list[0][0]);
-      let item = { o: gb, a: name, key: name, friendly: name, path: gb.path, index: i };
-      i++;
-      items.push(item);
-    }
-  }
-  return items;
-}
-function ui_get_hidden_building_items(uibuilding) {
-  let items = [];
-  for (let i = 1; i < uibuilding.items.length; i++) {
-    let o = uibuilding.items[i];
-    o.index = i;
-    let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: uibuilding.path, index: i - 1 };
-    items.push(item);
-  }
-  return items;
-}
-function ui_get_journey_items(plName) {
-  let gblist = UI.players[plName].journeys;
-  let items = [], i = 0;
-  for (const o of gblist) {
-    let name = `${plName}_j${i}`;
-    o.div = o.container;
-    let item = { o: o, a: name, key: o.list[0], friendly: name, path: o.path, index: i, ui: o.container };
-    i++;
-    items.push(item);
-  }
-  return items;
-}
-function ui_get_market_items() {
-  let items = [], i = 0;
-  for (const o of UI.market.items) {
-    o.index = i;
-    let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: `market`, index: i };
-    i++;
-    items.push(item);
-  }
-  return items;
-}
-function ui_get_open_discard_items() {
-  let items = [], i = 0;
-  for (const o of UI.open_discard.items) {
-    let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: `open_discard`, index: i };
-    i++;
-    items.push(item);
-  }
-  return items;
-}
-function ui_make_container(dParent, styles = { bg: 'random', padding: 10 }) {
-  let id = getUID('u');
-  let d = mDiv(dParent, styles, id);
-  return d;
-}
-function ui_make_deck_container(list, dParent, styles = { bg: 'random', padding: 10 }, get_card_func) {
-  let id = getUID('u'); // 'deck_cont'; //getUID('u');
-  let d = mDiv(dParent, styles, id);
-  if (isEmpty(list)) return d;
-  let c = get_card_func(list[0]);
-  mContainerSplay(d, 4, c.w, c.h, n, 0);
-  return d;
-}
-function ui_make_hand_container(items, dParent, styles = { bg: 'random', padding: 10 }) {
-  let id = getUID('u');
-  let d = mDiv(dParent, styles, id);
-  if (!isEmpty(items)) {
-    let card = items[0];
-    mContainerSplay(d, 2, card.w, card.h, items.length, card.ov * card.w);
-  }
-  return d;
-}
-function ui_player_info(dParent, outerStyles = { dir: 'column' }, innerStyles = {}) {
-  let fen = Z.fen;
-  if (nundef(outerStyles.display)) outerStyles.display = 'flex';
-  mStyle(dParent, outerStyles);
-  let items = {};
-  let styles = jsCopy(innerStyles); addKeys({ rounding: 10, bg: '#00000050', margin: 4, padding: 4, patop: 12, box: true, 'border-style': 'solid', 'border-width': 6 }, styles);
-  let order = get_present_order();
-  for (const plName of order) {
-    let pl = fen.players[plName];
-    console.log('pl', pl);
-    let uname = pl.name;
-    let imgPath = `../assets/img/users/${M.users[uname].imgKey}.jpg`;
-    styles['border-color'] = get_user_color(uname);
-    let item = mDivItem(dParent, styles, name2id(uname));
-    let d = iDiv(item);
-    let picstyle = { w: 50, h: 50, box: true };
-    let ucolor = get_user_color(uname);
-    if (pl.playmode == 'bot') {
-      copyKeys({ rounding: 0, border: `double 6px ${ucolor}` }, picstyle);
-    } else {
-      copyKeys({ rounding: '50%', border: `solid 2px white` }, picstyle);
-    }
-    let img = mImage(imgPath, d, picstyle, 'img_person');
-    img.onclick = () => onclick_user(uname);
-    items[uname] = item;
-  }
-  if (DA.SIMSIM || is_advanced_user()) activate_playerstats(items)
-  return items;
-}
-function ui_type_lead_hand(list, dParent, styles = {}, path = 'hand', title = 'hand', get_card_func = ari_get_card, show_if_empty = false) {
-  let hcard = isdef(styles.h) ? styles.h - 30 : Config.ui.card.h;
-  addKeys(get_container_styles(styles), styles);
-  let cont = ui_make_container(dParent, styles);
-  let items = list.map(x => get_card_func(x, hcard));
-  let cardcont = mDiv(cont);
-  let card = isEmpty(items) ? { w: 1, h: hcard, ov: 0 } : items[0];
-  let splay = 5;
-  mContainerSplay(cardcont, splay, card.w, card.h, items.length, card.ov * card.w);
-  ui_add_cards_to_hand_container(cardcont, items, list);
-  ui_add_container_title(title, cont, items, show_if_empty);
-  return {
-    ctype: 'hand',
-    list: list,
-    path: path,
-    container: cont,
-    cardcontainer: cardcont,
-    splay: splay,
-    items: items,
-  };
-}
-function ui_type_market(list, dParent, styles = {}, path = 'market', title = 'market', get_card_func = ari_get_card, show_if_empty = false) {
-  let cont = ui_make_container(dParent, get_container_styles(styles));
-  let cardcont = mDiv(cont, { display: 'flex', gap: 2 });
-  let items = list.map(x => get_card_func(x));
-  items.map(x => mAppend(cardcont, iDiv(x)));
-  ui_add_container_title(title, cont, items, show_if_empty);
-  return {
-    ctype: 'market',
-    list: list,
-    path: path,
-    container: cont,
-    cardcontainer: cardcont,
-    items: items,
-  };
-}
-function ui_type_rank_count(list, dParent, styles, path, title, get_card_func, show_if_empty = false) {
-  let cont = ui_make_container(dParent, get_container_styles(styles));
-  let cardcont = mDiv(cont, { display: 'flex' });
-  let items = [];
-  for (const o of list) {
-    let d = mDiv(cardcont, { display: 'flex', dir: 'c', padding: 1, fz: 12, align: 'center', position: 'relative' });
-    let c = get_card_func(o.key);
-    mAppend(d, iDiv(c));
-    remove_card_shadow(c);
-    d.innerHTML += `<span style="font-weight:bold">${o.count}</span>`;
-    let item = { card: c, count: o.count, div: d };
-    items.push(item);
-  }
-  ui_add_container_title(title, cont, items, show_if_empty);
-  return {
-    list: list,
-    path: path,
-    container: cont,
-    cardcontainer: cardcont,
-    items: items,
-  }
 }
 function uid() {
   UID += 1;

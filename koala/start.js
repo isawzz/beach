@@ -66,6 +66,7 @@ async function test0_aristo() {
 	await pollInit();
 }
 async function test0() {
+	create_card_assets_c52();
 	await loadAssetsStaticPreload();
 	initUI();
 	await DAInit();

@@ -1,0 +1,9152 @@
+
+
+class ValueBlend {
+	constructor(options = {}) {
+		//this.options = options;
+		this._init_corners(options);
+	}
+	_init_corners(options) {
+		// Corners should be a list of tuples (arrays in JavaScript):
+		// [bottomleft, bottomright, topleft, topright]
+		if ('corners' in options) {
+			this.corners = options.corners;
+			if (this.corners.length !== 4 || this.corners.some(v => v.length !== 2)) {
+				throw new Error("corner should be a list of four tuples, set either option 'corners' or options 'h_range' and 'v_range'");
+			}
+		} else if ('h_range' in options && 'v_range' in options) {
+			this.corners = [
+				[options['h_range'][0], options['v_range'][0]],
+				[options['h_range'][1], options['v_range'][0]],
+				[options['h_range'][0], options['v_range'][1]],
+				[options['h_range'][1], options['v_range'][1]]
+			];
+		} else {
+			throw new Error("Must set either option 'corners' or options 'h_range' and 'v_range'");
+		}
+	}
+	_blend_tuples(tuple1, tuple2, ratio) {
+		const out = [null, null];
+		for (let i = 0; i < 2; i++) {
+			out[i] = (1 - ratio) * tuple1[i] + ratio * tuple2[i];
+		}
+		return out;
+	}
+
+	blend(ratio_h, ratio_v) {
+		// Interpolate along the H direction for the bottom and top edges.
+		const hv0 = this._blend_tuples(this.corners[0], this.corners[1], ratio_h);
+		const hv1 = this._blend_tuples(this.corners[2], this.corners[3], ratio_h);
+		// Interpolate between the two results along the V direction.
+		return this._blend_tuples(hv0, hv1, ratio_v);
+	}
+}
+
+class AbstractTile extends ValueBlend {
+	constructor(tessagon, options = {}) {
+		super(options);
+		this.tessagon = tessagon;
+		this.f = tessagon.f;
+		this.h_symmetric = options.hasOwnProperty('h_symmetric') ? options.h_symmetric : false;
+		this.v_symmetric = options.hasOwnProperty('v_symmetric') ? options.v_symmetric : false;
+		this.rot_symmetric = options.hasOwnProperty('rot_symmetry') ? options.rot_symmetry : null;
+		this.id = options.hasOwnProperty('id') ? options.id : null;
+		this.fingerprint = options.hasOwnProperty('fingerprint') ? options.fingerprint : null;
+		this.corners = null;
+		this._init_corners(options);
+		this.neighbors = {
+			top: null,
+			bottom: null,
+			left: null,
+			right: null
+		};
+		this.twist = {
+			top: false,
+			bottom: false,
+			left: false,
+			right: false
+		};
+	}
+	set_neighbors(options = {}) {
+		if (options.hasOwnProperty('top')) {
+			this.neighbors.top = options.top;
+		}
+		if (options.hasOwnProperty('bottom')) {
+			this.neighbors.bottom = options.bottom;
+		}
+		if (options.hasOwnProperty('left')) {
+			this.neighbors.left = options.left;
+		}
+		if (options.hasOwnProperty('right')) {
+			this.neighbors.right = options.right;
+		}
+	}
+	get_neighbor_tile(neighbor_keys) {
+		let tile = this;
+		for (const key of this._neighbor_path(neighbor_keys)) {
+			if (!tile.neighbors[key]) {
+				return null;
+			}
+			tile = tile.neighbors[key];
+		}
+		return tile;
+	}
+	get left() {
+		return this.get_neighbor_tile(["left"]);
+	}
+	get right() {
+		return this.get_neighbor_tile(["right"]);
+	}
+	get top() {
+		return this.get_neighbor_tile(["top"]);
+	}
+	get bottom() {
+		return this.get_neighbor_tile(["bottom"]);
+	}
+	inspect(options = {}) {
+		if (!this.id) return;
+		let prefix = 'Tile';
+		if (options.hasOwnProperty('tile_number')) {
+			prefix += " #" + options.tile_number;
+		}
+		console.log(`${prefix} (${this.constructor.name}):`);
+		console.log(`  - self:      ${this.id}`);
+		console.log('  - neighbors:');
+		['top', 'left', 'right', 'bottom'].forEach(key => {
+			if (this.neighbors[key]) {
+				const tile = this.neighbors[key];
+				if (tile.id) {
+					console.log(`    - ${this._neighbor_str(key)}`);
+				}
+			}
+		});
+		console.log(`  - corners: (${this.corners[2][0].toFixed(4)}, ${this.corners[2][1].toFixed(4)})  (${this.corners[3][0].toFixed(4)}, ${this.corners[3][1].toFixed(4)})`);
+		console.log(`             (${this.corners[0][0].toFixed(4)}, ${this.corners[0][1].toFixed(4)})  (${this.corners[1][0].toFixed(4)}, ${this.corners[1][1].toFixed(4)})`);
+		console.log("  - twist:", this.twist);
+		if (this.fingerprint) {
+			console.log("  - fingerprint:", this.fingerprint);
+		}
+		console.log('');
+	}
+	_get_nested_list_value(nested_list, index_keys) {
+		//console.log('.....',nested_list,index_keys);
+		if (!Array.isArray(index_keys)) {
+			return nested_list[index_keys];
+		}
+		let value = nested_list;
+		//console.log('..value...', value);
+		for (const index of index_keys) {
+			value = value[index];
+		}
+		return value;
+	}
+	_set_nested_list_value(nested_list, index_keys, value) {
+		if (!Array.isArray(index_keys)) {
+			nested_list[index_keys] = value;
+			return;
+		}
+		let reference = nested_list;
+		for (let i = 0; i < index_keys.length - 1; i++) {
+			reference = reference[index_keys[i]];
+		}
+		reference[index_keys[index_keys.length - 1]] = value;
+	}
+	_neighbor_path(neighbor_keys) {
+		if (neighbor_keys.length < 2) {
+			return neighbor_keys;
+		}
+		if (this._should_twist_u(neighbor_keys)) {
+			if (['top', 'bottom'].includes(neighbor_keys[0])) {
+				return [neighbor_keys[1], neighbor_keys[0]];
+			}
+		} else if (this._should_twist_v(neighbor_keys)) {
+			if (['left', 'right'].includes(neighbor_keys[0])) {
+				return [neighbor_keys[1], neighbor_keys[0]];
+			}
+		}
+		return neighbor_keys;
+	}
+	_index_path(index_keys, neighbor_keys) {
+		let path = index_keys;
+		if (this._should_twist_u(neighbor_keys)) {
+			path = this._h_flip(path);
+		}
+		if (this._should_twist_v(neighbor_keys)) {
+			path = this._v_flip(path);
+		}
+		return path;
+	}
+	_permute_value(index_keys, vals) {
+		if (Array.isArray(index_keys)) {
+			return index_keys.map(h => this._permute_value(h, vals));
+		}
+		for (let i = 0; i < vals.length; i++) {
+			if (index_keys === vals[i]) {
+				return vals[(i + 1) % vals.length];
+			}
+		}
+		return index_keys;
+	}
+	_swap_value(index_keys, val1, val2) {
+		return this._permute_value(index_keys, [val1, val2]);
+	}
+	// _h_flip(index_keys) {
+	// 	if (!this.h_symmetric) {
+	// 		return index_keys;
+	// 	}
+	// 	return this._swap_value(index_keys, 'left', 'right');
+	// }
+	// _v_flip(index_keys) {
+	// 	if (!this.v_symmetric) {
+	// 		return index_keys;
+	// 	}
+	// 	return this._swap_value(index_keys, 'bottom', 'top');
+	// }
+	_h_flip(index_keys) {
+		// Removed the !this.h_symmetric check to allow 
+		// boundary handshaking for asymmetric tiles.
+		return this._swap_value(index_keys, 'left', 'right');
+	}
+
+	_v_flip(index_keys) {
+		// Removed the !this.v_symmetric check to allow 
+		// boundary handshaking for asymmetric tiles.
+		return this._swap_value(index_keys, 'bottom', 'top');
+	}
+	_rotate_index(index_keys) {
+		if (!this.rot_symmetric) {
+			return index_keys;
+		} else if (this.rot_symmetric === 180) {
+			let keys = this._permute_value(index_keys, ['rotate0', 'rotate180']);
+			keys = this._permute_value(keys, ['left', 'right']);
+			keys = this._permute_value(keys, ['top', 'bottom']);
+			return keys;
+		} else if (this.rot_symmetric === 90) {
+			return this._permute_value(index_keys, ['rotate0', 'rotate90', 'rotate180', 'rotate270']);
+		}
+	}
+	_v_index(index_keys) {
+		if (index_keys.indexOf('bottom') !== -1) {
+			return 'bottom';
+		}
+		if (index_keys.indexOf('top') !== -1) {
+			return 'top';
+		}
+		throw new Error(`no v_index found in ${index_keys}`);
+	}
+	_h_index(index_keys) {
+		if (index_keys.indexOf('left') !== -1) {
+			return 'left';
+		}
+		if (index_keys.indexOf('right') !== -1) {
+			return 'right';
+		}
+		throw new Error(`no h_index found in ${index_keys}`);
+	}
+	_should_twist_u(neighbor_keys) {
+		for (const twist of ['top', 'bottom']) {
+			if (this.twist[twist] && neighbor_keys.indexOf(twist) !== -1) {
+				return true;
+			}
+		}
+		return false;
+	}
+	_should_twist_v(neighbor_keys) {
+		for (const twist of ['left', 'right']) {
+			if (this.twist[twist] && neighbor_keys.indexOf(twist) !== -1) {
+				return true;
+			}
+		}
+		return false;
+	}
+	_neighbor_str(key) {
+		const tile = this.neighbors[key];
+		if (tile) {
+			return `${(key + ":").padEnd(9, ' ')}${tile.id}`;
+		}
+		return `${key}: None`;
+	}
+}
+
+class Tile extends AbstractTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.mesh_adaptor = tessagon.mesh_adaptor;
+		this.verts = this.init_verts();
+		this.faces = this.init_faces();
+		this.color_pattern = options.hasOwnProperty('color_pattern') ? options.color_pattern : null;
+		if (this.faces && this.color_pattern) {
+			this.face_paths = this.all_face_paths();
+		}
+	}
+	validate() {
+		// Subclass decides if this should be done
+	}
+	add_vert(index_keys, ratio_h, ratio_v, options = {}) {
+		let vert = this._get_vert(index_keys);
+		//console.log('!!!!!Tile.add_vert',index_keys,vert)
+		if (vert === null || vert === undefined) {
+			const coords = this.f(...this.blend(ratio_h, ratio_v));
+			vert = this.mesh_adaptor.create_vert(coords);
+			//console.log('vertex created!',vert)
+			this._set_vert(index_keys, vert);
+			if (options.hasOwnProperty('vert_type')) {
+				if (!this.tessagon.vert_types.hasOwnProperty(options.vert_type)) {
+					this.tessagon.vert_types[options.vert_type] = [];
+				}
+				this.tessagon.vert_types[options.vert_type].push(vert);
+			}
+		}
+		if (vert !== null && vert !== undefined) {
+			const equivalent_verts = options.hasOwnProperty('equivalent') ? options.equivalent : [];
+			for (const equivalent_vert of equivalent_verts) {
+				this.set_equivalent_vert(...equivalent_vert, vert);
+			}
+		}
+		this._create_symmetric_verts(index_keys, ratio_h, ratio_v, options);
+		this._set_equivalent_neighbor_verts(index_keys, vert, options);
+		return vert;
+	}
+	set_equivalent_vert(neighbor_keys, index_keys, vert, options = {}) {
+		if (vert === null || vert === undefined) {
+			return null;
+		}
+		const tile = this.get_neighbor_tile(neighbor_keys);
+		//console.log(tile,neighbor_keys,index_keys,vert)
+		if (tile === null) {
+			return null;
+		}
+		tile._set_vert(this._index_path(index_keys, neighbor_keys), vert);
+	}
+	add_face(index_keys, vert_index_keys_list, options = {}) {
+		let face = this._get_face(index_keys);
+		if (face === null || face === undefined) {
+			const verts = this._get_verts_from_list(vert_index_keys_list);
+			if (verts !== null && verts !== undefined) {
+				face = this._make_face(index_keys, verts, options);
+			}
+		}
+		if (face !== null && face !== undefined) {
+			const equivalent_faces = options.hasOwnProperty('equivalent') ? options.equivalent : [];
+			for (const equivalent_face of equivalent_faces) {
+				this.set_equivalent_face(...equivalent_face, face);
+			}
+		}
+		this._create_symmetric_faces(index_keys, vert_index_keys_list, options);
+		return face;
+	}
+	_make_face(index_keys, verts, options = {}) {
+		const face = this.mesh_adaptor.create_face(verts);
+		this._set_face(index_keys, face);
+		if (options.hasOwnProperty('face_type')) {
+			if (!this.tessagon.face_types.hasOwnProperty(options.face_type)) {
+				this.tessagon.face_types[options.face_type] = [];
+			}
+			this.tessagon.face_types[options.face_type].push(face);
+		}
+		this._set_equivalent_neighbor_faces(index_keys, face, options);
+		return face;
+	}
+	num_color_patterns() {
+		return this.tessagon.constructor.num_color_patterns();
+	}
+	calculate_colors() {
+		if (this.color_pattern > this.num_color_patterns()) {
+			throw new Error("color_pattern must be below " + this.num_color_patterns());
+		}
+		const method_name = "color_pattern" + this.color_pattern;
+		const method = this[method_name];
+		if (typeof method !== 'function') {
+			throw new Error(method_name + " is not a callable color pattern");
+		}
+		method.call(this);
+	}
+	color_face(index_keys, color_index) {
+		const face = this._get_face(index_keys);
+		if (face === null || face === undefined) {
+			return;
+		}
+		this.mesh_adaptor.color_face(face, color_index);
+	}
+	set_equivalent_face(neighbor_keys, index_keys, face, options = {}) {
+		const tile = this.get_neighbor_tile(neighbor_keys);
+		if (tile === null) {
+			return null;
+		}
+		tile._set_face(this._index_path(index_keys, neighbor_keys), face);
+	}
+	all_face_paths(faces = null, base_path = null) {
+		if (faces === null) {
+			faces = this.faces;
+		}
+		if (base_path === null) {
+			base_path = [];
+		}
+		let paths = [];
+		for (const index in faces) {
+			const new_base_path = base_path.concat([index]);
+			if (typeof faces[index] === 'object' && !Array.isArray(faces[index]) && faces[index] !== null) {
+				paths = paths.concat(this.all_face_paths(faces[index], new_base_path));
+			} else {
+				paths.push(new_base_path);
+			}
+		}
+		return paths;
+	}
+	color_paths(paths, color, color_other = null) {
+		for (const path of this.face_paths) {
+			if (paths.some(p => JSON.stringify(p) === JSON.stringify(path))) {
+				this.color_face(path, color);
+			} else if (color_other) {
+				this.color_face(path, color_other);
+			}
+		}
+	}
+	color_paths_hash(hash, color_other = null) {
+		for (const path of this.face_paths) {
+			let done = false;
+			for (const color in hash) {
+				if (hash[color].some(p => JSON.stringify(p) === JSON.stringify(path))) {
+					this.color_face(path, color);
+					done = true;
+					break;
+				}
+			}
+			if (color_other && !done) {
+				this.color_face(path, color_other);
+			}
+		}
+	}
+	_get_vert(index_keys) {
+		return this._get_nested_list_value(this.verts, index_keys);
+	}
+	_set_vert(index_keys, value) {
+		this._set_nested_list_value(this.verts, index_keys, value);
+	}
+	_get_face(index_keys) {
+		return this._get_nested_list_value(this.faces, index_keys);
+	}
+	_set_face(index_keys, value) {
+		this._set_nested_list_value(this.faces, index_keys, value);
+	}
+	_get_neighbor_vert(neighbor_keys, index_keys) {
+		const tile = this.get_neighbor_tile(neighbor_keys);
+		if (tile === null) {
+			return null;
+		}
+		return tile._get_vert(this._index_path(index_keys, neighbor_keys));
+	}
+	_create_symmetric_verts(index_keys, ratio_h, ratio_v, options = {}) {
+		if (!options.hasOwnProperty('symmetry')) {
+			const extra_args = { symmetry: true };
+			if (this.rot_symmetric === 180) {
+				let rot_keys = this._rotate_index(index_keys);
+				this.add_vert(rot_keys, 1.0 - ratio_h, 1 - ratio_v, Object.assign({}, options, extra_args));
+			} else if (this.rot_symmetric === 90) {
+				let rot_keys = this._rotate_index(index_keys);
+				this.add_vert(rot_keys, 1.0 - ratio_v, ratio_h, Object.assign({}, options, extra_args));
+				rot_keys = this._rotate_index(rot_keys);
+				this.add_vert(rot_keys, 1.0 - ratio_h, 1 - ratio_v, Object.assign({}, options, extra_args));
+				rot_keys = this._rotate_index(rot_keys);
+				this.add_vert(rot_keys, ratio_v, 1 - ratio_h, Object.assign({}, options, extra_args));
+			}
+			if (this.h_symmetric) {
+				let h_flip_keys = this._h_flip(index_keys);
+				this.add_vert(h_flip_keys, 1.0 - ratio_h, ratio_v, Object.assign({}, options, extra_args));
+				if (this.v_symmetric) {
+					let hv_flip_keys = this._v_flip(h_flip_keys);
+					this.add_vert(hv_flip_keys, 1.0 - ratio_h, 1.0 - ratio_v, Object.assign({}, options, extra_args));
+				}
+			}
+			if (this.v_symmetric) {
+				let v_flip_keys = this._v_flip(index_keys);
+				this.add_vert(v_flip_keys, ratio_h, 1.0 - ratio_v, Object.assign({}, options, extra_args));
+			}
+		}
+	}
+	_set_equivalent_neighbor_verts(index_keys, vert, options = {}) {
+		if (options.hasOwnProperty('h_boundary')) {
+			this._set_h_equivalent_vert(index_keys, vert, options);
+		}
+		if (options.hasOwnProperty('v_boundary')) {
+			this._set_v_equivalent_vert(index_keys, vert, options);
+		}
+		if (options.hasOwnProperty('corner')) {
+			this._set_h_equivalent_vert(index_keys, vert, options);
+			this._set_v_equivalent_vert(index_keys, vert, options);
+			this._set_hv_equivalent_vert(index_keys, vert, options);
+		}
+	}
+	_set_h_equivalent_vert(index_keys, vert, options = {}) {
+		const h_index = this._h_index(index_keys);
+		const h_flip_keys = this._h_flip(index_keys);
+		//console.log(index_keys,h_index,h_flip_keys)
+		this.set_equivalent_vert([h_index], h_flip_keys, vert, options);
+	}
+	_set_v_equivalent_vert(index_keys, vert, options = {}) {
+		const v_index = this._v_index(index_keys);
+		const v_flip_keys = this._v_flip(index_keys);
+		//console.log('____',index_keys,v_index,v_flip_keys)
+		let res = this.set_equivalent_vert([v_index], v_flip_keys, vert, options);
+		//console.log('RESULT:',res)
+	}
+	_set_hv_equivalent_vert(index_keys, vert, options = {}) {
+		const h_index = this._h_index(index_keys);
+		const v_index = this._v_index(index_keys);
+		const h_flip_keys = this._h_flip(index_keys);
+		const hv_flip_keys = this._v_flip(h_flip_keys);
+		this.set_equivalent_vert([h_index, v_index], hv_flip_keys, vert, options);
+	}
+	_get_verts_from_list(vert_index_keys_list) {
+		const verts = [];
+		for (const vert_index_keys of vert_index_keys_list) {
+			let vert;
+			if (Array.isArray(vert_index_keys) && Array.isArray(vert_index_keys[0])) {
+				vert = this._get_neighbor_vert(vert_index_keys[0], vert_index_keys[1]);
+			} else {
+				vert = this._get_vert(vert_index_keys);
+			}
+			if (vert === null || vert === undefined) {
+				return null;
+			}
+			verts.push(vert);
+		}
+		return verts;
+	}
+	_create_symmetric_faces(index_keys, vert_index_keys_list, options = {}) {
+		if (!options.hasOwnProperty('symmetry')) {
+			const extra_args = { symmetry: true };
+			if (this.rot_symmetric === 180) {
+				let rot_keys = this._rotate_index(index_keys);
+				let rot_vert_index_keys_list = this._rotate_index(vert_index_keys_list);
+				if (options.hasOwnProperty('equivalent')) {
+					const equivalent_faces = options.equivalent;
+					const new_opts = Object.assign({}, options);
+					new_opts.equivalent = equivalent_faces.map(equiv => this._rotate_index(equiv));
+					options = new_opts;
+				}
+				this.add_face(rot_keys, rot_vert_index_keys_list, Object.assign({}, options, extra_args));
+			}
+			if (this.h_symmetric) {
+				let h_flip_keys = this._h_flip(index_keys);
+				let h_flip_vert_index_keys_list = this._h_flip(vert_index_keys_list);
+				this.add_face(h_flip_keys, h_flip_vert_index_keys_list, Object.assign({}, options, extra_args));
+				if (this.v_symmetric) {
+					let hv_flip_keys = this._v_flip(h_flip_keys);
+					let hv_flip_vert_index_keys_list = this._v_flip(h_flip_vert_index_keys_list);
+					this.add_face(hv_flip_keys, hv_flip_vert_index_keys_list, Object.assign({}, options, extra_args));
+				}
+			}
+			if (this.v_symmetric) {
+				let v_flip_keys = this._v_flip(index_keys);
+				let v_flip_vert_index_keys_list = this._v_flip(vert_index_keys_list);
+				this.add_face(v_flip_keys, v_flip_vert_index_keys_list, Object.assign({}, options, extra_args));
+			}
+		}
+	}
+	_set_equivalent_neighbor_faces(index_keys, face, options = {}) {
+		if (options.hasOwnProperty('h_boundary')) {
+			this._set_h_equivalent_face(index_keys, face, options);
+		}
+		if (options.hasOwnProperty('v_boundary')) {
+			this._set_v_equivalent_face(index_keys, face, options);
+		}
+		if (options.hasOwnProperty('corner')) {
+			this._set_h_equivalent_face(index_keys, face, options);
+			this._set_v_equivalent_face(index_keys, face, options);
+			this._set_hv_equivalent_face(index_keys, face, options);
+		}
+	}
+	_set_h_equivalent_face(index_keys, face, options = {}) {
+		const h_index = this._h_index(index_keys);
+		const h_flip_keys = this._h_flip(index_keys);
+		this.set_equivalent_face([h_index], h_flip_keys, face, options);
+	}
+	_set_v_equivalent_face(index_keys, face, options = {}) {
+		const v_index = this._v_index(index_keys);
+		const v_flip_keys = this._v_flip(index_keys);
+		this.set_equivalent_face([v_index], v_flip_keys, face, options);
+	}
+	_set_hv_equivalent_face(index_keys, face, options = {}) {
+		const h_index = this._h_index(index_keys);
+		const v_index = this._v_index(index_keys);
+		const h_flip_keys = this._h_flip(index_keys);
+		const hv_flip_keys = this._v_flip(h_flip_keys);
+		this.set_equivalent_face([h_index, v_index], hv_flip_keys, face, options);
+	}
+}
+
+class TileGenerator extends ValueBlend {
+	constructor(tessagon, options = {}) {
+		super(options);
+		this.tessagon = tessagon;
+		this.corners = null;
+		this._init_corners(options);
+		this.h_num = options.h_num;
+		this.v_num = options.v_num;
+		if (!this.h_num || !this.v_num) {
+			throw new Error("Make sure h_num and v_num intervals are set");
+		}
+		this.h_cyclic = options.hasOwnProperty('h_cyclic') ? options.h_cyclic : true;
+		this.v_cyclic = options.hasOwnProperty('v_cyclic') ? options.v_cyclic : true;
+		this.v_twist = options.hasOwnProperty('v_twist') ? options.v_twist : false;
+		this.h_twist = options.hasOwnProperty('h_twist') ? options.h_twist : false;
+		this.h_phase = options.hasOwnProperty('h_phase') ? options.h_phase : 0.0;
+		this.v_phase = options.hasOwnProperty('v_phase') ? options.v_phase : 0.0;
+		this.h_shear = options.hasOwnProperty('h_shear') ? options.h_shear : 0.0;
+		this.v_shear = options.hasOwnProperty('v_shear') ? options.v_shear : 0.0;
+		this.id_prefix = tessagon.constructor.name;
+		if (options.hasOwnProperty('id_prefix')) {
+			this.id_prefix = options.id_prefix;
+		}
+		this.fingerprint_offset = options.hasOwnProperty('fingerprint_offset') ? options.fingerprint_offset : null;
+		this.color_pattern = options.hasOwnProperty('color_pattern') ? options.color_pattern : null;
+	}
+	create_tile(h, v, corners, options = {}) {
+		const extra_args = {
+			corners: corners,
+			fingerprint: [h, v]
+		};
+		if (this.fingerprint_offset) {
+			extra_args.fingerprint[0] += this.fingerprint_offset[0];
+			extra_args.fingerprint[1] += this.fingerprint_offset[1];
+		}
+		if (this.id_prefix) {
+			extra_args.id = `${this.id_prefix}[${h}][${v}]`;
+		}
+		if (this.color_pattern) {
+			extra_args.color_pattern = this.color_pattern;
+		}
+		const extra_parameters = this.tessagon.extra_parameters;
+		if (extra_parameters) {
+			for (const parameter in extra_parameters) {
+				if (extra_parameters.hasOwnProperty(parameter)) {
+					extra_args[parameter] = extra_parameters[parameter];
+				}
+			}
+		}
+		const tile_class = this.tessagon.constructor.tile_class;
+		return new tile_class(this.tessagon, Object.assign({}, options, extra_args));
+	}
+	create_tiles() {
+		this.initialize_tiles();
+		this.initialize_neighbors();
+		const tiles = this.get_tiles();
+		//console.log('!!!', tiles)
+		for (const tile of tiles) {
+			tile.validate();
+		}
+		return tiles;
+	}
+}
+
+class AlternatingTile extends Tile {
+	validate() {
+		const this_tile_type = this.tile_type;
+		for (const name in this.neighbors) {
+			const neighbor = this.neighbors[name];
+			if (neighbor && (neighbor.tile_type + this_tile_type !== 1)) {
+				throw new Error("Tiles have bad parity (hint: maybe use an even number of tiles)");
+			}
+		}
+	}
+	get tile_type() {
+		return this.fingerprint.reduce((sum, value) => sum + value, 0) % 2;
+	}
+}
+
+class GridTileGenerator extends TileGenerator {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.tiles = null;
+	}
+	initialize_tiles(options = {}) {
+		let tiles = [];
+		let opts = addKeys(this.tessagon.options, options);
+		//console.log('______________', opts)
+
+		for (let h = 0; h < this.h_num; h++) {
+			tiles[h] = new Array(this.v_num).fill(null);
+		}
+		for (let h = 0; h < this.h_num; h++) {
+			let h_ratio0 = h / this.h_num;
+			let h_ratio1 = (h + 1) / this.h_num;
+			let v_shear0 = h * this.v_shear;
+			let v_shear1 = (h + 1) * this.v_shear;
+			for (let v = 0; v < this.v_num; v++) {
+				// // --- ADD THIS FILTER CHECK ---
+				// console.log('initialize',h,v)
+				// if (options.tile_filter && !options.tile_filter(h, v)) {
+				// 	continue;
+				// }
+				// // -----------------------------			
+				let v_ratio0 = v / this.v_num;
+				let v_ratio1 = (v + 1) / this.v_num;
+				let h_shear0 = v * this.h_shear;
+				let h_shear1 = (v + 1) * this.h_shear;
+				let corners = [
+					this.blend(h_ratio0 + h_shear0 + this.h_phase, v_ratio0 + v_shear0 + this.v_phase),
+					this.blend(h_ratio1 + h_shear0 + this.h_phase, v_ratio0 + v_shear1 + this.v_phase),
+					this.blend(h_ratio0 + h_shear1 + this.h_phase, v_ratio1 + v_shear0 + this.v_phase),
+					this.blend(h_ratio1 + h_shear1 + this.h_phase, v_ratio1 + v_shear1 + this.v_phase)
+				];
+				tiles[h][v] = this.create_tile(h, v, corners, options);
+			}
+		}
+		this.tiles = tiles;
+		return tiles;
+	}
+	initialize_neighbors(options = {}) {
+		let tiles = this.tiles;
+		for (let h = 0; h < this.h_num; h++) {
+			let h_prev = (h - 1 + this.h_num) % this.h_num;
+			let h_next = (h + 1) % this.h_num;
+			for (let v = 0; v < this.v_num; v++) {
+				let v_prev = (v - 1 + this.v_num) % this.v_num;
+				let v_next = (v + 1) % this.v_num;
+				let tile = tiles[h][v];
+				if (!tile) continue; // Skip tiles that were filtered out
+				let left, top, right, bottom;
+				if (!this.h_cyclic && h === 0) {
+					left = null;
+				} else if (this.v_twist && h === 0) {
+					left = tiles[h_prev][this.v_num - v - 1];
+					tile.twist['left'] = true;
+				} else {
+					left = tiles[h_prev][v];
+				}
+				if (!this.v_cyclic && v === this.v_num - 1) {
+					top = null;
+				} else if (this.h_twist && v === this.v_num - 1) {
+					top = tiles[this.h_num - h - 1][v_next];
+					tile.twist['top'] = true;
+				} else {
+					top = tiles[h][v_next];
+				}
+				if (!this.h_cyclic && h === this.h_num - 1) {
+					right = null;
+				} else if (this.v_twist && h === this.h_num - 1) {
+					right = tiles[h_next][this.v_num - v - 1];
+					tile.twist['right'] = true;
+				} else {
+					right = tiles[h_next][v];
+				}
+				if (!this.v_cyclic && v === 0) {
+					bottom = null;
+				} else if (this.h_twist && v === 0) {
+					bottom = tiles[this.h_num - h - 1][v_prev];
+					tile.twist['bottom'] = true;
+				} else {
+					bottom = tiles[h][v_prev];
+				}
+				tile.set_neighbors({ left: left, right: right, top: top, bottom: bottom });
+			}
+		}
+	}
+	get_tiles() {
+		return this.tiles.flat();
+		//return this.tiles.flat().filter(tile => tile !== null);
+		const flattened = [];
+		for (let v = 0; v < this.v_num; v++) {
+			for (let h = 0; h < this.h_num; h++) {
+				const tile = this.tiles[v][h];
+				if (tile) {
+					flattened.push(tile);
+				}
+			}
+		}
+		return flattened;
+	}
+
+}
+
+class ParallelogramTileGenerator extends TileGenerator {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.p = options.parallelogram_vectors;
+		this.determinant = this.p[0][0] * this.p[1][1] - this.p[1][0] * this.p[0][1];
+		this.validate_parallelogram();
+		this.inverse = [
+			[this.p[1][1] / (this.determinant * this.h_num), -this.p[1][0] / (this.determinant * this.h_num)],
+			[-this.p[0][1] / (this.determinant * this.v_num), this.p[0][0] / (this.determinant * this.v_num)]
+		];
+		this.color_pattern = options.hasOwnProperty('color_pattern') ? options.color_pattern : null;
+		this.id_prefix = 'parallelogram_tiles';
+		this.tiles = {};
+	}
+	validate_parallelogram() {
+		let error = null;
+		if (this.p[0][0] <= 0) {
+			error = "First parallelogram vector can't have negative h";
+		} else if (this.p[1][1] <= 0) {
+			error = "Second parallelogram vector can't have negative v";
+		}
+		if (this.determinant === 0) {
+			error = "Parallelogram vector are colinear";
+		} else if (this.determinant < 0) {
+			error = "First parallelogram vector is to the left of second";
+		}
+		if (error) {
+			throw new Error(error);
+		}
+	}
+	initialize_tiles() {
+		let tiles = {};
+		const fingerprintRange = this.fingerprint_range();
+		for (let h = fingerprintRange.h_range[0]; h < fingerprintRange.h_range[1]; h++) {
+			for (let v = fingerprintRange.v_range[0]; v < fingerprintRange.v_range[1]; v++) {
+				const fingerprint = this.normalize_fingerprint(h, v);
+				const fingerprint_str = fingerprint.toString();
+				if (!tiles.hasOwnProperty(fingerprint_str)) {
+					if (this.valid_fingerprint(...fingerprint)) {
+						tiles[fingerprint_str] = this.make_tile(...fingerprint);
+					}
+				}
+			}
+		}
+		this.tiles = tiles;
+		return tiles;
+	}
+	initialize_neighbors() {
+		for (const tile of this.get_tiles()) {
+			const h = tile.fingerprint[0];
+			const v = tile.fingerprint[1];
+			let fingerprint = this.normalize_fingerprint(h - 1, v);
+			let left = this.tiles[fingerprint.toString()] || null;
+			fingerprint = this.normalize_fingerprint(h + 1, v);
+			let right = this.tiles[fingerprint.toString()] || null;
+			fingerprint = this.normalize_fingerprint(h, v - 1);
+			let bottom = this.tiles[fingerprint.toString()] || null;
+			fingerprint = this.normalize_fingerprint(h, v + 1);
+			let top = this.tiles[fingerprint.toString()] || null;
+			tile.set_neighbors({ left: left, right: right, top: top, bottom: bottom });
+		}
+	}
+	get_tiles() {
+		return Object.values(this.tiles);
+	}
+	make_tile(...fingerprint) {
+		const corners = this.make_corners(...fingerprint);
+		return this.create_tile(fingerprint[0], fingerprint[1], corners);
+	}
+	make_corners(...fingerprint) {
+		const h = fingerprint[0];
+		const v = fingerprint[1];
+		return [
+			this.make_corner(h, v),
+			this.make_corner(h + 1, v),
+			this.make_corner(h, v + 1),
+			this.make_corner(h + 1, v + 1)
+		];
+	}
+	make_corner(h, v) {
+		const c0 = this.inverse[0][0] * h + this.inverse[0][1] * v;
+		const c1 = this.inverse[1][0] * h + this.inverse[1][1] * v;
+		return this.blend(c0, c1);
+	}
+	valid_fingerprint(h, v) {
+		if (!this.point_in_parallelogram(h, v)) return false;
+		let fingerprint = this.normalize_fingerprint(h + 1, v);
+		if (!this.point_in_parallelogram(...fingerprint)) return false;
+		fingerprint = this.normalize_fingerprint(h, v + 1);
+		if (!this.point_in_parallelogram(...fingerprint)) return false;
+		fingerprint = this.normalize_fingerprint(h + 1, v + 1);
+		if (!this.point_in_parallelogram(...fingerprint)) return false;
+		return true;
+	}
+	parallelogram_coord(h, v) {
+		const h_coord = (h * this.p[1][1] - v * this.p[1][0]) / this.determinant;
+		const v_coord = (v * this.p[0][0] - h * this.p[0][1]) / this.determinant;
+		return [h_coord, v_coord];
+	}
+	point_in_parallelogram(h, v) {
+		const parallelogram_hv = this.parallelogram_coord(h, v);
+		if (0.0 <= parallelogram_hv[0] && parallelogram_hv[0] <= this.h_num) {
+			if (0.0 <= parallelogram_hv[1] && parallelogram_hv[1] <= this.v_num) {
+				return true;
+			}
+		}
+		return false;
+	}
+	normalize_fingerprint(h, v) {
+		while (true) {
+			const h_old = h;
+			const v_old = v;
+			const parallelogram_hv = this.parallelogram_coord(h, v);
+			if (this.h_cyclic) {
+				if (parallelogram_hv[0] >= this.h_num) {
+					h -= (this.h_num * this.p[0][0]);
+					v -= (this.h_num * this.p[0][1]);
+				} else if (parallelogram_hv[0] < 0.0) {
+					h += (this.h_num * this.p[0][0]);
+					v += (this.h_num * this.p[0][1]);
+				}
+			}
+			if (this.v_cyclic) {
+				if (parallelogram_hv[1] >= this.v_num) {
+					h -= (this.v_num * this.p[1][0]);
+					v -= (this.v_num * this.p[1][1]);
+				} else if (parallelogram_hv[1] < 0.0) {
+					h += (this.v_num * this.p[1][0]);
+					v += (this.v_num * this.p[1][1]);
+				}
+			}
+			if (h === h_old && v === v_old) {
+				return [h, v];
+			}
+		}
+	}
+	fingerprint_range() {
+		const h_min = Math.min(
+			0,
+			this.h_num * this.p[0][0],
+			this.v_num * this.p[1][0],
+			this.h_num * this.p[0][0] + this.v_num * this.p[1][0]
+		);
+		const h_max = Math.max(
+			0,
+			this.h_num * this.p[0][0],
+			this.v_num * this.p[1][0],
+			this.h_num * this.p[0][0] + this.v_num * this.p[1][0]
+		);
+		const v_min = Math.min(
+			0,
+			this.h_num * this.p[0][1],
+			this.v_num * this.p[1][1],
+			this.h_num * this.p[0][1] + this.v_num * this.p[1][1]
+		);
+		const v_max = Math.max(
+			0,
+			this.h_num * this.p[0][1],
+			this.v_num * this.p[1][1],
+			this.h_num * this.p[0][1] + this.v_num * this.p[1][1]
+		);
+		return {
+			h_range: [h_min, h_max],
+			v_range: [v_min, v_max]
+		};
+	}
+}
+
+class TessagonMetadata {
+	static CLASSIFICATION_MAP = {
+		'regular': 'Regular tiling',
+		'archimedean': 'Archimedean tiling',
+		'laves': 'Laves tiling',
+		'non_edge': 'Non-edge-to-edge tiling',
+		'non_convex': 'Non-convex tiling',
+		'irregular': 'Irregular tiling'
+	};
+	constructor(options = {}) {
+		this._name = options.name;
+		if (!this._name) {
+			throw new Error('No name set');
+		}
+		this._num_color_patterns = options.num_color_patterns !== undefined ? options.num_color_patterns : 0;
+		this._classification = options.classification || 'misc';
+		this._shapes = options.shapes || [];
+		this._sides = options.sides || [];
+		this._hv_ratio = options.hasOwnProperty('hv_ratio') ? options.hv_ratio : null;
+		this._extra_parameters = options.extra_parameters || {};
+	}
+	get name() {
+		return this._name;
+	}
+	get num_color_patterns() {
+		return this._num_color_patterns;
+	}
+	get has_color_patterns() {
+		return this._num_color_patterns > 0;
+	}
+	has_shape(shape) {
+		return this._shapes.includes(shape);
+	}
+	get classification() {
+		return this._classification;
+	}
+	has_classification(classification) {
+		return this._classification === classification;
+	}
+	get human_readable_classification() {
+		return TessagonMetadata.CLASSIFICATION_MAP[this._classification];
+	}
+	get hv_ratio() {
+		return this._hv_ratio;
+	}
+	get extra_parameters() {
+		return this._extra_parameters;
+	}
+}
+
+function findDuplicateGroups(vert_list, face_list) {
+	// Detect duplicate vertices (two or more verts at the same position) and
+	// duplicate faces (two or more faces built from the same vertex set) in a
+	// mesh. Returns { vertGroups, faceGroups } where every entry is a list of
+	// ids (indices into the given lists) that duplicate one another; both lists
+	// are empty when the mesh is clean. Vertices are grouped with a tolerance of
+	// about 1e-6 of the mesh extent so floats that round to the same position
+	// count as duplicates.
+	const extent = vert_list.reduce((max, v) => {
+		const d = Math.hypot(v[0], v[1] || 0, v[2] || 0);
+		return d > max ? d : max;
+	}, 0);
+	const eps = Math.max(1e-9, extent * 1e-6);
+
+	const vertBuckets = new Map();
+	vert_list.forEach((v, id) => {
+		const key = [v[0], v[1] || 0, v[2] || 0]
+			.map(n => Math.round(n / eps))
+			.join(',');
+		if (!vertBuckets.has(key)) {
+			vertBuckets.set(key, []);
+		}
+		vertBuckets.get(key).push(id);
+	});
+	const vertGroups = [...vertBuckets.values()].filter(group => group.length > 1);
+
+	const faceBuckets = new Map();
+	face_list.forEach((face, id) => {
+		const key = face.slice().sort((a, b) => a - b).join(',');
+		if (!faceBuckets.has(key)) {
+			faceBuckets.set(key, []);
+		}
+		faceBuckets.get(key).push(id);
+	});
+	const faceGroups = [...faceBuckets.values()].filter(group => group.length > 1);
+
+	return { vertGroups, faceGroups };
+}
+
+class Tessagon {
+	static tile_class = null;
+	static metadata = null;
+	constructor(options = {}) {
+		this.options = options;
+		if (options.hasOwnProperty('tile_generator')) {
+			this.tile_generator = new options.tile_generator(this, options);
+		} else if (options.hasOwnProperty('rot_factor')) {
+			const rot_factor = options.rot_factor;
+			const extra_args = {
+				parallelogram_vectors: [[rot_factor, -1], [1, rot_factor]]
+			};
+			this.tile_generator = new ParallelogramTileGenerator(this, Object.assign({}, options, extra_args));
+		} else if (options.hasOwnProperty('parallelogram_vectors')) {
+			this.tile_generator = new ParallelogramTileGenerator(this, options);
+		} else {
+			this.tile_generator = new GridTileGenerator(this, options);
+		}
+		this._initialize_function(options);
+		this.post_process = options.hasOwnProperty('post_process') ? options.post_process : null;
+		if (options.hasOwnProperty('adaptor_class')) {
+			const adaptor_class = options.adaptor_class;
+			const adaptor_options = {};
+			for (const option of adaptor_class.ADAPTOR_OPTIONS) {
+				if (options.hasOwnProperty(option)) {
+					adaptor_options[option] = options[option];
+				}
+			}
+			this.mesh_adaptor = new adaptor_class(adaptor_options);
+		} else {
+			throw new Error('Must provide a mesh adaptor class');
+		}
+		this.color_pattern = options.hasOwnProperty('color_pattern') ? options.color_pattern : null;
+		this.tiles = null;
+		this.face_types = {};
+		this.vert_types = {};
+		this._process_extra_parameters(options);
+	}
+	create_mesh() {
+		this._initialize_tiles();
+		this.mesh_adaptor.create_empty_mesh();
+		this._calculate_verts();
+		this._calculate_faces();
+		if (this.color_pattern) {
+			this._calculate_colors();
+		}
+		this.mesh_adaptor.finish_mesh();
+		if (this.post_process) {
+			this.post_process(this);
+		}
+		const mesh = this.mesh_adaptor.get_mesh();
+		this._warn_duplicates(mesh);
+		return mesh;
+	}
+	_warn_duplicates(mesh) {
+		// Notify the console whenever this mesh contains duplicate vertices or
+		// duplicate faces (a degenerate geometry a new tessagon should not
+		// produce) and record the offending groups on this.duplicates and, for
+		// list-style meshes, on mesh.duplicates.
+		const vert_list = this.mesh_adaptor.vert_list;
+		const face_list = this.mesh_adaptor.face_list;
+		if (!vert_list || !face_list) {
+			return;
+		}
+		const duplicates = findDuplicateGroups(vert_list, face_list);
+		this.duplicates = duplicates;
+		if (mesh && Array.isArray(mesh.face_list)) {
+			mesh.duplicates = duplicates;
+		}
+		if (duplicates.vertGroups.length === 0 && duplicates.faceGroups.length === 0) {
+			return;
+		}
+		console.log(`[tessagon:${this.constructor.name}] duplicate geometry: ${duplicates.vertGroups.length} vertex group(s), ${duplicates.faceGroups.length} face group(s)`);
+		for (const group of duplicates.vertGroups) {
+			const v = vert_list[group[0]];
+			console.log(`  DUPLICATE VERTEX ${group.join(', ')} at (${v[0]}, ${v[1] || 0})`);
+		}
+		for (const group of duplicates.faceGroups) {
+			const face = face_list[group[0]];
+			console.log(`  DUPLICATE FACE ${group.join(', ')} vertices [${face.join(',')}]`);
+		}
+	}
+	inspect() {
+		console.log(`\n=== ${this.constructor.name} ===\n`);
+		for (let i = 0; i < this.tiles.length; i++) {
+			this.tiles[i].inspect({ tile_number: i });
+		}
+	}
+	static num_color_patterns() {
+		if (this.metadata === null) {
+			return 0;
+		}
+		return this.metadata.num_color_patterns;
+	}
+	static num_extra_parameters() {
+		if (this.metadata === null) {
+			return 0;
+		}
+		return Object.keys(this.metadata.extra_parameters).length;
+	}
+	// Protected methods
+	_initialize_function(options = {}) {
+		this.f = null;
+		if (options.hasOwnProperty('simple_2d')) {
+			let h_multiplier_2d = 1.0;
+			let v_multiplier_2d = 1.0;
+			if (Tessagon.metadata && Tessagon.metadata.hv_ratio) {
+				v_multiplier_2d = 1.0 / Tessagon.metadata.hv_ratio;
+			}
+			const tile_aspect = this.tile_generator.v_num / this.tile_generator.h_num;
+			const multiplier_2d = options.hasOwnProperty('multiplier_2d') ? options.multiplier_2d : 1.0;
+			h_multiplier_2d *= multiplier_2d;
+			v_multiplier_2d *= multiplier_2d * tile_aspect;
+			const translate_2d = options.hasOwnProperty('translate_2d') ? options.translate_2d : [0, 0];
+			this.f = (h, v) => {
+				return (
+					translate_2d[0] + h_multiplier_2d * h,
+					translate_2d[1] + v_multiplier_2d * v,
+					0.0
+				);
+			};
+			// Alternatively, to return as an array:
+			this.f = (h, v) => [
+				translate_2d[0] + h_multiplier_2d * h,
+				translate_2d[1] + v_multiplier_2d * (1 - v),
+				0.0
+			];
+		} else if (options.hasOwnProperty('function')) {
+			this.f = options.function;
+		} else {
+			throw new Error('Must specify a function');
+		}
+	}
+	_initialize_tiles() {
+		this.tiles = this.tile_generator.create_tiles();
+	}
+	_calculate_verts() {
+		for (const tile of this.tiles) {
+			tile.calculate_verts();
+		}
+	}
+	_calculate_faces() {
+		for (const tile of this.tiles) {
+			tile.calculate_faces();
+		}
+	}
+	_calculate_colors() {
+		this.mesh_adaptor.initialize_colors();
+		for (const tile of this.tiles) {
+			tile.calculate_colors();
+		}
+	}
+	_process_extra_parameters(options = {}) {
+		this.extra_parameters = {};
+		const parameters_info = Tessagon.metadata ? Tessagon.metadata.extra_parameters : null;
+		if (!parameters_info) {
+			return;
+		}
+		for (const parameter in parameters_info) {
+			if (!options.hasOwnProperty(parameter)) {
+				continue;
+			}
+			const value = options[parameter];
+			if (parameters_info[parameter]['type'] === 'float') {
+				this._process_float_extra_parameter(parameter, value, parameters_info[parameter]);
+			}
+		}
+	}
+	_process_float_extra_parameter(parameter, value, parameter_info) {
+		const max_value = parameter_info.hasOwnProperty('max') ? parameter_info.max : null;
+		const min_value = parameter_info.hasOwnProperty('min') ? parameter_info.min : null;
+		if (max_value !== null && value > max_value) {
+			throw new Error(`Parameter ${parameter} (${value}) exceeds maximum (${max_value})`);
+		}
+		if (min_value !== null && value < min_value) {
+			throw new Error(`Parameter ${parameter} (${value}) below minimum (${min_value})`);
+		}
+		this.extra_parameters[parameter] = value;
+	}
+}
+
+class BaseAdaptor {
+	static ADAPTOR_OPTIONS = [];
+}
+
+class ListAdaptor extends BaseAdaptor {
+	constructor(options = {}) {
+		super();
+		this.vert_list = null;
+		this.face_list = null;
+		this.color_list = null;
+	}
+	create_empty_mesh() {
+		this.vert_list = [];
+		this.face_list = [];
+		this.color_list = [];
+	}
+	initialize_colors() {
+		this.color_list = new Array(this.face_list.length).fill(0);
+	}
+	create_vert(coords) {
+		this.vert_list.push(coords);
+		return this.vert_list.length - 1;
+	}
+	create_face(verts) {
+		this.face_list.push(verts);
+		return this.face_list.length - 1;
+	}
+	color_face(face, color_index) {
+		this.color_list[face] = color_index;
+	}
+	finish_mesh() {
+		// No operation
+	}
+	get_mesh() {
+		return {
+			vert_list: this.vert_list,
+			face_list: this.face_list,
+			color_list: this.color_list
+		};
+	}
+}
+
+class SvgAdaptor extends ListAdaptor {
+	static ADAPTOR_OPTIONS = [
+		'rotate90', 'svg_id', 'svg_root_tag', 'svg_style', 'svg_fill_color',
+		'svg_fill_colors', 'svg_stroke_color', 'svg_stroke_width',
+		'color_method' // New option: 'palette', 'hsl', or 'custom'
+	];
+
+	constructor(options = {}) {
+		super(options);
+		this.rotate90 = options.rotate90 || false;
+		this.svg_id = options.svg_id || 'tessellation_svg';
+		this.svg_root_tag = options.svg_root_tag || false;
+		this.style = options.svg_style;
+		this.svg_fill_colors = options.svg_fill_colors;
+		this.svg_fill_color = options.svg_fill_color;
+		this.svg_stroke_color = options.svg_stroke_color;
+		this.svg_stroke_width = options.svg_stroke_width;
+
+		// Default to 'palette' if colors are provided, otherwise 'hsl'
+		this.color_method = options.color_method || (this.svg_fill_colors ? 'palette' : 'hsl');
+	}
+	_create_vert(coords) {
+		//console.log(coords)
+		this.vert_list.push(coords);
+		return this.vert_list.length - 1;
+	}
+	create_vert(coords) {
+		let [h, v] = coords;
+		let final_h = h;
+		let final_v = v;
+
+		if (this.rotate90) {
+			// Rotate 90 degrees clockwise:
+			// The new X is the old Y
+			// The new Y is the inverse of the old X
+			final_h = v;
+			final_v = 1.0 - h;
+		}
+
+		// Return the coordinates for the SVG points attribute
+		return this._create_vert([final_h, final_v]);
+	}
+
+	get_mesh() {
+		let o = super.get_mesh();
+		o.color_method = this.color_method;
+		let buffer = "";
+		if (this.svg_root_tag) {
+			if (this.svg_root_tag === true) {
+				// Use the dynamic ID here
+				buffer += `<svg id="${this.svg_id}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">\n`;
+			} else {
+				buffer += this.svg_root_tag;
+			}
+		}
+		buffer += `<g${this.group_style()}>\n`;
+		if (this.style) buffer += `<style>${this.style}</style>`;
+
+		// Loop through all faces
+		for (let i = 0; i < this.face_list.length; i++) {
+			const face = this.face_list[i];
+			const colorIndex = this.color_list[i] || 0;
+
+			// We pass everything make_face needs to decide its own color
+			buffer += this.make_face(face, i, colorIndex);
+		}
+
+		buffer += "</g>\n";
+		if (this.svg_root_tag) buffer += "</svg>\n";
+		return { mesh: o, svg: buffer };
+	}
+	group_style() {
+		let style = "";
+		if (this.svg_stroke_color) {
+			style += `stroke:${this.svg_stroke_color};`;
+		}
+		if (this.svg_stroke_width) {
+			style += `stroke-width:${this.svg_stroke_width};`;
+		}
+		if (this.svg_fill_color) {
+			style += `fill:${this.svg_fill_color};`;
+		}
+		if (style.length > 0) {
+			style = ` style="${style}"`;
+		}
+		return style;
+	}
+	make_color_indices() {
+		const color_indices = {};
+		for (let i = 0; i < this.color_list.length; i++) {
+			const color = this.color_list[i];
+			if (!(color in color_indices)) {
+				color_indices[color] = [];
+			}
+			color_indices[color].push(i);
+		}
+		return color_indices;
+	}
+	make_color_group(faces, fill_color) {
+		let buffer = `<g style="fill:${fill_color};">\n`;
+		for (const face of faces) {
+			buffer += this.make_face(face);
+		}
+		buffer += '</g>\n';
+		return buffer;
+	}
+	make_face(face, id, colorIndex) {
+		const verts = face.map(v => this.vert_list[v]);
+		const points_string = verts.map(vert => `${vert[0]},${vert[1]}`).join(" ");
+
+		// Calculate center for spatial coloring (HSL)
+		const centerX = verts.reduce((sum, v) => sum + v[0], 0) / verts.length;
+		const centerY = verts.reduce((sum, v) => sum + v[1], 0) / verts.length;
+
+		let fillStr = "";
+
+		// Strategy Selection
+		if (this.color_method === 'hsl') {
+			const hue = centerX * 360;
+			const lightness = 40 + (centerY * 40);
+			fillStr = `fill="hsl(${hue}, 70%, ${lightness}%)" `;
+		} else if (this.color_method === 'palette' && this.svg_fill_colors) {
+			// Use the palette, fallback to first color if index is out of bounds
+			const color = this.svg_fill_colors[colorIndex % this.svg_fill_colors.length];
+			fillStr = `fill="${color}" `;
+		} else if (this.color_method === 'solid' || this.svg_fill_color) {
+			// Fallback to the single solid color provided
+			fillStr = `fill="${this.svg_fill_color || '#ccc'}"`;
+		}
+
+		return `<polygon 
+      points="${points_string}" 
+      ${fillStr}
+      class="tess-face" 
+      data-id="${id}" 
+      data-color-index="${colorIndex}"
+      data-cx="${centerX.toFixed(3)}"
+      data-cy="${centerY.toFixed(3)}"
+    />\n`;
+	}
+}
+function right_tile(index_keys) {
+	return [['right'], index_keys];
+}
+function left_tile(index_keys) {
+	return [['left'], index_keys];
+}
+function top_tile(index_keys) {
+	return [['top'], index_keys];
+}
+function bottom_tile(index_keys) {
+	return [['bottom'], index_keys];
+}
+function left_top_tile(index_keys) {
+	return [['left', 'top'], index_keys];
+}
+function left_bottom_tile(index_keys) {
+	return [['left', 'bottom'], index_keys];
+}
+function right_top_tile(index_keys) {
+	return [['right', 'top'], index_keys];
+}
+function right_bottom_tile(index_keys) {
+	return [['right', 'bottom'], index_keys];
+}
+function bottom_left_tile(index_keys) {
+	return [['bottom', 'left'], index_keys];
+}
+function bottom_right_tile(index_keys) {
+	return [['bottom', 'right'], index_keys];
+}
+function top_left_tile(index_keys) {
+	return [['top', 'left'], index_keys];
+}
+function top_right_tile(index_keys) {
+	return [['top', 'right'], index_keys];
+}
+
+const big_hex_tri_metadata = new TessagonMetadata({
+	name: "Big Hexagons and Triangles",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["hexagons", "triangles"],
+	sides: [6, 3],
+	hv_ratio: 1.0 / Math.sqrt(3),
+	extra_parameters: {
+		hexagon_ratio: {
+			type: "float",
+			min: 0.0,
+			max: 0.70,
+			default: 0.5,
+			description: "Control the size of the Hexagons"
+		}
+	}
+});
+class BigHexTriTile extends AlternatingTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+		this.hexagon_ratio = options.hasOwnProperty("hexagon_ratio")
+			? options.hexagon_ratio
+			: 0.5;
+		this.hex_radius = (4 * this.hexagon_ratio) / Math.sqrt(7);
+		this.hv_ratio = BigHexTriTessagon.metadata.hv_ratio;
+		this.theta_offset = -Math.atan2(1, 3 * Math.sqrt(3)) + Math.PI / 6;
+		this.hex_theta = [];
+		for (let number = 0; number < 6; number++) {
+			this.hex_theta.push(this.theta_offset + (number * Math.PI) / 3.0);
+		}
+	}
+	hex_vert_coord(center, number) {
+		return [
+			center[0] + this.hex_radius * Math.cos(this.hex_theta[number]),
+			center[1] + this.hex_radius * Math.sin(this.hex_theta[number]) * this.hv_ratio
+		];
+	}
+	init_verts() {
+		if (this.tile_type === 0) {
+			return { 0: null, 1: null };
+		} else {
+			return { 2: null, 3: null, 4: null, 5: null };
+		}
+	}
+	init_faces() {
+		if (this.tile_type === 0) {
+			return {
+				A: null,
+				B: null,
+				C: null,
+				D: null,
+				E: null,
+				F: null,
+				G: null,
+				H: null
+			};
+		} else {
+			return {
+				I: null,
+				J: null,
+				K: null,
+				L: null,
+				M: null,
+				N: null,
+				O: null,
+				P: null,
+				Q: null,
+				R: null
+			};
+		}
+	}
+	calculate_verts() {
+		if (this.tile_type === 0) {
+			this.add_vert([0], ...this.hex_vert_coord([0, 1], 5));
+			this.add_vert([1], ...this.hex_vert_coord([1, 0], 2));
+		} else {
+			this.add_vert([2], ...this.hex_vert_coord([1, 1], 3));
+			this.add_vert([3], ...this.hex_vert_coord([1, 1], 4));
+			this.add_vert([4], ...this.hex_vert_coord([0, 0], 1));
+			this.add_vert([5], ...this.hex_vert_coord([0, 0], 0));
+		}
+	}
+	calculate_faces() {
+		if (this.tile_type === 0) {
+			this.add_face(
+				"A",
+				[
+					0,
+					top_tile(5),
+					top_tile(4),
+					top_left_tile(1),
+					left_tile(2),
+					left_tile(3)
+				],
+				{ equivalent: [top_tile("T"), top_left_tile("H"), left_tile("I")] }
+			);
+			this.add_face(
+				"B",
+				[0, right_tile(2), top_tile(5)],
+				{ equivalent: [top_tile("S"), right_tile("K")] }
+			);
+			this.add_face(
+				"C",
+				[0, right_tile(4), right_tile(2)],
+				{ equivalent: [right_tile("L")] }
+			);
+			this.add_face(
+				"D",
+				[0, 1, right_tile(4)],
+				{ equivalent: [right_tile("M")] }
+			);
+			this.add_face(
+				"E",
+				[1, 0, left_tile(3)],
+				{ equivalent: [left_tile("P")] }
+			);
+			this.add_face(
+				"F",
+				[1, left_tile(3), left_tile(5)],
+				{ equivalent: [left_tile("Q")] }
+			);
+			this.add_face(
+				"G",
+				[1, left_tile(5), bottom_tile(2)],
+				{ equivalent: [left_tile("R")] }
+			);
+		} else {
+			this.add_face("N", [2, 4, 3]);
+			this.add_face("O", [3, 4, 5]);
+		}
+	}
+	color_pattern1() {
+		if (this.tile_type === 0) {
+			this.color_face("A", 2);
+			this.color_face("B", 1);
+			this.color_face("D", 1);
+			this.color_face("F", 1);
+		} else {
+			this.color_face("N", 1);
+		}
+	}
+}
+class BigHexTriTessagon extends Tessagon {
+	static tile_class = BigHexTriTile;
+	//static metadata = big_hex_tri_metadata;
+	static metadata = new TessagonMetadata({
+		name: "Big Hexagons and Triangles",
+		num_color_patterns: 1,
+		classification: "archimedean",
+		shapes: ["hexagons", "triangles"],
+		sides: [6, 3],
+		hv_ratio: 1.0 / Math.sqrt(3),
+		extra_parameters: {
+			hexagon_ratio: {
+				type: "float",
+				min: 0.0,
+				max: 0.70,
+				default: 0.5,
+				description: "Control the size of the Hexagons"
+			}
+		}
+	});
+}
+
+
+const cloverdale_metadata = new TessagonMetadata({
+	name: "Cloverdale",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["squares", "pentagons"],
+	sides: [4, 5],
+	hv_ratio: 1.0
+});
+class CloverdaleTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { inner: null, outer: null, h_border: null, v_border: null },
+				middle: { inner: null, outer: null },
+				bottom: { inner: null, outer: null, h_border: null, v_border: null }
+			},
+			center: {
+				top: { inner: null, outer: null },
+				middle: null,
+				bottom: { inner: null, outer: null }
+			},
+			right: {
+				top: { inner: null, outer: null, h_border: null, v_border: null },
+				middle: { inner: null, outer: null },
+				bottom: { inner: null, outer: null, h_border: null, v_border: null }
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { square: null, h_pentagon: null, v_pentagon: null },
+				bottom: { square: null, h_pentagon: null, v_pentagon: null },
+				middle: { square: null }
+			},
+			center: {
+				top: { square: null },
+				bottom: { square: null }
+			},
+			right: {
+				top: { square: null, h_pentagon: null, v_pentagon: null },
+				bottom: { square: null, h_pentagon: null, v_pentagon: null },
+				middle: { square: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// a is the side length of square, c is half diagonal of square
+		const c = 1.0 / (Math.sqrt(2.0) + 4.0);
+		const a = Math.sqrt(2.0) * c;
+		// left top corner
+		this.add_vert(["left", "top", "inner"], a / 2.0 + c, 1.0 - (a / 2.0 + c));
+		this.add_vert(["left", "top", "outer"], a / 2.0, 1.0 - a / 2.0);
+		this.add_vert(["left", "top", "h_border"], 0.0, 1.0 - a / 2.0, { h_boundary: true });
+		this.add_vert(["left", "top", "v_border"], a / 2.0, 1.0, { v_boundary: true });
+		this.add_vert(["left", "middle", "inner"], a / 2.0, 0.5);
+		this.add_vert(["left", "middle", "outer"], 0.0, 0.5, { h_boundary: true });
+		this.add_vert(["center", "top", "inner"], 0.5, 1.0 - a / 2.0);
+		this.add_vert(["center", "top", "outer"], 0.5, 1.0, { v_boundary: true });
+		this.add_vert(["center", "middle"], 0.5, 0.5);
+	}
+	calculate_faces() {
+		// Middle star face
+		this.add_face(
+			["left", "top", "square"],
+			[
+				["left", "top", "v_border"],
+				["left", "top", "outer"],
+				["left", "top", "h_border"],
+				left_tile(["right", "top", "outer"]),
+				left_tile(["right", "top", "v_border"]),
+				top_left_tile(["right", "bottom", "outer"]),
+				top_tile(["left", "bottom", "h_border"]),
+				top_tile(["left", "bottom", "outer"])
+			],
+			{ face_type: "star", corner: true }
+		);
+		this.add_face(
+			["left", "top", "h_pentagon"],
+			[
+				["left", "top", "h_border"],
+				["left", "top", "outer"],
+				["left", "top", "inner"],
+				["left", "middle", "inner"],
+				["left", "middle", "outer"]
+			]
+		);
+		this.add_face(
+			["left", "top", "v_pentagon"],
+			[
+				["left", "top", "v_border"],
+				["center", "top", "outer"],
+				["center", "top", "inner"],
+				["left", "top", "inner"],
+				["left", "top", "outer"]
+			]
+		);
+		this.add_face(
+			["center", "top", "square"],
+			[
+				["center", "middle"],
+				["left", "top", "inner"],
+				["center", "top", "inner"],
+				["right", "top", "inner"]
+			]
+		);
+		this.add_face(
+			["left", "middle", "square"],
+			[
+				["center", "middle"],
+				["left", "bottom", "inner"],
+				["left", "middle", "inner"],
+				["left", "top", "inner"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_face(["left", "top", "square"], 1);
+		this.color_face(["left", "middle", "square"], 1);
+		this.color_face(["center", "top", "square"], 1);
+		this.color_face(["right", "middle", "square"], 1);
+		this.color_face(["center", "bottom", "square"], 1);
+		this.color_face(["left", "top", "h_pentagon"], 0);
+		this.color_face(["left", "top", "v_pentagon"], 0);
+	}
+}
+class CloverdaleTessagon extends Tessagon {
+	static tile_class = CloverdaleTile;
+	static metadata = cloverdale_metadata;
+}
+
+const dissected_hex_quad_metadata = new TessagonMetadata({
+	name: "Hexagons Dissected with Quads",
+	num_color_patterns: 2,
+	classification: "laves",
+	shapes: ["quads"],
+	sides: [4],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class DissectedHexQuadTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { corner: null, interior: null, h_boundary: null },
+				middle: null,
+				bottom: { corner: null, interior: null, h_boundary: null }
+			},
+			right: {
+				top: { corner: null, interior: null, h_boundary: null },
+				middle: null,
+				bottom: { corner: null, interior: null, h_boundary: null }
+			},
+			center: {
+				middle: null,
+				top: { v_boundary: null, interior: null },
+				bottom: { v_boundary: null, interior: null }
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { v_boundary: null, h_boundary: null, middle: null },
+				bottom: { v_boundary: null, h_boundary: null, middle: null }
+			},
+			right: {
+				top: { v_boundary: null, h_boundary: null, middle: null },
+				bottom: { v_boundary: null, h_boundary: null, middle: null }
+			},
+			center: { top: null, bottom: null }
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["left", "top", "corner"], 0, 1, { corner: true });
+		this.add_vert(["left", "top", "interior"], 0.25, 0.75);
+		this.add_vert(["left", "top", "h_boundary"], 0, 2.0 / 3.0, { h_boundary: true });
+		this.add_vert(["left", "middle"], 0, 0.5, { h_boundary: true });
+		this.add_vert(["center", "middle"], 0.5, 0.5);
+		this.add_vert(["center", "top", "v_boundary"], 0.5, 1.0, { v_boundary: true });
+		this.add_vert(["center", "top", "interior"], 0.5, 5.0 / 6.0);
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "top", "v_boundary"],
+			[
+				["left", "top", "corner"],
+				["center", "top", "v_boundary"],
+				["center", "top", "interior"],
+				["left", "top", "interior"]
+			]
+		);
+		this.add_face(
+			["left", "top", "h_boundary"],
+			[
+				["left", "top", "corner"],
+				["left", "top", "interior"],
+				["left", "top", "h_boundary"],
+				left_tile(["right", "top", "interior"])
+			],
+			{ h_boundary: true }
+		);
+		this.add_face(
+			["left", "top", "middle"],
+			[
+				["left", "top", "interior"],
+				["center", "middle"],
+				["left", "middle"],
+				["left", "top", "h_boundary"]
+			]
+		);
+		this.add_face(
+			["center", "top"],
+			[
+				["center", "middle"],
+				["left", "top", "interior"],
+				["center", "top", "interior"],
+				["right", "top", "interior"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["left", "top", "middle"],
+				["center", "top"],
+				["right", "top", "middle"],
+				["left", "bottom", "middle"],
+				["center", "bottom"],
+				["right", "bottom", "middle"]
+			],
+			1,
+			0
+		);
+	}
+	color_pattern2() {
+		if (this.fingerprint[0] % 3 === 0) {
+			this.color_paths(
+				[
+					["left", "top", "middle"],
+					["center", "top"],
+					["right", "top", "middle"],
+					["left", "bottom", "middle"],
+					["center", "bottom"],
+					["right", "bottom", "middle"]
+				],
+				1,
+				0
+			);
+		} else if (this.fingerprint[0] % 3 === 1) {
+			this.color_paths(
+				[
+					["right", "top", "v_boundary"],
+					["right", "bottom", "v_boundary"]
+				],
+				1,
+				0
+			);
+		} else if (this.fingerprint[0] % 3 === 2) {
+			this.color_paths(
+				[
+					["left", "top", "v_boundary"],
+					["left", "top", "h_boundary"],
+					["left", "bottom", "v_boundary"],
+					["left", "bottom", "h_boundary"]
+				],
+				1,
+				0
+			);
+		}
+	}
+}
+class DissectedHexQuadTessagon extends Tessagon {
+	static tile_class = DissectedHexQuadTile;
+	static metadata = dissected_hex_quad_metadata;
+}
+
+const dissected_hex_tri_metadata = new TessagonMetadata({
+	name: "Hexagons Dissected with Triangles",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["triangles"],
+	sides: [3],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class DissectedHexTriTile extends DissectedHexQuadTile {
+	init_faces() {
+		return {
+			left: {
+				top: {
+					v_boundary: null,
+					h_boundary: null,
+					middle: null,
+					center: null,
+					interior1: null,  // Touches corner
+					interior2: null
+				},
+				bottom: {
+					v_boundary: null,
+					h_boundary: null,
+					middle: null,
+					center: null,
+					interior1: null,
+					interior2: null
+				}
+			},
+			right: {
+				top: {
+					v_boundary: null,
+					h_boundary: null,
+					middle: null,
+					center: null,
+					interior1: null,
+					interior2: null
+				},
+				bottom: {
+					v_boundary: null,
+					h_boundary: null,
+					middle: null,
+					center: null,
+					interior1: null,
+					interior2: null
+				}
+			}
+		};
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "top", "v_boundary"],
+			[
+				["left", "top", "corner"],
+				["center", "top", "v_boundary"],
+				["center", "top", "interior"]
+			]
+		);
+		this.add_face(
+			["left", "top", "interior1"],
+			[
+				["left", "top", "corner"],
+				["center", "top", "interior"],
+				["left", "top", "interior"]
+			]
+		);
+		this.add_face(
+			["left", "top", "h_boundary"],
+			[
+				["left", "top", "corner"],
+				["left", "top", "interior"],
+				["left", "top", "h_boundary"]
+			]
+		);
+		this.add_face(
+			["left", "top", "middle"],
+			[
+				["center", "middle"],
+				["left", "middle"],
+				["left", "top", "h_boundary"]
+			]
+		);
+		this.add_face(
+			["left", "top", "interior2"],
+			[
+				["left", "top", "interior"],
+				["center", "middle"],
+				["left", "top", "h_boundary"]
+			]
+		);
+		this.add_face(
+			["left", "top", "center"],
+			[
+				["center", "middle"],
+				["left", "top", "interior"],
+				["center", "top", "interior"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["left", "top", "v_boundary"],
+				["left", "top", "h_boundary"],
+				["left", "top", "middle"],
+				["left", "top", "center"],
+				["right", "top", "interior1"],
+				["right", "top", "interior2"],
+				["right", "bottom", "v_boundary"],
+				["right", "bottom", "h_boundary"],
+				["right", "bottom", "middle"],
+				["right", "bottom", "center"],
+				["left", "bottom", "interior1"],
+				["left", "bottom", "interior2"]
+			],
+			1,
+			0
+		);
+	}
+}
+class DissectedHexTriTessagon extends Tessagon {
+	static tile_class = DissectedHexTriTile;
+	static metadata = dissected_hex_tri_metadata;
+}
+
+
+const dissected_suqare_metadata = new TessagonMetadata({
+	name: "Dissected Square",
+	num_color_patterns: 2,
+	classification: "laves",
+	shapes: ["triangles"],
+	sides: [3],
+	hv_ratio: 1.0
+});
+class DissectedSquareTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { left: null, center: null, right: null },
+			middle: { left: null, center: null, right: null },
+			bottom: { left: null, center: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			top: {
+				left: { middle: null, center: null },
+				right: { middle: null, center: null }
+			},
+			bottom: {
+				left: { middle: null, center: null },
+				right: { middle: null, center: null }
+			}
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["top", "left"], 0, 1.0, { corner: true });
+		this.add_vert(["middle", "left"], 0, 0.5, { h_boundary: true });
+		this.add_vert(["top", "center"], 0.5, 1.0, { v_boundary: true });
+		this.add_vert(["middle", "center"], 0.5, 0.5);
+	}
+	calculate_faces() {
+		this.add_face(
+			["top", "left", "middle"],
+			[
+				["top", "left"],
+				["middle", "left"],
+				["middle", "center"]
+			]
+		);
+		this.add_face(
+			["top", "left", "center"],
+			[
+				["top", "left"],
+				["middle", "center"],
+				["top", "center"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["top", "left", "center"],
+				["top", "right", "middle"],
+				["bottom", "right", "center"],
+				["bottom", "left", "middle"]
+			],
+			1,
+			0
+		);
+	}
+	color_pattern2() {
+		if ((Math.floor(this.fingerprint[0] / 2) + Math.floor(this.fingerprint[1] / 2)) % 2 === 0) {
+			this.color_tiles(1, 0);
+		} else {
+			this.color_tiles(0, 1);
+		}
+	}
+	color_tiles(color1, color2) {
+		if (this.fingerprint[0] % 2 === 0) {
+			if (this.fingerprint[1] % 2 === 0) {
+				this.color_paths(
+					[
+						["top", "left", "center"],
+						["bottom", "right", "middle"]
+					],
+					color2,
+					color1
+				);
+			} else {
+				this.color_paths(
+					[
+						["bottom", "left", "center"],
+						["top", "right", "middle"]
+					],
+					color2,
+					color1
+				);
+			}
+		} else {
+			if (this.fingerprint[1] % 2 === 0) {
+				this.color_paths(
+					[
+						["top", "right", "center"],
+						["bottom", "left", "middle"]
+					],
+					color2,
+					color1
+				);
+			} else {
+				this.color_paths(
+					[
+						["bottom", "right", "center"],
+						["top", "left", "middle"]
+					],
+					color2,
+					color1
+				);
+			}
+		}
+	}
+}
+class DissectedSquareTessagon extends Tessagon {
+	static tile_class = DissectedSquareTile;
+	static metadata = dissected_suqare_metadata;
+}
+
+
+const dissectedt_triangle_metadata = new TessagonMetadata({
+	name: "Dissected Triangle",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["triangles"],
+	sides: [3],
+	hv_ratio: Math.sqrt(3.0)
+});
+class DissectedTriangleTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { corner: null, v_boundary: null },
+				middle: null,
+				bottom: { corner: null, v_boundary: null }
+			},
+			right: {
+				top: { corner: null, v_boundary: null },
+				middle: null,
+				bottom: { corner: null, v_boundary: null }
+			},
+			center: null
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { center: null, interior1: null, interior2: null },
+				middle: null,
+				bottom: { center: null, interior1: null, interior2: null }
+			},
+			right: {
+				top: { center: null, interior1: null, interior2: null },
+				middle: null,
+				bottom: { center: null, interior1: null, interior2: null }
+			}
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["left", "top", "corner"], 0, 1, { corner: true });
+		this.add_vert("center", 0.5, 0.5);
+		this.add_vert(["left", "top", "v_boundary"], 1.0 / 3.0, 1, { v_boundary: true });
+		this.add_vert(["left", "middle"], 1.0 / 6.0, 0.5);
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "middle"],
+			[
+				["left", "middle"],
+				["left", "top", "corner"],
+				["left", "bottom", "corner"]
+			]
+		);
+		this.add_face(
+			["left", "top", "center"],
+			[
+				["center"],
+				["left", "top", "v_boundary"],
+				top_tile(["center"])
+			],
+			{ v_boundary: true }
+		);
+		this.add_face(
+			["left", "top", "interior1"],
+			[
+				["center"],
+				["left", "top", "v_boundary"],
+				["left", "top", "corner"]
+			]
+		);
+		this.add_face(
+			["left", "top", "interior2"],
+			[
+				["center"],
+				["left", "middle"],
+				["left", "top", "corner"]
+			]
+		);
+	}
+	color_pattern1() {
+		if (this.fingerprint[1] % 3 === 0) {
+			this.color_paths(
+				[
+					["left", "middle"],
+					["right", "middle"]
+				],
+				1,
+				0
+			);
+		} else if (this.fingerprint[1] % 3 === 2) {
+			this.color_paths(
+				[
+					["left", "top", "interior2"],
+					["right", "top", "interior2"],
+					["left", "top", "interior1"],
+					["right", "top", "interior1"]
+				],
+				1,
+				0
+			);
+			this.color_paths(
+				[
+					["left", "bottom", "center"],
+					["right", "bottom", "center"]
+				],
+				1,
+				0
+			);
+		} else {
+			this.color_paths(
+				[
+					["left", "bottom", "interior2"],
+					["right", "bottom", "interior2"],
+					["left", "bottom", "interior1"],
+					["right", "bottom", "interior1"]
+				],
+				1,
+				0
+			);
+		}
+	}
+}
+class DissectedTriangleTessagon extends Tessagon {
+	static tile_class = DissectedTriangleTile;
+	static metadata = dissectedt_triangle_metadata;
+}
+
+
+const dodeca_metadata = new TessagonMetadata({
+	name: "Dodecagons, Hexagons, and Squares",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["dodecagons", "hexagons", "squares"],
+	sides: [12, 6, 4],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class DodecaTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: {
+				left: {
+					h_square: null,
+					v_square: null,
+					sq1: null,
+					sq2: null,
+					sq3: null,
+					sq4: null
+				},
+				right: {
+					h_square: null,
+					v_square: null,
+					sq1: null,
+					sq2: null,
+					sq3: null,
+					sq4: null
+				}
+			},
+			bottom: {
+				left: {
+					h_square: null,
+					v_square: null,
+					sq1: null,
+					sq2: null,
+					sq3: null,
+					sq4: null
+				},
+				right: {
+					h_square: null,
+					v_square: null,
+					sq1: null,
+					sq2: null,
+					sq3: null,
+					sq4: null
+				}
+			}
+		};
+	}
+	init_faces() {
+		return {
+			dodec: {
+				top: { left: null, right: null },
+				bottom: { left: null, right: null },
+				middle: null
+			},
+			hex: {
+				top: { left: null, center: null, right: null },
+				bottom: { left: null, center: null, right: null }
+			},
+			square: {
+				top: { left: null, center: null, right: null },
+				bottom: { left: null, center: null, right: null },
+				middle: { left: null, right: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// h_unit: edge length as a proportion of the tile
+		const h_unit = 1.0 / (3.0 + Math.sqrt(3));
+		const h_h = 0.5 * Math.sqrt(3) * h_unit; // height of triangle with side h_unit
+		const h1 = 0.5 * h_unit;
+		const h2 = 0.5 - h1 - h_h;
+		const h3 = 0.5 - h_unit;
+		const h4 = 0.5 - h1;
+		const v_unit = 1.0 / (3.0 * (1.0 + Math.sqrt(3)));
+		const v_h = 0.5 * Math.sqrt(3) * v_unit; // height of triangle with side v_unit
+		const v1 = 1.0 - 0.5 * v_unit;
+		const v2 = v1 - v_h;
+		const v3 = 0.5 + 2 * v_h + 0.5 * v_unit;
+		const v4 = 0.5 + v_h + v_unit;
+		const v5 = 0.5 + v_h + 0.5 * v_unit;
+		const v6 = 0.5 + 0.5 * v_unit;
+		// Define top left region (other vertices defined via symmetry)
+		this.add_vert(["top", "left", "v_square"], h4, v1);
+		this.add_vert(["top", "left", "h_square"], h1, v6);
+		this.add_vert(["top", "left", "sq1"], h2, v5);
+		this.add_vert(["top", "left", "sq2"], h4, v4);
+		this.add_vert(["top", "left", "sq3"], h1, v3);
+		this.add_vert(["top", "left", "sq4"], h3, v2);
+	}
+	calculate_faces() {
+		// Top left Dodecagon
+		this.add_face(
+			["dodec", "top", "left"],
+			[
+				["top", "left", "v_square"],
+				["top", "left", "sq4"],
+				["top", "left", "sq3"],
+				left_tile(["top", "right", "sq3"]),
+				left_tile(["top", "right", "sq4"]),
+				left_tile(["top", "right", "v_square"]),
+				left_top_tile(["bottom", "right", "v_square"]),
+				left_top_tile(["bottom", "right", "sq4"]),
+				left_top_tile(["bottom", "right", "sq3"]),
+				top_tile(["bottom", "left", "sq3"]),
+				top_tile(["bottom", "left", "sq4"]),
+				top_tile(["bottom", "left", "v_square"])
+			],
+			{ face_type: 'dodecagon', corner: true }
+		);
+		// Middle Dodecagon
+		this.add_face(
+			["dodec", "middle"],
+			[
+				["top", "left", "h_square"],
+				["top", "left", "sq1"],
+				["top", "left", "sq2"],
+				["top", "right", "sq2"],
+				["top", "right", "sq1"],
+				["top", "right", "h_square"],
+				["bottom", "right", "h_square"],
+				["bottom", "right", "sq1"],
+				["bottom", "right", "sq2"],
+				["bottom", "left", "sq2"],
+				["bottom", "left", "sq1"],
+				["bottom", "left", "h_square"]
+			],
+			{ face_type: 'dodecagon' }
+		);
+		// Upper square
+		this.add_face(
+			["square", "top", "center"],
+			[
+				["top", "left", "v_square"],
+				["top", "right", "v_square"],
+				top_tile(["bottom", "right", "v_square"]),
+				top_tile(["bottom", "left", "v_square"])
+			],
+			{ face_type: 'square', v_boundary: true }
+		);
+		// Left square
+		this.add_face(
+			["square", "middle", "left"],
+			[
+				["top", "left", "h_square"],
+				["bottom", "left", "h_square"],
+				left_tile(["bottom", "right", "h_square"]),
+				left_tile(["top", "right", "h_square"])
+			],
+			{ face_type: 'square', h_boundary: true }
+		);
+		// Interior square
+		this.add_face(
+			["square", "top", "left"],
+			[
+				["top", "left", "sq1"],
+				["top", "left", "sq2"],
+				["top", "left", "sq4"],
+				["top", "left", "sq3"]
+			],
+			{ face_type: 'square' }
+		);
+		// Top Hex
+		this.add_face(
+			["hex", "top", "center"],
+			[
+				["top", "left", "sq2"],
+				["top", "left", "sq4"],
+				["top", "left", "v_square"],
+				["top", "right", "v_square"],
+				["top", "right", "sq4"],
+				["top", "right", "sq2"]
+			],
+			{ face_type: 'hexagon' }
+		);
+		// Left Hex
+		this.add_face(
+			["hex", "top", "left"],
+			[
+				["top", "left", "sq3"],
+				["top", "left", "sq1"],
+				["top", "left", "h_square"],
+				left_tile(["top", "right", "h_square"]),
+				left_tile(["top", "right", "sq1"]),
+				left_tile(["top", "right", "sq3"])
+			],
+			{ face_type: 'hexagon', h_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_face(["dodec", "middle"], 1);
+		this.color_face(["dodec", "top", "left"], 1);
+		this.color_face(["hex", "top", "left"], 2);
+		this.color_face(["hex", "top", "center"], 2);
+		this.color_face(["hex", "bottom", "left"], 2);
+		this.color_face(["hex", "bottom", "center"], 2);
+	}
+}
+class DodecaTessagon extends Tessagon {
+	static tile_class = DodecaTile;
+	static metadata = dodeca_metadata;
+}
+
+
+const dodeca_tri_metadata = new TessagonMetadata({
+	name: "Dodecagons and Triangles",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["dodecagons", "triangles"],
+	sides: [12, 3],
+	hv_ratio: Math.sqrt(3.0)
+});
+class DodecaTriTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { v_boundary: null, diag: null, tri: null },
+				middle: null,
+				bottom: { v_boundary: null, diag: null, tri: null }
+			},
+			right: {
+				top: { v_boundary: null, diag: null, tri: null },
+				middle: null,
+				bottom: { v_boundary: null, diag: null, tri: null }
+			}
+		};
+	}
+	init_faces() {
+		return {
+			dodec: {
+				left: { top: null, bottom: null },
+				right: { top: null, bottom: null },
+				center: null
+			},
+			tri: {
+				left: { top: null, middle: null, bottom: null },
+				right: { top: null, middle: null, bottom: null }
+			}
+		};
+	}
+	calculate_verts() {
+		const h_unit = 1.0 / (3.0 + 2.0 * Math.sqrt(3));
+		const h_h = 0.5 * Math.sqrt(3) * h_unit; // height of triangle of side h_unit
+		const h1 = 0.5 * h_unit;
+		const h2 = h1 + h_h;
+		const h3 = h2 + h1;
+		const h4 = h3 + h_h;
+		const v_unit = 1.0 / (2.0 + Math.sqrt(3));
+		const v_h = 0.5 * Math.sqrt(3) * v_unit; // height of triangle of side v_unit
+		const v1 = 0;
+		const v2 = 0.5 * v_unit;
+		const v3 = v2 + v_h;
+		const v4 = 0.5;
+		// Sweet symmetry makes this easy work
+		this.add_vert(["left", "middle"], h1, v4);
+		this.add_vert(["left", "bottom", "v_boundary"], h4, v1, { v_boundary: true });
+		this.add_vert(["left", "bottom", "diag"], h3, v2);
+		this.add_vert(["left", "bottom", "tri"], h2, v3);
+	}
+	calculate_faces() {
+		// Top left Dodecagon
+		this.add_face(
+			["dodec", "left", "bottom"],
+			[
+				["left", "middle"],
+				["left", "bottom", "tri"],
+				["left", "bottom", "diag"],
+				bottom_tile(["left", "top", "diag"]),
+				bottom_tile(["left", "top", "tri"]),
+				bottom_tile(["left", "middle"]),
+				bottom_left_tile(["right", "middle"]),
+				bottom_left_tile(["right", "top", "tri"]),
+				bottom_left_tile(["right", "top", "diag"]),
+				left_tile(["right", "bottom", "diag"]),
+				left_tile(["right", "bottom", "tri"]),
+				left_tile(["right", "middle"])
+			],
+			{ face_type: "dodecagon", corner: true }
+		);
+		// Middle Dodecagon
+		this.add_face(
+			["dodec", "center"],
+			[
+				["left", "bottom", "tri"],
+				["left", "bottom", "diag"],
+				["left", "bottom", "v_boundary"],
+				["right", "bottom", "v_boundary"],
+				["right", "bottom", "diag"],
+				["right", "bottom", "tri"],
+				["right", "top", "tri"],
+				["right", "top", "diag"],
+				["right", "top", "v_boundary"],
+				["left", "top", "v_boundary"],
+				["left", "top", "diag"],
+				["left", "top", "tri"]
+			],
+			{ face_type: "dodecagon" }
+		);
+		// Left triangle
+		this.add_face(
+			["tri", "left", "middle"],
+			[
+				["left", "top", "tri"],
+				["left", "bottom", "tri"],
+				["left", "middle"]
+			],
+			{ face_type: "triangle" }
+		);
+		// Bottom-left triangle
+		this.add_face(
+			["tri", "left", "bottom"],
+			[
+				["left", "bottom", "diag"],
+				["left", "bottom", "v_boundary"],
+				bottom_tile(["left", "top", "diag"])
+			],
+			{ face_type: "triangle", v_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_paths([["dodec", "left", "bottom"], ["dodec", "center"]], 1, 0);
+	}
+}
+class DodecaTriTessagon extends Tessagon {
+	static tile_class = DodecaTriTile;
+	static metadata = dodeca_tri_metadata;
+}
+
+
+const floret_metadata = new TessagonMetadata({
+	name: "Florets",
+	num_color_patterns: 3,
+	classification: "laves",
+	shapes: ["pentagons"],
+	sides: [5],
+	hv_ratio: 1.0 / Math.sqrt(3)
+});
+class FloretTile extends AlternatingTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+		this.hv_ratio = FloretTessagon.metadata.hv_ratio;
+		const theta_offset1 = Math.PI / 3 - Math.atan2(Math.sqrt(3), 9);
+		const theta_offset2 = Math.PI / 6;
+		this.hexagons = [
+			{
+				radius: 4 / Math.sqrt(21),
+				hex_theta: Array.from({ length: 6 }, (_, number) => theta_offset1 + number * Math.PI / 3)
+			},
+			{
+				radius: 2 / (3 * this.hv_ratio),
+				hex_theta: Array.from({ length: 6 }, (_, number) => theta_offset2 + number * Math.PI / 3)
+			}
+		];
+	}
+	hex_vert_coord(hexagon_num, center, number) {
+		const hexagon = this.hexagons[hexagon_num];
+		return [
+			center[0] + hexagon.radius * Math.cos(hexagon.hex_theta[number]),
+			center[1] + hexagon.radius * Math.sin(hexagon.hex_theta[number]) * this.hv_ratio
+		];
+	}
+	init_verts() {
+		let verts = {};
+		if (this.tile_type === 0) {
+			for (let i = 0; i < 6; i++) {
+				verts[i] = null;
+			}
+		} else {
+			for (let i = 6; i < 14; i++) {
+				verts[i] = null;
+			}
+		}
+		return verts;
+	}
+	init_faces() {
+		let faces = {};
+		if (this.tile_type === 0) {
+			for (const c of ['A', 'B', 'C', 'D']) {
+				faces[c] = null;
+			}
+		} else {
+			for (const c of ['E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']) {
+				faces[c] = null;
+			}
+		}
+		return faces;
+	}
+	calculate_verts() {
+		if (this.tile_type === 0) {
+			this.add_vert([2], ...this.hex_vert_coord(0, [0, 0], 0));
+			this.add_vert([3], ...this.hex_vert_coord(0, [1, 1], 3));
+		} else {
+			this.add_vert([6], 1, 0, { equivalent: [right_tile(0), bottom_right_tile(13), bottom_tile(5)] });
+			this.add_vert([7], ...this.hex_vert_coord(0, [1, 0], 2));
+			this.add_vert([8], ...this.hex_vert_coord(1, [0, 1], 4), { equivalent: [left_tile(1)] });
+			this.add_vert([9], ...this.hex_vert_coord(0, [0, 1], 4));
+			this.add_vert([10], ...this.hex_vert_coord(0, [1, 0], 1));
+			this.add_vert([11], ...this.hex_vert_coord(1, [0, 1], 5), { equivalent: [right_tile(4)] });
+			this.add_vert([12], ...this.hex_vert_coord(0, [0, 1], 5));
+			this.add_vert([13], 0, 1, { equivalent: [left_tile(5), top_left_tile(6), top_tile(0)] });
+		}
+	}
+	calculate_faces() {
+		if (this.tile_type === 0) {
+			return;
+		}
+		this.add_face('G', [6, 10, 9, 8, 7]);
+		this.add_face('H', [11, 10, 6, right_tile(2), right_tile(3)], { equivalent: [right_tile('B')] });
+		this.add_face('I', [8, 9, 13, left_tile(3), left_tile(2)], { equivalent: [left_tile('C')] });
+		this.add_face('J', [13, 9, 10, 11, 12]);
+		this.add_face('K', [12, 11, right_tile(3), right_tile(5), top_right_tile(7)], { equivalent: [right_tile('D'), top_right_tile('E')] });
+		this.add_face('L', [13, 12, top_right_tile(7), top_tile(1), top_tile(2)], { equivalent: [top_right_tile('F'), top_tile('A')] });
+	}
+	floret_fingerprint(face) {
+		let fingerprint = [...this.fingerprint];
+		fingerprint[0] = Math.floor(fingerprint[0] / 2) + Math.floor(fingerprint[1] / 2);
+		if (face === 'F') {
+			fingerprint[0] -= 1;
+		} else if (face === 'K') {
+			fingerprint[0] += 1;
+		}
+		if (this.fingerprint[0] % 2 === 0) {
+			if (['A', 'B'].includes(face)) {
+				fingerprint[0] -= 1;
+			}
+		} else {
+			if (['C', 'D'].includes(face)) {
+				fingerprint[0] += 1;
+			}
+		}
+		if (['A', 'B', 'E', 'F', 'G', 'H'].includes(face)) {
+			fingerprint[1] -= 1;
+		}
+		return fingerprint;
+	}
+	color_pattern1() {
+		const pattern = [0, 0, 1];
+		for (const face in this.faces) {
+			const fp = this.floret_fingerprint(face);
+			const offset = (fp[0] + fp[1]) % 3;
+			this.color_face(face, pattern[offset]);
+		}
+	}
+	color_pattern2() {
+		for (const face in this.faces) {
+			const fp = this.floret_fingerprint(face);
+			const color = (fp[0] + fp[1]) % 3;
+			this.color_face(face, color);
+		}
+	}
+	color_pattern3() {
+		const pattern = [
+			[2, 0, 2, 2, 0, 2],
+			[2, 1, 2, 0, 0, 0]
+		];
+		for (const face in this.faces) {
+			const fp = this.floret_fingerprint(face);
+			const row = fp[1] % 2;
+			const column = ((fp[0] - 2 * fp[1]) % 6 + 6) % 6; // ensure non-negative modulo
+			this.color_face(face, pattern[row][column]);
+		}
+	}
+	color_pattern3() {
+		const pattern = [
+			[2, 0, 2, 2, 0, 2],
+			[2, 1, 2, 0, 0, 0]
+		];
+		for (const face in this.faces) {
+			const fp = this.floret_fingerprint(face);
+			// Fix: ensure the row index is non-negative for negative fingerprints
+			const row = (fp[1] % 2 + 2) % 2;
+			const column = ((fp[0] - 2 * fp[1]) % 6 + 6) % 6;
+			this.color_face(face, pattern[row][column]);
+		}
+	}
+}
+class FloretTessagon extends Tessagon {
+	static tile_class = FloretTile;
+	static metadata = floret_metadata;
+}
+
+
+const hex_big_tri_metadata = new TessagonMetadata({
+	name: "Hexagons and Big Triangles",
+	num_color_patterns: 2,
+	classification: "non_edge",
+	shapes: ["hexagons", "triangles"],
+	sides: [6, 3],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexBigTriTile extends AlternatingTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+		this.hexagon_ratio = 0.5;
+		this.hex_radius = 4 * this.hexagon_ratio / Math.sqrt(7);
+		this.hv_ratio = HexBigTriTessagon.metadata.hv_ratio;
+		this.theta_offset = -Math.atan2(1, 3 * Math.sqrt(3)) + Math.PI / 6;
+		this.hex_theta = Array.from({ length: 6 }, (_, number) => this.theta_offset + number * Math.PI / 3);
+	}
+	hex_vert_coord(center, number) {
+		return [
+			center[0] + this.hex_radius * Math.cos(this.hex_theta[number]),
+			center[1] + this.hex_radius * Math.sin(this.hex_theta[number]) * this.hv_ratio
+		];
+	}
+	init_verts() {
+		if (this.tile_type === 0) {
+			return { 0: null, 1: null };
+		} else {
+			return { 2: null, 3: null, 4: null, 5: null };
+		}
+	}
+	init_faces() {
+		if (this.tile_type === 0) {
+			return { A: null, B: null, C: null, D: null };
+		} else {
+			return { E: null, F: null, G: null, H: null, I: null, J: null };
+		}
+	}
+	calculate_verts() {
+		if (this.tile_type === 0) {
+			this.add_vert([0], ...this.hex_vert_coord([0, 1], 5));
+			this.add_vert([1], ...this.hex_vert_coord([1, 0], 2));
+		} else {
+			this.add_vert([2], ...this.hex_vert_coord([1, 1], 3));
+			this.add_vert([3], ...this.hex_vert_coord([1, 1], 4));
+			this.add_vert([4], ...this.hex_vert_coord([0, 0], 1));
+			this.add_vert([5], ...this.hex_vert_coord([0, 0], 0));
+		}
+	}
+	calculate_faces() {
+		if (this.tile_type !== 0) {
+			return;
+		}
+		// Top Hexagon
+		this.add_face(
+			'A',
+			[
+				0,
+				left_tile(3),
+				left_tile(2),
+				top_left_tile(1),
+				top_tile(4),
+				top_tile(5)
+			],
+			{ equivalent: [left_tile('F'), top_left_tile('D'), top_tile('I')] }
+		);
+		// Left Triangle
+		this.add_face(
+			'B',
+			[
+				1,
+				0,
+				left_tile(3),
+				left_tile(4),
+				left_tile(5),
+				bottom_tile(2)
+			],
+			{ equivalent: [bottom_tile('E'), left_tile('H')] }
+		);
+		// Right Triangle
+		this.add_face(
+			'C',
+			[
+				0,
+				1,
+				right_tile(4),
+				right_tile(3),
+				right_tile(2),
+				top_tile(5)
+			],
+			{ equivalent: [right_tile('G'), top_tile('J')] }
+		);
+	}
+	color_pattern1() {
+		if (this.tile_type === 0) {
+			this.color_face('A', 1);
+		}
+	}
+	color_pattern2() {
+		if (this.tile_type === 0) {
+			this.color_face('A', 1);
+			this.color_face('B', 2);
+		}
+	}
+}
+class HexBigTriTessagon extends Tessagon {
+	static tile_class = HexBigTriTile;
+	static metadata = hex_big_tri_metadata;
+}
+
+
+const hex_square_tri_metadata = new TessagonMetadata({
+	name: "Hexagons, Squares, and Triangles",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["hexagons", "squares", "triangles"],
+	sides: [6, 4, 3],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexSquareTriTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: {
+				left: { h_boundary: null, h_square: null, v_square: null },
+				right: { h_boundary: null, h_square: null, v_square: null },
+				center: null
+			},
+			bottom: {
+				left: { h_boundary: null, h_square: null, v_square: null },
+				right: { h_boundary: null, h_square: null, v_square: null },
+				center: null
+			}
+		};
+	}
+	init_faces() {
+		return {
+			hex: {
+				top: { left: null, right: null },
+				bottom: { left: null, right: null },
+				middle: null
+			},
+			tri: {
+				top: { left: null, center: null, right: null },
+				bottom: { left: null, center: null, right: null }
+			},
+			square: {
+				top: { left: null, center: null, right: null },
+				bottom: { left: null, center: null, right: null },
+				middle: { left: null, right: null }
+			}
+		};
+	}
+	calculate_verts() {
+		const h_unit = 1.0 / (1.0 + Math.sqrt(36)); //3
+		const h0 = 0;
+		const h1 = 0.5 * h_unit;
+		const h2 = 0.5 * (1.0 - h_unit);
+		const h3 = 0.5;
+		const v_unit = 1.0 / (3.0 + Math.sqrt(.2)); //3
+		const v0 = 1.0 - 0.5 * v_unit;
+		const v1 = 1.0 - v_unit;
+		const v2 = 0.5 + v_unit;
+		const v3 = 0.5 + 0.5 * v_unit;
+		// Define top left square, others defined through symmetry
+		this.add_vert(["top", "left", "v_square"], h2, v0);
+		this.add_vert(["top", "center"], h3, v2);
+		this.add_vert(["top", "left", "h_square"], h1, v3);
+		this.add_vert(["top", "left", "h_boundary"], h0, v1, { h_boundary: true });
+	}
+	calculate_faces() {
+		// Middle hexagon
+		this.add_face(
+			["hex", "middle"],
+			[
+				["top", "center"],
+				["top", "left", "h_square"],
+				["bottom", "left", "h_square"],
+				["bottom", "center"],
+				["bottom", "right", "h_square"],
+				["top", "right", "h_square"]
+			],
+			{ face_type: "hexagon" }
+		);
+		// Top square
+		this.add_face(
+			["square", "top", "center"],
+			[
+				["top", "left", "v_square"],
+				["top", "right", "v_square"],
+				top_tile(["bottom", "right", "v_square"]),
+				top_tile(["bottom", "left", "v_square"])
+			],
+			{ face_type: "square", v_boundary: true }
+		);
+		// Left square
+		this.add_face(
+			["square", "middle", "left"],
+			[
+				["top", "left", "h_square"],
+				["bottom", "left", "h_square"],
+				left_tile(["bottom", "right", "h_square"]),
+				left_tile(["top", "right", "h_square"])
+			],
+			{ face_type: "square", h_boundary: true }
+		);
+		// Interior square
+		this.add_face(
+			["square", "top", "left"],
+			[
+				["top", "left", "v_square"],
+				["top", "center"],
+				["top", "left", "h_square"],
+				["top", "left", "h_boundary"]
+			],
+			{ face_type: "square" }
+		);
+		// Upper triangle
+		this.add_face(
+			["tri", "top", "center"],
+			[
+				["top", "center"],
+				["top", "left", "v_square"],
+				["top", "right", "v_square"]
+			],
+			{ face_type: "triangle" }
+		);
+		// Left triangle
+		this.add_face(
+			["tri", "top", "left"],
+			[
+				["top", "left", "h_square"],
+				["top", "left", "h_boundary"],
+				left_tile(["top", "right", "h_square"])
+			],
+			{ face_type: "triangle", h_boundary: true }
+		);
+		// Corner hexagon
+		this.add_face(
+			["hex", "top", "left"],
+			[
+				["top", "left", "v_square"],
+				["top", "left", "h_boundary"],
+				left_tile(["top", "right", "v_square"]),
+				left_top_tile(["bottom", "right", "v_square"]),
+				top_tile(["bottom", "left", "h_boundary"]),
+				top_tile(["bottom", "left", "v_square"])
+			],
+			{ face_type: "hexagon", corner: true }
+		);
+	}
+	color_pattern1() {
+		this.color_face(["hex", "middle"], 1);
+		this.color_face(["hex", "top", "left"], 1);
+		this.color_face(["square", "top", "center"], 2);
+		this.color_face(["square", "top", "left"], 2);
+		this.color_face(["square", "top", "right"], 2);
+		this.color_face(["square", "middle", "left"], 2);
+		this.color_face(["square", "bottom", "left"], 2);
+		this.color_face(["square", "bottom", "right"], 2);
+	}
+}
+class HexSquareTriTessagon extends Tessagon {
+	static tile_class = HexSquareTriTile;
+	static metadata = hex_square_tri_metadata;
+}
+
+
+
+const hex_tri_metadata = new TessagonMetadata({
+	name: "Hexagons and Triangles",
+	num_color_patterns: 3,
+	classification: "archimedean",
+	shapes: ["hexagons", "triangles"],
+	sides: [6, 3],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexTriTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: null,
+			left: {
+				top: null,
+				middle: null,
+				bottom: null
+			},
+			right: {
+				top: null,
+				middle: null,
+				bottom: null
+			},
+			bottom: null
+		};
+	}
+	init_faces() {
+		return {
+			center: {
+				top: null,
+				middle: null,
+				bottom: null
+			},
+			left: {
+				top: { triangle: null, hexagon: null },
+				bottom: { triangle: null, hexagon: null }
+			},
+			right: {
+				top: { triangle: null, hexagon: null },
+				bottom: { triangle: null, hexagon: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// Top left verts
+		this.add_vert("top", 0.5, 1, { v_boundary: true });
+		this.add_vert(["left", "top"], 0.25, 0.75);
+		this.add_vert(["left", "middle"], 0, 0.5, { h_boundary: true });
+	}
+	calculate_faces() {
+		// Middle hexagon
+		this.add_face(
+			["center", "middle"],
+			[
+				["left", "top"],
+				["left", "middle"],
+				["left", "bottom"],
+				["right", "bottom"],
+				["right", "middle"],
+				["right", "top"]
+			],
+			{ face_type: "hexagon" }
+		);
+
+		// Interior top triangle
+		this.add_face(
+			["center", "top"],
+			[
+				["top"],
+				["left", "top"],
+				["right", "top"]
+			],
+			{ face_type: "triangle" }
+		);
+
+		// Exterior left triangle
+		this.add_face(
+			["left", "top", "triangle"],
+			[
+				["left", "top"],
+				["left", "middle"],
+				left_tile(["right", "top"])
+			],
+			{ face_type: "triangle", h_boundary: true }
+		);
+
+		// Exterior top-left hexagon
+		this.add_face(
+			["left", "top", "hexagon"],
+			[
+				["top"],
+				["left", "top"],
+				left_tile(["right", "top"]),
+				left_tile("top"),
+				left_top_tile(["right", "bottom"]),
+				top_tile(["left", "bottom"])
+			],
+			{ face_type: "hexagon", corner: true }
+		);
+	}
+	color_pattern1() {
+		this.color_face(["center", "middle"], 1);
+		this.color_face(["left", "top", "hexagon"], 1);
+	}
+	color_pattern2() {
+		// Triangles one color, hexagons the other (inverse of pattern 1).
+		this.color_face(["center", "top"], 1);
+		this.color_face(["center", "bottom"], 1);
+		this.color_face(["left", "top", "triangle"], 1);
+		this.color_face(["left", "bottom", "triangle"], 1);
+		this.color_face(["right", "top", "triangle"], 1);
+		this.color_face(["right", "bottom", "triangle"], 1);
+	}
+	color_pattern3() {
+		// Checkerboard of center hexagons, everything else an accent.
+		const parity = (this.fingerprint[0] + this.fingerprint[1]) % 2;
+		this.color_face(["center", "middle"], parity);
+		for (const path of this.face_paths) {
+			if (JSON.stringify(path) !== JSON.stringify(["center", "middle"])) {
+				this.color_face(path, 2);
+			}
+		}
+	}
+}
+class HexTriTessagon extends Tessagon {
+	static tile_class = HexTriTile;
+	static metadata = hex_tri_metadata;
+}
+
+
+const islamic_hex_metadata = new TessagonMetadata({
+	name: "Islamic Hexagons and Stars",
+	num_color_patterns: 1,
+	classification: "non_convex",
+	shapes: ["hexagons", "stars"],
+	sides: [6, 12],
+	hv_ratio: Math.sqrt(3.0)
+});
+class IslamicHexStarsTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: {
+					boundary: null,
+					mid: { outer: null, mid: null, inner: null }
+				},
+				middle: { inner: null, outer: null },
+				bottom: {
+					boundary: null,
+					mid: { outer: null, mid: null, inner: null }
+				}
+			},
+			center: { top: null, bottom: null },
+			right: {
+				top: {
+					boundary: null,
+					mid: { outer: null, mid: null, inner: null }
+				},
+				middle: { inner: null, outer: null },
+				bottom: {
+					boundary: null,
+					mid: { outer: null, mid: null, inner: null }
+				}
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { star: null, hexagon: null },
+				middle: { hexagon: null },
+				bottom: { star: null, hexagon: null }
+			},
+			center: { star: null },
+			right: {
+				top: { star: null, hexagon: null },
+				middle: { hexagon: null },
+				bottom: { star: null, hexagon: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// Left verts
+		this.add_vert(['left', 'top', 'boundary'], 2 / 12.0, 1, { v_boundary: true });
+		this.add_vert(['left', 'top', 'mid', 'outer'], 1 / 12.0, 0.75);
+		this.add_vert(['left', 'top', 'mid', 'mid'], 3 / 12.0, 0.75);
+		this.add_vert(['left', 'top', 'mid', 'inner'], 5 / 12.0, 0.75);
+		this.add_vert(['left', 'middle', 'outer'], 0, 0.5, { h_boundary: true });
+		this.add_vert(['left', 'middle', 'inner'], 4 / 12, 0.5);
+		// Center vert
+		this.add_vert(['center', 'top'], 0.5, 1, { v_boundary: true });
+	}
+	calculate_faces() {
+		this.add_face(
+			['left', 'top', 'star'],
+			[
+				['left', 'top', 'boundary'],
+				['left', 'top', 'mid', 'mid'],
+				['left', 'top', 'mid', 'outer'],
+				['left', 'middle', 'outer'],
+				left_tile(['right', 'top', 'mid', 'outer']),
+				left_tile(['right', 'top', 'mid', 'mid']),
+				left_tile(['right', 'top', 'boundary']),
+				top_left_tile(['right', 'bottom', 'mid', 'mid']),
+				top_left_tile(['right', 'bottom', 'mid', 'outer']),
+				top_tile(['left', 'middle', 'outer']),
+				top_tile(['left', 'bottom', 'mid', 'outer']),
+				top_tile(['left', 'bottom', 'mid', 'mid'])
+			],
+			{ face_type: "star", corner: true }
+		);
+		this.add_face(
+			['left', 'top', 'hexagon'],
+			[
+				['center', 'top'],
+				['left', 'top', 'mid', 'inner'],
+				['left', 'top', 'mid', 'mid'],
+				['left', 'top', 'boundary'],
+				top_tile(['left', 'bottom', 'mid', 'mid']),
+				top_tile(['left', 'bottom', 'mid', 'inner'])
+			],
+			{ face_type: "hexagon", v_boundary: true }
+		);
+		this.add_face(
+			['left', 'middle', 'hexagon'],
+			[
+				['left', 'middle', 'outer'],
+				['left', 'top', 'mid', 'outer'],
+				['left', 'top', 'mid', 'mid'],
+				['left', 'middle', 'inner'],
+				['left', 'bottom', 'mid', 'mid'],
+				['left', 'bottom', 'mid', 'outer']
+			],
+			{ face_type: "hexagon" }
+		);
+		this.add_face(
+			['center', 'star'],
+			[
+				['center', 'top'],
+				['right', 'top', 'mid', 'inner'],
+				['right', 'top', 'mid', 'mid'],
+				['right', 'middle', 'inner'],
+				['right', 'bottom', 'mid', 'mid'],
+				['right', 'bottom', 'mid', 'inner'],
+				['center', 'bottom'],
+				['left', 'bottom', 'mid', 'inner'],
+				['left', 'bottom', 'mid', 'mid'],
+				['left', 'middle', 'inner'],
+				['left', 'top', 'mid', 'mid'],
+				['left', 'top', 'mid', 'inner']
+			],
+			{ face_type: "star" }
+		);
+	}
+	color_pattern1() {
+		this.color_face(['left', 'top', 'star'], 1);
+		this.color_face(['center', 'star'], 1);
+	}
+}
+class IslamicHexStarsTessagon extends Tessagon {
+	static tile_class = IslamicHexStarsTile;
+	static metadata = islamic_hex_metadata;
+}
+
+
+const islamic_stars_metadata = new TessagonMetadata({
+	name: "Islamic Stars and Crosses",
+	num_color_patterns: 1,
+	classification: "non_convex",
+	shapes: ["stars", "crosses"],
+	sides: [16],
+	hv_ratio: 1.0
+});
+class IslamicStarsCrossesTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+
+	init_verts() {
+		return {
+			left: {
+				top: { v_dominant: null, point: null, h_dominant: null },
+				middle: null,
+				bottom: { v_dominant: null, point: null, h_dominant: null }
+			},
+			center: { top: null, bottom: null },
+			right: {
+				top: { v_dominant: null, point: null, h_dominant: null },
+				middle: null,
+				bottom: { v_dominant: null, point: null, h_dominant: null }
+			}
+		};
+	}
+
+	init_faces() {
+		return {
+			left: { top: null, bottom: null },
+			center: null,
+			right: { top: null, bottom: null }
+		};
+	}
+
+	calculate_verts() {
+		const c = 1.0 / (2 * (Math.sqrt(2) + 1));
+		const a = c / Math.sqrt(2);
+		// left top corner
+		this.add_vert(["left", "middle"], 0.0, 0.5, { h_boundary: true });
+		this.add_vert(["left", "top", "h_dominant"], a, 0.5 + a);
+		this.add_vert(["left", "top", "point"], a, 1.0 - a);
+		this.add_vert(["left", "top", "v_dominant"], 0.5 - a, 1.0 - a);
+		this.add_vert(["center", "top"], 0.5, 1.0, { v_boundary: true });
+	}
+
+	calculate_faces() {
+		// Middle star
+		this.add_face(
+			["center"],
+			[
+				["left", "middle"],
+				["left", "top", "h_dominant"],
+				["left", "top", "point"],
+				["left", "top", "v_dominant"],
+				["center", "top"],
+				["right", "top", "v_dominant"],
+				["right", "top", "point"],
+				["right", "top", "h_dominant"],
+				["right", "middle"],
+				["right", "bottom", "h_dominant"],
+				["right", "bottom", "point"],
+				["right", "bottom", "v_dominant"],
+				["center", "bottom"],
+				["left", "bottom", "v_dominant"],
+				["left", "bottom", "point"],
+				["left", "bottom", "h_dominant"]
+			],
+			{ face_type: "star" }
+		);
+		// Top left cross
+		this.add_face(
+			["left", "top"],
+			[
+				["center", "top"],
+				["left", "top", "v_dominant"],
+				["left", "top", "point"],
+				["left", "top", "h_dominant"],
+				["left", "middle"],
+				left_tile(["right", "top", "h_dominant"]),
+				left_tile(["right", "top", "point"]),
+				left_tile(["right", "top", "v_dominant"]),
+				left_tile(["center", "top"]),
+				top_left_tile(["right", "bottom", "v_dominant"]),
+				top_left_tile(["right", "bottom", "point"]),
+				top_left_tile(["right", "bottom", "h_dominant"]),
+				top_left_tile(["right", "middle"]),
+				top_tile(["left", "bottom", "h_dominant"]),
+				top_tile(["left", "bottom", "point"]),
+				top_tile(["left", "bottom", "v_dominant"])
+			],
+			{ face_type: "cross", corner: true }
+		);
+	}
+
+	color_pattern1() {
+		this.color_face(["left", "top"], 1);
+		this.color_face(["center"], 0);
+	}
+}
+class IslamicStarsCrossesTessagon extends Tessagon {
+	static tile_class = IslamicStarsCrossesTile;
+	static metadata = islamic_stars_metadata;
+}
+
+
+const octo_metadata = new TessagonMetadata({
+	name: "Octagons and Squares",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["octagons", "squares"],
+	sides: [8, 4],
+	hv_ratio: 1.0
+});
+class OctoTile extends Tile {
+	static CORNER_TO_VERT_RATIO = 1.0 / (2.0 + Math.sqrt(2));
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { h_boundary: null, v_boundary: null },
+				bottom: { h_boundary: null, v_boundary: null }
+			},
+			right: {
+				top: { h_boundary: null, v_boundary: null },
+				bottom: { h_boundary: null, v_boundary: null }
+			}
+		};
+	}
+	init_faces() {
+		return {
+			middle: null,
+			left: { top: null, bottom: null },
+			right: { top: null, bottom: null }
+		};
+	}
+	calculate_verts() {
+		this.add_vert(
+			["left", "top", "v_boundary"],
+			OctoTile.CORNER_TO_VERT_RATIO,
+			1,
+			{ v_boundary: true }
+		);
+		this.add_vert(
+			["left", "top", "h_boundary"],
+			0,
+			1.0 - OctoTile.CORNER_TO_VERT_RATIO,
+			{ h_boundary: true }
+		);
+	}
+	calculate_faces() {
+		// Middle interior face
+		this.add_face(
+			"middle",
+			[
+				["left", "top", "v_boundary"],
+				["left", "top", "h_boundary"],
+				["left", "bottom", "h_boundary"],
+				["left", "bottom", "v_boundary"],
+				["right", "bottom", "v_boundary"],
+				["right", "bottom", "h_boundary"],
+				["right", "top", "h_boundary"],
+				["right", "top", "v_boundary"]
+			]
+		);
+		// Four faces defining top left corner, others via symmetry
+		this.add_face(
+			["left", "top"],
+			[
+				["left", "top", "v_boundary"],
+				["left", "top", "h_boundary"],
+				left_tile(["right", "top", "v_boundary"]),
+				top_tile(["left", "bottom", "h_boundary"])
+			],
+			{ corner: true }
+		);
+	}
+	color_pattern1() {
+		this.color_face(["middle"], 1);
+	}
+}
+class OctoTessagon extends Tessagon {
+	static tile_class = OctoTile;
+	static metadata = octo_metadata;
+}
+
+
+const penta_metadata = new TessagonMetadata({
+	name: "Pentagons",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["pentagons"],
+	sides: [5],
+	hv_ratio: 1.0
+});
+class PentaTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: {
+					h_boundary: null,
+					v_boundary: null,
+					interior: null
+				},
+				middle: null,
+				bottom: {
+					h_boundary: null,
+					v_boundary: null,
+					interior: null
+				}
+			},
+			center: {
+				top: null,
+				bottom: null
+			},
+			right: {
+				top: {
+					h_boundary: null,
+					v_boundary: null,
+					interior: null
+				},
+				middle: null,
+				bottom: {
+					h_boundary: null,
+					v_boundary: null,
+					interior: null
+				}
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: {
+					h_boundary: null,
+					v_boundary: null
+				},
+				middle: null,
+				bottom: {
+					h_boundary: null,
+					v_boundary: null
+				}
+			},
+			center: {
+				top: null,
+				bottom: null
+			},
+			right: {
+				top: {
+					h_boundary: null,
+					v_boundary: null
+				},
+				middle: null,
+				bottom: {
+					h_boundary: null,
+					v_boundary: null
+				}
+			}
+		};
+	}
+	calculate_verts() {
+		const h_unit = 1.0 / (1.0 + Math.sqrt(3));
+		const h0 = 0, v0 = 0;
+		const h1 = h_unit / (2 * Math.sqrt(3));
+		const v1 = h_unit / (2 * Math.sqrt(3));
+		const h3 = (0.5 + 1 / Math.sqrt(3)) * h_unit;
+		const v3 = (0.5 + 1 / Math.sqrt(3)) * h_unit;
+		const h2 = 0.5 * (h1 + h3);
+		const v2 = 0.5 * (v1 + v3);
+		const h4 = 0.5, v4 = 0.5;
+
+		this.add_vert(["left", "bottom", "h_boundary"], h0, v1, { h_boundary: true });
+		this.add_vert(["left", "bottom", "v_boundary"], h3, v0, { v_boundary: true });
+		this.add_vert(["left", "bottom", "interior"], h2, v2);
+		this.add_vert(["left", "middle"], h1, v4);
+		this.add_vert(["center", "bottom"], h4, v3);
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "bottom", "h_boundary"],
+			[
+				["left", "bottom", "h_boundary"],
+				["left", "bottom", "interior"],
+				["left", "middle"],
+				left_tile(["right", "middle"]),
+				left_tile(["right", "bottom", "interior"])
+			],
+			{ h_boundary: true }
+		);
+
+		this.add_face(
+			["left", "bottom", "v_boundary"],
+			[
+				["left", "bottom", "h_boundary"],
+				["left", "bottom", "interior"],
+				["left", "bottom", "v_boundary"],
+				bottom_tile(["left", "top", "interior"]),
+				bottom_tile(["left", "top", "h_boundary"])
+			],
+			{ v_boundary: true }
+		);
+
+		this.add_face(
+			["left", "middle"],
+			[
+				["left", "middle"],
+				["left", "bottom", "interior"],
+				["center", "bottom"],
+				["center", "top"],
+				["left", "top", "interior"]
+			]
+		);
+
+		this.add_face(
+			["center", "bottom"],
+			[
+				["left", "bottom", "interior"],
+				["center", "bottom"],
+				["right", "bottom", "interior"],
+				["right", "bottom", "v_boundary"],
+				["left", "bottom", "v_boundary"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["right", "middle"],
+				["center", "bottom"],
+				["right", "bottom", "v_boundary"],
+				["right", "bottom", "h_boundary"]
+			],
+			1,
+			0
+		);
+	}
+}
+class PentaTessagon extends Tessagon {
+	static tile_class = PentaTile;
+	static metadata = penta_metadata;
+}
+
+
+const penta2_metadata = new TessagonMetadata({
+	name: "Other Pentagons",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["pentagons"],
+	sides: [5],
+	hv_ratio: 1.0 / (2.0 + Math.sqrt(3.0))
+});
+class Penta2Tile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: {
+					corner: null,
+					h_boundary: null
+				},
+				bottom: {
+					corner: null,
+					h_boundary: null
+				}
+			},
+			right: {
+				top: {
+					corner: null,
+					h_boundary: null
+				},
+				bottom: {
+					corner: null,
+					h_boundary: null
+				}
+			},
+			center: {
+				top: null,
+				middle: null,
+				bottom: null
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: null,
+				bottom: null
+			},
+			right: {
+				top: null,
+				bottom: null
+			},
+			center: {
+				top: null,
+				bottom: null
+			}
+		};
+	}
+	calculate_verts() {
+		const v_unit = 1.0 / (2.0 + Math.sqrt(3.0));
+		const v0 = 0;
+		const v1 = v_unit * 0.5 * (1.0 + 1.0 / Math.sqrt(3.0));
+		const v2 = 0.5 - v1;
+		this.add_vert(["left", "bottom", "corner"], 0, v0, { corner: true });
+		this.add_vert(["left", "bottom", "h_boundary"], 0, v1, { h_boundary: true });
+		this.add_vert(["center", "bottom"], 0.5, v2);
+		this.add_vert(["center", "middle"], 0.5, 0.5);
+	}
+	calculate_faces() {
+		this.add_face(
+			["center", "bottom"],
+			[
+				["left", "bottom", "corner"],
+				["left", "bottom", "h_boundary"],
+				["center", "bottom"],
+				["right", "bottom", "h_boundary"],
+				["right", "bottom", "corner"]
+			]
+		);
+		this.add_face(
+			["left", "bottom"],
+			[
+				["center", "middle"],
+				["center", "bottom"],
+				["left", "bottom", "h_boundary"],
+				left_tile(["center", "bottom"]),
+				left_tile(["center", "middle"])
+			],
+			{ h_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["center", "top"],
+				["left", "bottom"],
+				["right", "bottom"]
+			],
+			1,
+			0
+		);
+	}
+}
+class Penta2Tessagon extends Tessagon {
+	static tile_class = Penta2Tile;
+	static metadata = penta2_metadata;
+}
+
+
+const pythagorean_metadata = new TessagonMetadata({
+	name: "Pythagorean",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["squares"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class PythagoreanTile extends Tile {
+	init_verts() {
+		return {
+			"1": { "1": null, "2": null, "4": null, "5": null, "6": null },
+			"2": { "2": null, "3": null, "4": null, "5": null },
+			"3": { "1": null, "2": null, "3": null, "5": null, "6": null },
+			"4": { "1": null, "3": null, "4": null, "5": null, "6": null },
+			"5": { "1": null, "2": null, "3": null, "4": null, "6": null },
+			"6": { "1": null, "2": null, "4": null, "5": null, "6": null }
+		};
+	}
+	calculate_verts() {
+		const c = {
+			"1": 0.0,
+			"2": 1 / 5.0,
+			"3": 2 / 5.0,
+			"4": 3 / 5.0,
+			"5": 4 / 5.0,
+			"6": 1.0
+		};
+		for (const col in this.verts) {
+			for (const row in this.verts[col]) {
+				const colNum = Number(col);
+				const rowNum = Number(row);
+				if (colNum === 1) {
+					if (!this.get_neighbor_tile(["left"])) {
+						if (rowNum === 6 && !this.get_neighbor_tile(["top"])) {
+							continue;
+						}
+						if (!this.get_neighbor_tile(["bottom"])) {
+							if (rowNum === 1 || rowNum === 2) {
+								continue;
+							}
+						}
+					}
+				}
+				const vert = this.add_vert([colNum, rowNum], c[col], c[row]);
+				if (colNum === 1) {
+					this.set_equivalent_vert(...left_tile([6, rowNum]), vert);
+					if (rowNum === 6) {
+						this.set_equivalent_vert(...left_top_tile([6, 1]), vert);
+					} else if (rowNum === 1) {
+						this.set_equivalent_vert(...left_bottom_tile([6, 6]), vert);
+					}
+				} else if (colNum === 6) {
+					this.set_equivalent_vert(...right_tile([1, rowNum]), vert);
+					if (rowNum === 6) {
+						this.set_equivalent_vert(...right_top_tile([1, 1]), vert);
+					} else if (rowNum === 1) {
+						this.set_equivalent_vert(...right_bottom_tile([1, 6]), vert);
+					}
+				}
+				if (rowNum === 6) {
+					this.set_equivalent_vert(...top_tile([colNum, 1]), vert);
+				} else if (rowNum === 1) {
+					this.set_equivalent_vert(...bottom_tile([colNum, 6]), vert);
+				}
+			}
+		}
+	}
+	init_faces() {
+		return {
+			"1": null, "2": null, "3": null, "4": null, "5": null, "6": null,
+			"7": null, "8": null, "9": null, "10": null, "11": null, "12": null
+		};
+	}
+	calculate_faces() {
+		let face = this.add_face(1, [
+			[1, 6],
+			[1, 5],
+			[2, 5],
+			[3, 5],
+			[3, 6],
+			top_tile([3, 2]),
+			top_tile([2, 2]),
+			top_tile([1, 2])
+		]);
+		this.set_equivalent_face(...top_tile(11), face);
+		this.add_face(2, [
+			[3, 6],
+			[4, 6],
+			[4, 5],
+			[3, 5]
+		]);
+		this.add_face(3, [
+			[4, 6],
+			[5, 6],
+			[6, 6],
+			[6, 5],
+			[6, 4],
+			[5, 4],
+			[4, 4],
+			[4, 5]
+		]);
+		this.add_face(4, [
+			[1, 5],
+			[2, 5],
+			[2, 4],
+			[1, 4]
+		]);
+		this.add_face(5, [
+			[2, 5],
+			[3, 5],
+			[4, 5],
+			[4, 4],
+			[4, 3],
+			[3, 3],
+			[2, 3],
+			[2, 4]
+		]);
+		face = this.add_face(6, [
+			[1, 4],
+			[2, 4],
+			[2, 3],
+			[2, 2],
+			[1, 2],
+			left_tile([5, 2]),
+			left_tile([5, 3]),
+			left_tile([5, 4])
+		]);
+		this.set_equivalent_face(...left_tile(8), face);
+		this.add_face(7, [
+			[4, 4],
+			[5, 4],
+			[5, 3],
+			[4, 3]
+		]);
+		face = this.add_face(8, [
+			[6, 4],
+			[5, 4],
+			[5, 3],
+			[5, 2],
+			[6, 2],
+			right_tile([2, 2]),
+			right_tile([2, 3]),
+			right_tile([2, 4])
+		]);
+		this.set_equivalent_face(...right_tile(6), face);
+		this.add_face(9, [
+			[2, 3],
+			[3, 3],
+			[3, 2],
+			[2, 2]
+		]);
+		this.add_face(10, [
+			[3, 3],
+			[4, 3],
+			[5, 3],
+			[5, 2],
+			[5, 1],
+			[4, 1],
+			[3, 1],
+			[3, 2]
+		]);
+		face = this.add_face(11, [
+			[1, 1],
+			[1, 2],
+			[2, 2],
+			[3, 2],
+			[3, 1],
+			bottom_tile([3, 5]),
+			bottom_tile([2, 5]),
+			bottom_tile([1, 5])
+		]);
+		this.set_equivalent_face(...bottom_tile(1), face);
+		this.add_face(12, [
+			[5, 2],
+			[6, 2],
+			[6, 1],
+			[5, 1]
+		]);
+	}
+	color_pattern1() {
+		this.color_face([1], 1);
+		this.color_face([3], 1);
+		this.color_face([5], 1);
+		this.color_face([6], 1);
+		this.color_face([8], 1);
+		this.color_face([10], 1);
+		this.color_face([11], 1);
+	}
+}
+class PythagoreanTessagon extends Tessagon {
+	static tile_class = PythagoreanTile;
+	static metadata = pythagorean_metadata;
+}
+
+const rhombus_metadata = new TessagonMetadata({
+	name: 'Rhombuses',
+	num_color_patterns: 4,
+	classification: 'laves',
+	shapes: ['rhombuses'],
+	sides: [4],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class RhombusTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: { top: null, middle: null, bottom: null },
+			center: {
+				top: { boundary: null, interior: null },
+				bottom: { boundary: null, interior: null }
+			},
+			right: { top: null, middle: null, bottom: null }
+		};
+	}
+	init_faces() {
+		return {
+			middle: null,
+			left: {
+				top: { interior: null, exterior: null },
+				bottom: { interior: null, exterior: null }
+			},
+			right: {
+				top: { interior: null, exterior: null },
+				bottom: { interior: null, exterior: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// 10 verts, do top left quadrant, others via symmetry
+		this.add_vert(['center', 'top', 'boundary'], 0.5, 1, { v_boundary: true });
+		this.add_vert(['left', 'top'], 0, 5.0 / 6.0, { h_boundary: true });
+		this.add_vert(['center', 'top', 'interior'], 0.5, 2.0 / 3.0);
+		this.add_vert(['left', 'middle'], 0, 1.0 / 2.0, { h_boundary: true });
+	}
+	calculate_faces() {
+		// One middle face
+		this.add_face(
+			'middle',
+			[
+				['center', 'top', 'interior'],
+				['left', 'middle'],
+				['center', 'bottom', 'interior'],
+				['right', 'middle']
+			],
+			{ face_type: 'horizontal' }
+		);
+		// Eight others, define only left top, others by symmetry
+		this.add_face(
+			['left', 'top', 'interior'],
+			[
+				['center', 'top', 'boundary'],
+				['left', 'top'],
+				['left', 'middle'],
+				['center', 'top', 'interior']
+			],
+			{ face_type: 'upward' }
+		);
+		this.add_face(
+			['left', 'top', 'exterior'],
+			[
+				['center', 'top', 'boundary'],
+				['left', 'top'],
+				left_tile(['center', 'top', 'boundary']),
+				top_tile(['left', 'bottom'])
+			],
+			{ face_type: 'horizontal', corner: true }
+		);
+	}
+	color_pattern1() {
+		this.color_face(['middle'], 1);
+		this.color_face(['left', 'top', 'exterior'], 1);
+		this.color_face(['left', 'top', 'interior'], 2);
+		this.color_face(['right', 'bottom', 'interior'], 2);
+	}
+	color_pattern2() {
+		this.color_face(['left', 'top', 'interior'], 1);
+		this.color_face(['right', 'top', 'interior'], 1);
+		this.color_face(['left', 'bottom', 'interior'], 2);
+		this.color_face(['right', 'bottom', 'interior'], 2);
+	}
+	color_pattern3() {
+		// Solid horizontal bands: every rhombus in the tile shares the row color.
+		const band = ((this.fingerprint[1] % 3) + 3) % 3;
+		for (const path of this.face_paths) {
+			this.color_face(path, band);
+		}
+	}
+	color_pattern4() {
+		// Checkerboard of center rhombi, accent rings.
+		const c = (this.fingerprint[0] + this.fingerprint[1]) % 2;
+		this.color_face(['middle'], c);
+		for (const side of ['left', 'right']) {
+			for (const t of ['top', 'bottom']) {
+				this.color_face([side, t, 'interior'], 2);
+				this.color_face([side, t, 'exterior'], 3);
+			}
+		}
+	}
+}
+class RhombusTessagon extends Tessagon {
+	static tile_class = RhombusTile;
+	static metadata = rhombus_metadata;
+}
+
+const square_metadata = new TessagonMetadata({
+	name: "Regular Squares",
+	num_color_patterns: 8,
+	classification: "regular",
+	shapes: ["squares"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class SquareTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { left: null, right: null },
+			bottom: { left: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			middle: null
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["top", "left"], 0, 1, { corner: true });
+	}
+	calculate_faces() {
+		this.add_face("middle", [
+			["top", "left"],
+			["top", "right"],
+			["bottom", "right"],
+			["bottom", "left"]
+		]);
+	}
+	color_pattern1() {
+		if (((this.fingerprint[0] + this.fingerprint[1]) % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			this.color_face(["middle"], 1);
+		}
+	}
+	color_pattern2() {
+		if (((this.fingerprint[0] + this.fingerprint[1]) % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else if ((this.fingerprint[0] % 2) === 0) {
+			this.color_face(["middle"], 1);
+		} else {
+			this.color_face(["middle"], 2);
+		}
+	}
+	color_pattern3() {
+		if (((this.fingerprint[0] * this.fingerprint[1]) % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			this.color_face(["middle"], 1);
+		}
+	}
+	color_pattern4() {
+		if ((this.fingerprint[1] % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			if (((Math.floor(this.fingerprint[1] / 2) + this.fingerprint[0]) % 2) === 0) {
+				this.color_face(["middle"], 0);
+			} else {
+				this.color_face(["middle"], 1);
+			}
+		}
+	}
+	color_pattern5() {
+		if ((this.fingerprint[1] % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			this.color_face(["middle"], 1);
+		}
+	}
+	color_pattern6() {
+		if ((this.fingerprint[1] % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			if ((this.fingerprint[0] % 2) === 0) {
+				this.color_face(["middle"], 1);
+			} else {
+				this.color_face(["middle"], 2);
+			}
+		}
+	}
+	color_pattern7() {
+		if ((this.fingerprint[1] % 2) === 0) {
+			this.color_face(["middle"], 0);
+		} else {
+			if (((Math.floor(this.fingerprint[1] / 2) + this.fingerprint[0]) % 2) === 0) {
+				this.color_face(["middle"], 1);
+			} else {
+				this.color_face(["middle"], 2);
+			}
+		}
+	}
+	color_pattern8() {
+		if ((this.fingerprint[1] % 2) === 0) {
+			if ((this.fingerprint[0] % 2) === 0) {
+				this.color_face(["middle"], 0);
+			} else {
+				this.color_face(["middle"], 1);
+			}
+		} else {
+			if ((this.fingerprint[0] % 2) === 0) {
+				this.color_face(["middle"], 2);
+			} else {
+				this.color_face(["middle"], 3);
+			}
+		}
+	}
+}
+class SquareTessagon extends Tessagon {
+	static tile_class = SquareTile;
+	static metadata = square_metadata;
+}
+
+const square_tri_metadata = new TessagonMetadata({
+	name: "Squares and Triangles",
+	num_color_patterns: 4,
+	classification: "archimedean",
+	shapes: ["squares", "triangles"],
+	sides: [4, 3],
+	hv_ratio: 1.0
+});
+class SquareTriTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: {
+				left: { h_boundary: null, v_boundary: null },
+				right: { h_boundary: null, v_boundary: null },
+				center: null
+			},
+			bottom: {
+				left: { h_boundary: null, v_boundary: null },
+				right: { h_boundary: null, v_boundary: null },
+				center: null
+			},
+			middle: {
+				left: null,
+				right: null
+			}
+		};
+	}
+	init_faces() {
+		return {
+			tri: {
+				top: {
+					left: { h_boundary: null, v_boundary: null },
+					right: { h_boundary: null, v_boundary: null },
+					center: null
+				},
+				bottom: {
+					left: { h_boundary: null, v_boundary: null },
+					right: { h_boundary: null, v_boundary: null },
+					center: null
+				},
+				middle: {
+					left: null,
+					right: null
+				}
+			},
+			square: {
+				top: { left: null, right: null },
+				bottom: { left: null, right: null }
+			}
+		};
+	}
+	calculate_verts() {
+		const h_unit = 1.0 / (1.0 + Math.sqrt(3));
+		const h0 = 0;
+		const h1 = 0.5 * h_unit;
+		const h2 = 0.5 * (1.0 - h_unit);
+		const h3 = 0.5;
+		const v_unit = 1.0 / (1.0 + Math.sqrt(3));
+		const v0 = 0.5;
+		const v1 = 0.5 * (1.0 + v_unit);
+		const v2 = 1.0 - 0.5 * v_unit;
+		const v3 = 1.0;
+		this.add_vert(["top", "left", "h_boundary"], h0, v1, { h_boundary: true });
+		this.add_vert(["top", "left", "v_boundary"], h1, v3, { v_boundary: true });
+		this.add_vert(["top", "center"], h3, v2);
+		this.add_vert(["middle", "left"], h2, v0);
+	}
+	calculate_faces() {
+		this.add_face(
+			["square", "top", "left"],
+			[
+				["top", "left", "h_boundary"],
+				["top", "left", "v_boundary"],
+				["top", "center"],
+				["middle", "left"]
+			],
+			{ face_type: "square" }
+		);
+		this.add_face(
+			["tri", "top", "left", "h_boundary"],
+			[
+				["top", "left", "v_boundary"],
+				["top", "left", "h_boundary"],
+				[["left"], ["top", "right", "v_boundary"]]
+			],
+			{ face_type: "triangle", h_boundary: true }
+		);
+		this.add_face(
+			["tri", "top", "left", "v_boundary"],
+			[
+				["top", "left", "v_boundary"],
+				["top", "center"],
+				[["top"], ["bottom", "center"]]
+			],
+			{ face_type: "triangle", v_boundary: true }
+		);
+		this.add_face(
+			["tri", "top", "center"],
+			[
+				["top", "center"],
+				["middle", "right"],
+				["middle", "left"]
+			],
+			{ face_type: "triangle" }
+		);
+		this.add_face(
+			["tri", "middle", "left"],
+			[
+				["middle", "left"],
+				["bottom", "left", "h_boundary"],
+				["top", "left", "h_boundary"]
+			],
+			{ face_type: "triangle" }
+		);
+	}
+	color_pattern1() {
+		this.color_face(["square", "top", "left"], 1);
+		this.color_face(["square", "top", "right"], 1);
+		this.color_face(["square", "bottom", "left"], 1);
+		this.color_face(["square", "bottom", "right"], 1);
+	}
+	color_pattern2() {
+		this.color_face(["square", "top", "left"], 1);
+		this.color_face(["square", "top", "right"], 1);
+		this.color_face(["square", "bottom", "left"], 1);
+		this.color_face(["square", "bottom", "right"], 1);
+		this.color_face(["tri", "middle", "left"], 2);
+		this.color_face(["tri", "middle", "right"], 2);
+		this.color_face(["tri", "top", "left", "v_boundary"], 2);
+		this.color_face(["tri", "top", "right", "v_boundary"], 2);
+	}
+	color_pattern3() {
+		// Checkerboard of squares, accent triangles.
+		const parity = (this.fingerprint[0] + this.fingerprint[1]) % 2;
+		for (const path of this.face_paths) {
+			if (path[0] === "square") {
+				this.color_face(path, parity);
+			} else {
+				this.color_face(path, 2);
+			}
+		}
+	}
+	color_pattern4() {
+		// Squares one color, triangles in diagonal bands.
+		const band = ((this.fingerprint[0] + this.fingerprint[1]) % 3 + 3) % 3;
+		for (const path of this.face_paths) {
+			if (path[0] === "square") {
+				this.color_face(path, 1);
+			} else {
+				this.color_face(path, band);
+			}
+		}
+	}
+}
+class SquareTriTessagon extends Tessagon {
+	static tile_class = SquareTriTile;
+	static metadata = square_tri_metadata;
+}
+
+
+const square_tri2_metadata = new TessagonMetadata({
+	name: "Other Squares and Triangles",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["squares", "triangles"],
+	sides: [4, 3],
+	hv_ratio: 1.0 / (2.0 + Math.sqrt(3.0))
+});
+class SquareTri2Tile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { h_boundary: null },
+				bottom: { h_boundary: null }
+			},
+			right: {
+				top: { h_boundary: null },
+				bottom: { h_boundary: null }
+			},
+			center: {
+				top: null,
+				bottom: null
+			}
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { corner: null, h_boundary: null },
+				bottom: { corner: null, h_boundary: null }
+			},
+			right: {
+				top: { corner: null, h_boundary: null },
+				bottom: { corner: null, h_boundary: null }
+			},
+			center: {
+				top: null,
+				middle: null,
+				bottom: null
+			}
+		};
+	}
+	calculate_verts() {
+		const v_unit = 1.0 / (2 + Math.sqrt(3));
+		const v1 = v_unit * 0.5;
+		const v2 = 0.5 - v1;
+		// Other verts defined through symmetry
+		this.add_vert(["center", "bottom"], 0.5, v1);
+		this.add_vert(["left", "bottom", "h_boundary"], 0, v2, { h_boundary: true });
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "bottom", "corner"],
+			[
+				["center", "bottom"],
+				[["left"], ["center", "bottom"]],
+				[["left", "bottom"], ["center", "top"]],
+				[["bottom"], ["center", "top"]]
+			],
+			{ face_type: "square", corner: true }
+		);
+
+		this.add_face(
+			["left", "bottom", "h_boundary"],
+			[
+				["center", "bottom"],
+				["left", "bottom", "h_boundary"],
+				[["left"], ["center", "bottom"]]
+			],
+			{ face_type: "triangle", h_boundary: true }
+		);
+
+		this.add_face(
+			["center", "bottom"],
+			[
+				["left", "bottom", "h_boundary"],
+				["center", "bottom"],
+				["right", "bottom", "h_boundary"]
+			],
+			{ face_type: "triangle" }
+		);
+
+		this.add_face(
+			["center", "middle"],
+			[
+				["left", "bottom", "h_boundary"],
+				["right", "bottom", "h_boundary"],
+				["right", "top", "h_boundary"],
+				["left", "top", "h_boundary"]
+			],
+			{ face_type: "square" }
+		);
+	}
+	color_pattern1() {
+		this.color_paths(
+			[
+				["left", "bottom", "corner"],
+				["center", "middle"]
+			],
+			1,
+			0
+		);
+	}
+}
+class SquareTri2Tessagon extends Tessagon {
+	static tile_class = SquareTri2Tile;
+	static metadata = square_tri2_metadata;
+}
+
+
+const stanley_metadata = new TessagonMetadata({
+	name: "Stanley Park",
+	num_color_patterns: 2,
+	classification: "non_convex",
+	sides: [12],
+	hv_ratio: Math.sqrt(3.0)
+});
+class StanleyParkTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = false;
+	}
+	init_verts() {
+		return {
+			top: { left: null, right: null },
+			mid1: { left: null, right: null },
+			mid2: { left: null, center: null, right: null },
+			mid3: {
+				left: { outer: null, inner: null },
+				right: { inner: null, outer: null }
+			},
+			bottom: { left: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			top: { left: null, center: null, right: null },
+			bottom: { left: null, center: null, right: null }
+		};
+	}
+	calculate_verts() {
+		let vert = this.add_vert(["top", "left"], 2 / 6, 1.0);
+		this.set_equivalent_vert(...top_tile(["bottom", "left"]), vert);
+		vert = this.add_vert(["top", "right"], 4 / 6, 1.0);
+		this.set_equivalent_vert(...top_tile(["bottom", "right"]), vert);
+		this.add_vert(["mid1", "left"], 1 / 6, 5 / 6);
+		this.add_vert(["mid2", "left"], 1 / 6, 3 / 6);
+		this.add_vert(["mid2", "center"], 3 / 6, 3 / 6);
+		this.add_vert(["mid3", "left", "outer"], 0.0, 2 / 6, { h_boundary: true });
+		this.add_vert(["mid3", "left", "inner"], 2 / 6, 2 / 6);
+		vert = this.add_vert(["bottom", "left"], 2 / 6, 0.0);
+		this.set_equivalent_vert(...bottom_tile(["top", "left"]), vert);
+		vert = this.add_vert(["bottom", "right"], 4 / 6, 0.0);
+		this.set_equivalent_vert(...bottom_tile(["top", "right"]), vert);
+	}
+	calculate_faces() {
+		let face = this.add_face(
+			["top", "left"],
+			[
+				["mid3", "left", "outer"],
+				["mid2", "left"],
+				["mid1", "left"],
+				["top", "left"],
+				top_tile(["mid3", "left", "inner"]),
+				top_tile(["mid2", "left"]),
+				top_tile(["mid3", "left", "outer"]),
+				top_left_tile(["mid2", "right"]),
+				top_left_tile(["mid3", "right", "inner"]),
+				left_tile(["top", "right"]),
+				left_tile(["mid1", "right"]),
+				left_tile(["mid2", "right"])
+			],
+			{ h_boundary: true }
+		);
+		this.set_equivalent_face(...top_tile(["bottom", "left"]), face);
+		this.set_equivalent_face(...top_left_tile(["bottom", "right"]), face);
+		this.set_equivalent_face(...left_tile(["top", "right"]), face);
+		face = this.add_face(
+			["top", "center"],
+			[
+				["top", "left"],
+				["mid1", "left"],
+				["mid2", "left"],
+				["mid3", "left", "inner"],
+				["mid2", "center"],
+				["mid3", "right", "inner"],
+				["mid2", "right"],
+				["mid1", "right"],
+				["top", "right"],
+				top_tile(["mid3", "right", "inner"]),
+				top_tile(["mid2", "center"]),
+				top_tile(["mid3", "left", "inner"])
+			]
+		);
+		this.set_equivalent_face(...top_tile(["bottom", "center"]), face);
+	}
+	color_pattern1() {
+		this.color_face(["top", "center"], 1);
+		this.color_face(["bottom", "center"], 1);
+	}
+	color_pattern2() {
+		if (this.fingerprint[1] % 2 === 0) {
+			this.color_face(["top", "left"], 1);
+			this.color_face(["top", "center"], 1);
+			this.color_face(["top", "right"], 1);
+		}
+	}
+}
+class StanleyParkTessagon extends Tessagon {
+	static tile_class = StanleyParkTile;
+	static metadata = stanley_metadata;
+}
+
+
+const tri_metadata = new TessagonMetadata({
+	name: "Regular Triangles",
+	num_color_patterns: 5,
+	classification: "regular",
+	shapes: ["triangles"],
+	sides: [3],
+	hv_ratio: Math.sqrt(3.0)
+});
+class TriTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: { top: null, bottom: null },
+			middle: null,
+			right: { top: null, bottom: null }
+		};
+	}
+	init_faces() {
+		return {
+			left: { top: null, middle: null, bottom: null },
+			right: { top: null, middle: null, bottom: null }
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["left", "top"], 0, 1, { corner: true });
+		this.add_vert("middle", 0.5, 0.5);
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "top"],
+			[
+				["left", "top"],
+				["middle"],
+				top_tile(["middle"])
+			],
+			{ v_boundary: true }
+		);
+		this.add_face(
+			["left", "middle"],
+			[
+				["left", "top"],
+				["left", "bottom"],
+				["middle"]
+			]
+		);
+	}
+	color_pattern1() {
+		this.color_face(["left", "top"], 0);
+		this.color_face(["right", "top"], 1);
+		this.color_face(["left", "middle"], 1);
+		this.color_face(["right", "middle"], 0);
+		this.color_face(["left", "bottom"], 0);
+		this.color_face(["right", "bottom"], 1);
+	}
+	color_pattern2() {
+		if (!this.fingerprint) return;
+		if (this.fingerprint[1] % 3 === 0) {
+			if (this.fingerprint[0] % 3 === 0) {
+				this.color_0_0();
+			} else if (this.fingerprint[0] % 3 === 1) {
+				this.color_0_1();
+			}
+		} else if (this.fingerprint[1] % 3 === 1) {
+			if (this.fingerprint[0] % 3 === 0) {
+				this.color_1_0();
+			} else if (this.fingerprint[0] % 3 === 1) {
+				this.color_1_1();
+			} else {
+				this.color_1_2();
+			}
+		} else {
+			if (this.fingerprint[0] % 3 === 0) {
+				this.color_2_0();
+			} else if (this.fingerprint[0] % 3 === 1) {
+				this.color_2_1();
+			} else {
+				this.color_2_2();
+			}
+		}
+	}
+	color_pattern3() {
+		if (!this.fingerprint) return;
+		if (this.fingerprint[1] % 3 === 2) {
+			this.color_paths([["left", "middle"], ["right", "bottom"]], 1, 0);
+		} else if (this.fingerprint[1] % 3 === 1) {
+			this.color_paths([["right", "top"], ["right", "bottom"]], 1, 0);
+		} else {
+			this.color_paths([["left", "middle"], ["right", "top"]], 1, 0);
+		}
+	}
+	color_pattern4() {
+		// Herringbone: pattern1 flipped tile by tile.
+		const flip = (this.fingerprint[0] + this.fingerprint[1]) % 2;
+		if (flip === 0) {
+			this.color_face(["left", "top"], 0);
+			this.color_face(["right", "top"], 1);
+			this.color_face(["left", "middle"], 1);
+			this.color_face(["right", "middle"], 0);
+			this.color_face(["left", "bottom"], 0);
+			this.color_face(["right", "bottom"], 1);
+		} else {
+			this.color_face(["left", "top"], 1);
+			this.color_face(["right", "top"], 0);
+			this.color_face(["left", "middle"], 0);
+			this.color_face(["right", "middle"], 1);
+			this.color_face(["left", "bottom"], 1);
+			this.color_face(["right", "bottom"], 0);
+		}
+	}
+	color_pattern5() {
+		// Broad diagonal bands: every triangle in the tile shares one color.
+		const c = (this.fingerprint[0] + this.fingerprint[1]) % 3;
+		for (const path of this.face_paths) {
+			this.color_face(path, c);
+		}
+	}
+	color_0_0() {
+		this.color_paths([], 0, 1);
+	}
+	color_0_1() {
+		const paths = [
+			["left", "top"],
+			["left", "bottom"],
+			["right", "middle"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_1_0() {
+		const paths = [
+			["left", "top"],
+			["left", "bottom"],
+			["right", "bottom"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_1_1() {
+		const paths = [
+			["left", "bottom"],
+			["right", "top"],
+			["right", "middle"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_1_2() {
+		const paths = [
+			["left", "top"],
+			["left", "middle"],
+			["right", "middle"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_2_0() {
+		const paths = [
+			["left", "top"],
+			["left", "bottom"],
+			["right", "top"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_2_1() {
+		const paths = [
+			["left", "top"],
+			["right", "middle"],
+			["right", "bottom"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+	color_2_2() {
+		const paths = [
+			["left", "middle"],
+			["left", "bottom"],
+			["right", "middle"]
+		];
+		this.color_paths(paths, 1, 0);
+	}
+}
+class TriTessagon extends Tessagon {
+	static tile_class = TriTile;
+	static metadata = tri_metadata;
+}
+
+
+const valemount_metadata = new TessagonMetadata({
+	name: "Valemount",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["rectangles", "squares"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class ValemountTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+	}
+	init_verts() {
+		return {
+			1: null,
+			2: null,
+			3: null,
+			4: null,
+			5: null,
+			6: null,
+			7: null,
+			8: null,
+			9: null,
+			10: null,
+			11: null,
+			12: null,
+			13: null,
+			14: null,
+			15: null,
+			16: null
+		};
+	}
+	init_faces() {
+		return {
+			top_left: null,
+			top_right: null,
+			bottom_left: null,
+			bottom_right: null,
+			center: null
+		};
+	}
+	calculate_verts() {
+		// Top row
+		let vert = this.add_vert([1], 0, 1);
+		this.set_equivalent_vert(...left_tile(4), vert);
+		this.set_equivalent_vert(...top_tile(13), vert);
+		this.set_equivalent_vert(...top_left_tile(16), vert);
+		vert = this.add_vert([2], 1 / 3.0, 1);
+		this.set_equivalent_vert(...top_tile(14), vert);
+		vert = this.add_vert([3], 2 / 3.0, 1);
+		this.set_equivalent_vert(...top_tile(15), vert);
+		vert = this.add_vert([4], 1, 1);
+		this.set_equivalent_vert(...right_tile(1), vert);
+		this.set_equivalent_vert(...top_tile(16), vert);
+		this.set_equivalent_vert(...top_right_tile(13), vert);
+		// Next row
+		vert = this.add_vert([5], 0, 2 / 3.0);
+		this.set_equivalent_vert(...left_tile(8), vert);
+		this.add_vert([6], 1 / 3.0, 2 / 3.0);
+		this.add_vert([7], 2 / 3.0, 2 / 3.0);
+		vert = this.add_vert([8], 1, 2 / 3.0);
+		this.set_equivalent_vert(...right_tile(5), vert);
+		// Next row
+		vert = this.add_vert([9], 0, 1 / 3.0);
+		this.set_equivalent_vert(...left_tile(12), vert);
+		this.add_vert([10], 1 / 3.0, 1 / 3.0);
+		this.add_vert([11], 2 / 3.0, 1 / 3.0);
+		vert = this.add_vert([12], 1, 1 / 3.0);
+		this.set_equivalent_vert(...right_tile(9), vert);
+		// Bottom row
+		vert = this.add_vert([13], 0, 0);
+		this.set_equivalent_vert(...left_tile(16), vert);
+		this.set_equivalent_vert(...bottom_tile(1), vert);
+		this.set_equivalent_vert(...bottom_left_tile(4), vert);
+		vert = this.add_vert([14], 1 / 3.0, 0);
+		this.set_equivalent_vert(...bottom_tile(2), vert);
+		vert = this.add_vert([15], 2 / 3.0, 0);
+		this.set_equivalent_vert(...bottom_tile(3), vert);
+		vert = this.add_vert([16], 1, 0);
+		this.set_equivalent_vert(...right_tile(13), vert);
+		this.set_equivalent_vert(...bottom_tile(4), vert);
+		this.set_equivalent_vert(...bottom_right_tile(1), vert);
+	}
+	calculate_faces() {
+		this.add_face("top_left", [1, 2, 6, 10, 9, 5]);
+		this.add_face("top_right", [2, 3, 4, 8, 7, 6]);
+		this.add_face("bottom_left", [9, 10, 11, 15, 14, 13]);
+		this.add_face("bottom_right", [7, 8, 12, 16, 15, 11]);
+		this.add_face("center", [6, 7, 11, 10]);
+	}
+	color_pattern1() {
+		this.color_paths([["center"]], 1, 0);
+	}
+}
+class ValemountTessagon extends Tessagon {
+	static tile_class = ValemountTile;
+	static metadata = valemount_metadata;
+}
+
+
+const weave_metadata = new TessagonMetadata({
+	name: "Weave",
+	num_color_patterns: 3,
+	classification: "non_edge",
+	shapes: ["quads", "rectangles"],
+	sides: [4],
+	hv_ratio: 1.0,
+	extra_parameters: {
+		square_ratio: {
+			type: "float",
+			min: 0.0,
+			max: 1.0,
+			default: 0.5,
+			description: "Control the size of the squares"
+		}
+	}
+});
+class WeaveTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+		// ratio: 0.5 is thin, 0.7-0.8 looks like a tight weave
+		this.square_ratio = options.hasOwnProperty("square_ratio") ? options.square_ratio : 0.6;
+	}
+
+	init_verts() {
+		// We must define every level of the path used in add_vert
+		// Paths are 4 levels: [top/bottom, left/right, h_inner/outer, v_inner/outer]
+		const inner_structure = () => ({
+			h_inner: { v_inner: null, v_outer: null },
+			h_outer: { v_inner: null, v_outer: null }
+		});
+
+		return {
+			top: {
+				left: inner_structure(),
+				right: inner_structure()
+			},
+			bottom: {
+				left: inner_structure(),
+				right: inner_structure()
+			}
+		};
+	}
+
+	init_faces() {
+		return {
+			square: {
+				top: { left: null, right: null },
+				bottom: { left: null, right: null }
+			},
+			oct: {
+				top: { left: null, center: null, right: null },
+				middle: { left: null, center: null, right: null },
+				bottom: { left: null, center: null, right: null }
+			}
+		};
+	}
+
+	calculate_verts() {
+		const half_square_size = 0.25 * this.square_ratio;
+		const h0 = 0.25 - half_square_size;
+		const h1 = 0.25 + half_square_size;
+		const v0 = 0.75 - half_square_size;
+		const v1 = 0.75 + half_square_size;
+
+		// Symmetry handles the other 3 quadrants automatically
+		this.add_vert(["top", "left", "h_inner", "v_inner"], h1, v0);
+		this.add_vert(["top", "left", "h_inner", "v_outer"], h1, v1);
+		this.add_vert(["top", "left", "h_outer", "v_inner"], h0, v0);
+		this.add_vert(["top", "left", "h_outer", "v_outer"], h0, v1);
+	}
+
+	calculate_faces() {
+		// 1. The small squares in the corners of the "weave"
+		this.add_face(["square", "top", "left"], [
+			["top", "left", "h_outer", "v_outer"],
+			["top", "left", "h_inner", "v_outer"],
+			["top", "left", "h_inner", "v_inner"],
+			["top", "left", "h_outer", "v_inner"]
+		], { face_type: "square" });
+
+		// 2. The central horizontal/vertical interlaced strip
+		this.add_face(["oct", "middle", "center"], [
+			["top", "left", "h_outer", "v_inner"],
+			["top", "left", "h_inner", "v_inner"],
+			["top", "right", "h_inner", "v_inner"],
+			["top", "right", "h_outer", "v_inner"],
+			["bottom", "right", "h_outer", "v_inner"],
+			["bottom", "right", "h_inner", "v_inner"],
+			["bottom", "left", "h_inner", "v_inner"],
+			["bottom", "left", "h_outer", "v_inner"]
+		], { face_type: "oct" });
+
+		// 3. Boundary strips that connect tiles
+		this.add_face(["oct", "top", "left"], [
+			["top", "left", "h_inner", "v_outer"],
+			["top", "left", "h_outer", "v_outer"],
+			left_tile(["top", "right", "h_outer", "v_outer"]),
+			left_tile(["top", "right", "h_inner", "v_outer"]),
+			left_top_tile(["bottom", "right", "h_inner", "v_outer"]),
+			left_top_tile(["bottom", "right", "h_outer", "v_outer"]),
+			top_tile(["bottom", "left", "h_outer", "v_outer"]),
+			top_tile(["bottom", "left", "h_inner", "v_outer"])
+		], { face_type: "oct", corner: true });
+
+		this.add_face(["oct", "middle", "left"], [
+			["top", "left", "h_outer", "v_outer"],
+			["top", "left", "h_outer", "v_inner"],
+			["bottom", "left", "h_outer", "v_inner"],
+			["bottom", "left", "h_outer", "v_outer"],
+			left_tile(["bottom", "right", "h_outer", "v_outer"]),
+			left_tile(["bottom", "right", "h_outer", "v_inner"]),
+			left_tile(["top", "right", "h_outer", "v_inner"]),
+			left_tile(["top", "right", "h_outer", "v_outer"])
+		], { face_type: "oct", h_boundary: true });
+
+		this.add_face(["oct", "top", "center"], [
+			["top", "left", "h_inner", "v_outer"],
+			["top", "left", "h_inner", "v_inner"],
+			["top", "right", "h_inner", "v_inner"],
+			["top", "right", "h_inner", "v_outer"],
+			top_tile(["bottom", "right", "h_inner", "v_outer"]),
+			top_tile(["bottom", "right", "h_inner", "v_inner"]),
+			top_tile(["bottom", "left", "h_inner", "v_inner"]),
+			top_tile(["bottom", "left", "h_inner", "v_outer"])
+		], { face_type: "oct", v_boundary: true });
+	}
+	calculate_colors() {
+		if (this.color_pattern === 1) {
+			this.color_pattern_alternating(); // Our new checkerboard
+		} else if (this.color_pattern === 2) {
+			this.color_pattern_directional(); // Our new directional weave
+		} else if (this.color_pattern === 3) {
+			this.color_pattern_weave_focus(); // Our new directional weave
+		} else {
+			this.color_pattern_standard(); // Your original logic (Pattern 0)
+		}
+	}
+	color_pattern_standard() {
+		this.color_face(["oct", "top", "center"], 1);
+		this.color_face(["oct", "middle", "left"], 1);
+		this.color_face(["oct", "top", "left"], 2);
+		this.color_face(["oct", "middle", "center"], 2);
+		// squares stay 0
+	}
+
+	color_pattern_alternating() {
+		// New Pattern: Checkerboard parity
+		let parity = (this.fingerprint[0] + this.fingerprint[1]) % 2;
+		this.color_face(["oct", "top", "center"], parity);
+		this.color_face(["oct", "middle", "left"], parity);
+		this.color_face(["oct", "top", "left"], 1 - parity);
+		this.color_face(["oct", "middle", "center"], 1 - parity);
+		this.color_face(["square", "top", "left"], 2); // Distinct corner squares
+	}
+
+	color_pattern_directional() {
+		// New Pattern: Warp vs Weft (Vertical vs Horizontal)
+		this.color_face(["oct", "top", "center"], 1);    // Vertical strips
+		this.color_face(["oct", "middle", "left"], 2);   // Horizontal strips
+		this.color_face(["oct", "top", "left"], 0);      // Corners
+		this.color_face(["oct", "middle", "center"], 0); // Intersection
+	}
+	color_pattern_weave_focus() {
+		// 1. The central 'main' intersection
+		this.color_face(["oct", "middle", "center"], 0);
+
+		// 2. The vertical strand segments 
+		// (In your tile, these are the top/bottom center octs)
+		this.color_face(["oct", "top", "center"], 1);
+
+		// 3. The horizontal strand segments 
+		// (In your tile, these are the middle left/right octs)
+		this.color_face(["oct", "middle", "left"], 2);
+
+		// 4. The corner 'octs' (the ones that touch multiple tiles)
+		this.color_face(["oct", "top", "left"], 3);
+
+		// 5. The small corner squares
+		this.color_face(["square", "top", "left"], 4);
+	}
+	color_pattern1() {
+		this.color_pattern_weave_focus();
+	}
+}
+class WeaveTessagon extends Tessagon {
+	static tile_class = WeaveTile;
+	static metadata = weave_metadata;
+}
+
+const zigzag_metadata = new TessagonMetadata({
+	name: "Zig-Zag",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["rectangles"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class ZigZagTile extends Tile {
+	init_verts() {
+		return {
+			1: { 1: null, 2: null, 3: null, 4: null, 5: null },
+			2: { 1: null, 2: null, 3: null, 4: null, 5: null },
+			3: { 1: null, 2: null, 3: null, 4: null, 5: null },
+			4: { 1: null, 2: null, 3: null, 4: null, 5: null },
+			5: { 1: null, 2: null, 3: null, 4: null, 5: null }
+		};
+	}
+	init_faces() {
+		return {
+			1: null, 2: null, 3: null, 4: null, 5: null,
+			6: null, 7: null, 8: null, 9: null, 10: null
+		};
+	}
+	calculate_verts() {
+		const c = {
+			1: 0.0,
+			2: 1 / 4.0,
+			3: 2 / 4.0,
+			4: 3 / 4.0,
+			5: 1.0
+		};
+		for (const colKey in this.verts) {
+			const col = parseInt(colKey);
+			for (const rowKey in this.verts[col]) {
+				const row = parseInt(rowKey);
+				if (col === 5) {
+					if (!this.get_neighbor_tile(["right"])) {
+						if (!this.get_neighbor_tile(["top"])) {
+							if (row === 5) continue;
+							if (row === 4) continue;
+						}
+						if (!this.get_neighbor_tile(["bottom"])) {
+							if (row === 1) continue;
+						}
+					}
+				}
+				const vert = this.add_vert([col, row], c[col], c[row]);
+				if (col === 1) {
+					this.set_equivalent_vert(...left_tile([5, row]), vert);
+					if (row === 5) {
+						this.set_equivalent_vert(...left_top_tile([5, 1]), vert);
+					} else if (row === 1) {
+						this.set_equivalent_vert(...left_bottom_tile([5, 5]), vert);
+					}
+				} else if (col === 5) {
+					this.set_equivalent_vert(...right_tile([1, row]), vert);
+					if (row === 5) {
+						this.set_equivalent_vert(...right_top_tile([1, 1]), vert);
+					} else if (row === 1) {
+						this.set_equivalent_vert(...right_bottom_tile([1, 5]), vert);
+					}
+				}
+				if (row === 5) {
+					this.set_equivalent_vert(...top_tile([col, 1]), vert);
+				} else if (row === 1) {
+					this.set_equivalent_vert(...bottom_tile([col, 5]), vert);
+				}
+			}
+		}
+	}
+	calculate_faces() {
+		this.add_face(1, [[1, 5],
+		[1, 4],
+		[2, 4],
+		[3, 4],
+		[3, 5],
+		[2, 5]]);
+		this.add_face(2, [[3, 5],
+		[3, 4],
+		[3, 3],
+		[4, 3],
+		[4, 4],
+		[4, 5]]);
+		let face = this.add_face(3, [[4, 5],
+		[4, 4],
+		[5, 4],
+		[5, 5],
+		top_tile([5, 2]),
+		top_tile([4, 2])]);
+		this.set_equivalent_face(...top_tile(10), face);
+		face = this.add_face(4, [[1, 3],
+		[2, 3],
+		[2, 4],
+		[1, 4],
+		left_tile([4, 4]),
+		left_tile([4, 3])]);
+		this.set_equivalent_face(...left_tile(6), face);
+		this.add_face(5, [[3, 2],
+		[3, 3],
+		[3, 4],
+		[2, 4],
+		[2, 3],
+		[2, 2]]);
+		face = this.add_face(6, [[5, 4],
+		[4, 4],
+		[4, 3],
+		[5, 3],
+		right_tile([2, 3]),
+		right_tile([2, 4])]);
+		this.set_equivalent_face(...right_tile(4), face);
+		this.add_face(7, [[2, 1],
+		[2, 2],
+		[2, 3],
+		[1, 3],
+		[1, 2],
+		[1, 1]]);
+		this.add_face(8, [[5, 2],
+		[5, 3],
+		[4, 3],
+		[3, 3],
+		[3, 2],
+		[4, 2]]);
+		this.add_face(9, [[4, 1],
+		[4, 2],
+		[3, 2],
+		[2, 2],
+		[2, 1],
+		[3, 1]]);
+		face = this.add_face(10, [[5, 1],
+		[5, 2],
+		[4, 2],
+		[4, 1],
+		bottom_tile([4, 4]),
+		bottom_tile([5, 4])]);
+		this.set_equivalent_face(...bottom_tile(3), face);
+	}
+	color_pattern1() {
+		this.color_face(1, 1);
+		this.color_face(2, 1);
+		this.color_face(7, 1);
+		this.color_face(8, 1);
+	}
+}
+class ZigZagTessagon extends Tessagon {
+	static tile_class = ZigZagTile;
+	static metadata = zigzag_metadata;
+}
+
+
+
+const hex_metadata = new TessagonMetadata({
+	name: "Regular Hexagons",
+	num_color_patterns: 4,
+	classification: "regular",
+	shapes: ["hexagons"],
+	sides: [6],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { left: null, center: null, right: null },
+			bottom: { left: null, center: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			top: { left: null, right: null },
+			middle: null,
+			bottom: { left: null, right: null }
+		};
+	}
+	calculate_verts() {
+		// Defines the vertex at ["top", "center"] and ["bottom", "center"]
+		this.add_vert(["top", "center"], 0.5, 5.0 / 6.0);
+		// Defines the vertices at ["top", "left"], ["bottom", "left"], and ["top", "right"]
+		this.add_vert(["top", "left"], 0, 2.0 / 3.0, { h_boundary: true });
+	}
+	calculate_faces() {
+		// Creates the middle face using six vertices
+		this.add_face(
+			"middle",
+			[
+				["top", "center"],
+				["top", "left"],
+				["bottom", "left"],
+				["bottom", "center"],
+				["bottom", "right"],
+				["top", "right"]
+			]
+		);
+		// Creates a corner face shared with neighboring tiles
+		this.add_face(
+			["top", "left"],
+			[
+				["top", "left"],
+				["top", "center"],
+				top_tile(["bottom", "center"]),
+				top_tile(["bottom", "left"]),
+				top_left_tile(["bottom", "center"]),
+				left_tile(["top", "center"])
+			],
+			{ corner: true }
+		);
+	}
+	color_pattern1() {
+		if (this.fingerprint[0] % 3 === 0) {
+			this.color_paths([["top", "left"], ["bottom", "left"]], 1, 0);
+		} else if (this.fingerprint[0] % 3 === 1) {
+			this.color_paths([["middle"]], 1, 0);
+		} else {
+			this.color_paths([["top", "right"], ["bottom", "right"]], 1, 0);
+		}
+	}
+	color_pattern2() {
+		if (this.fingerprint[0] % 3 === 0) {
+			this.color_paths_hash(
+				{
+					1: [["top", "left"], ["bottom", "left"]],
+					2: [["top", "right"], ["bottom", "right"]]
+				},
+				0
+			);
+		} else if (this.fingerprint[0] % 3 === 1) {
+			this.color_paths_hash(
+				{
+					1: [["middle"]],
+					2: [["top", "left"], ["bottom", "left"]]
+				},
+				0
+			);
+		} else {
+			this.color_paths_hash(
+				{
+					2: [["middle"]],
+					1: [["top", "right"], ["bottom", "right"]]
+				},
+				0
+			);
+		}
+	}
+	color_pattern3() {
+		// Concentric rings of hexagons around the center of the board.
+		const H = this.tessagon.tile_generator.h_num;
+		const V = this.tessagon.tile_generator.v_num;
+		const [h, v] = this.fingerprint;
+		const hc = h - (H - 1) / 2;
+		const vc = v - (V - 1) / 2;
+		const ring = Math.round(Math.max(Math.abs(hc), Math.abs(vc), Math.abs(hc + vc))) % 3;
+		this.color_face(["middle"], ring);
+		this.color_face(["top", "left"], 3);
+		this.color_face(["top", "right"], 3);
+		this.color_face(["bottom", "left"], 3);
+		this.color_face(["bottom", "right"], 3);
+	}
+	color_pattern4() {
+		// Diagonal stripes of hexagons.
+		const [h, v] = this.fingerprint;
+		const stripe = ((h + v) % 3 + 3) % 3;
+		this.color_face(["middle"], stripe);
+		this.color_face(["top", "left"], 4);
+		this.color_face(["top", "right"], 4);
+		this.color_face(["bottom", "left"], 4);
+		this.color_face(["bottom", "right"], 4);
+	}
+}
+class HexTessagon extends Tessagon {
+	static tile_class = HexTile;
+	static metadata = hex_metadata;
+}
+
+const hex_board_metadata = new TessagonMetadata({
+	name: "Hex Board",
+	num_color_patterns: 1,
+	classification: "regular",
+	shapes: ["hexagons"],
+	sides: [6],
+	hv_ratio: 1.0 / Math.sqrt(3.0)
+});
+class HexBoardTessagon extends HexTessagon {
+	static metadata = hex_board_metadata;
+
+	static default_grid(size) {
+		// A Hex Board is an oblong hexagon cut from a (C+R) x R patch of regular
+		// hexagons, where C is the number of hexes along the top (and bottom) edge
+		// and R is the number of hexes along each slanted side edge. The special
+		// case C = R = size is the regular hexagon used by buildHexBoard(size).
+		//
+		// In the axial coordinates of the hexagon centers (q, r), the board is
+		// the set |r| <= R-1, -(R-1) <= q <= C-1, -(R-1) <= q+r <= C-1, which
+		// reduces to |q|,|r|,|q+r| <= N-1 when C = R = N (same geometry as
+		// buildHexBoard). The C and R come from the `cols`/`H` and `rows`/`V`
+		// options, or from a single `size` for a regular hexagon.
+		return { H: 2 * size, V: size };
+	}
+
+	static grid_from_options(options = {}) {
+		// Resolve cols/rows from options: an explicit `size` makes a regular
+		// hexagon (cols = rows = size); otherwise cols = H/cols and rows = V/rows.
+		// The patch must be (cols + rows) x rows to contain the whole board.
+		// Returns { H, V, cols, rows }.
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		return { H: cols + rows, V: rows, cols, rows };
+	}
+
+	static plane(H, V) {
+		// The default plane stretches v so the hexagons are regular: a tile spans
+		// 1/H in h and sqrt(3)/H in v, so a v-span of V tiles is sqrt(3)*V/H.
+		// The v axis is flipped to screen coordinates: v=1 (the tile's top edge)
+		// maps to y=0 at the top of the screen, so the board renders right-side up.
+		const scale = Math.sqrt(3) * V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = HexBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = HexBoardTessagon.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The center cell is the one nearest the middle of the hv patch; it must
+		// be a real hexagon center for the axial coordinates to land on integers.
+		let origin = 0;
+		let bestDist = Infinity;
+		centers.forEach(([x, y], i) => {
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		const h0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		// Adjacent centers sit one tile apart horizontally (dh) and half a tile
+		// over and one row down on the diagonal (dh/2, dv).
+		const dh = 1 / H;
+		const dv = 1 / (2 * V);
+		const kept = [];
+		faces.forEach((face, i) => {
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - h0 - r * dh / 2) / dh);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				kept.push(face);
+			}
+		});
+		return {
+			vert_list: verts,
+			face_list: kept,
+			color_list: mesh.color_list
+		};
+	}
+}
+
+const big_hex_tri_board_metadata = new TessagonMetadata({
+	name: "Big Hex Tri Board",
+	num_color_patterns: 1,
+	classification: "archimedean",
+	shapes: ["hexagons", "triangles"],
+	sides: [6, 3],
+	hv_ratio: 1.0 / Math.sqrt(3),
+	extra_parameters: {
+		hexagon_ratio: {
+			type: "float",
+			min: 0.0,
+			max: 0.70,
+			default: 0.5,
+			description: "Control the size of the Hexagons"
+		}
+	}
+});
+class BigHexTriBoardTessagon extends BigHexTriTessagon {
+	// A Big Hex Tri Board is a BigHexTri tessellation cut to the same oblong
+	// hexagon region as a Hex Board (axial |r| <= R-1, -(R-1) <= q <= C-1,
+	// -(R-1) <= q+r <= C-1 in the big-hexagon centers), plus every triangle that
+	// touches a kept big hexagon. The big hexagons sit two tiles apart
+	// horizontally and one tile over + one row down on the diagonal, so their
+	// axial spacing is dh = 2/H, dv = 1/V. Because each big hexagon is fully
+	// ringed by triangles, the outer boundary of the board is a single layer of
+	// triangles on every edge.
+	static metadata = big_hex_tri_board_metadata;
+
+	static default_grid(size) {
+		const grid = BigHexTriBoardTessagon.grid_from_options({ size });
+		return { H: grid.H, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The board plus its triangle rim needs a patch several tiles larger
+		// than the board itself; 4 x (cols+rows) by 4 x rows is even (required
+		// by the alternating tiles) and leaves a generous margin.
+		return { H: 4 * (cols + rows), V: 4 * rows, cols, rows };
+	}
+
+	static plane(H, V) {
+		// Same regular-hex plane as HexBoardTessagon: a tile spans 1/H in h and
+		// sqrt(3)/H in v, so a v-span of V tiles is sqrt(3)*V/H.
+		const scale = Math.sqrt(3) * V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = BigHexTriBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = BigHexTriBoardTessagon.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The big hexagons are the six-sided faces. The origin is the one
+		// nearest the middle of the hv patch; it must be a real hexagon center
+		// for the axial coordinates to land on integers.
+		let origin = null;
+		let bestDist = Infinity;
+		faces.forEach((face, i) => {
+			if (face.length !== 6) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		if (origin === null) {
+			return mesh;
+		}
+		const h0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		const dh = 2 / H;
+		const dv = 1 / V;
+		const keptBig = new Set();
+		faces.forEach((face, i) => {
+			if (face.length !== 6) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - h0 - r * dh / 2) / dh);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				keptBig.add(i);
+			}
+		});
+
+		// Keep every triangle that shares an edge (2 vertices) with a kept big
+		// hexagon; those are exactly the triangles of the single-layer rim.
+		const keptSet = new Set(keptBig);
+		faces.forEach((face, i) => {
+			if (keptBig.has(i)) {
+				return;
+			}
+			const faceVerts = new Set(face);
+			for (const bi of keptBig) {
+				let shared = 0;
+				for (const v of faces[bi]) {
+					if (faceVerts.has(v)) {
+						shared++;
+					}
+				}
+				if (shared >= 2) {
+					keptSet.add(i);
+					break;
+				}
+			}
+		});
+
+		const keptIdx = [...keptSet].sort((a, b) => a - b);
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const dodeca_board_metadata = new TessagonMetadata({
+	name: "Dodeca Board",
+	num_color_patterns: 1,
+	classification: "regular",
+	shapes: ["dodecagons", "squares", "hexagons"],
+	sides: [12, 4, 6],
+	hv_ratio: 1.0 / Math.sqrt(3)
+});
+class DodecaBoardTessagon extends DodecaTessagon {
+	// A Dodeca Board is a Dodeca tessellation cut to the same oblong hexagon
+	// region as a Hex Board, keeping the twelve-sided dodecagons as the cells and
+	// every square/hexagon that touches a kept dodecagon. The dodecagon centers
+	// sit on the same axial lattice as a Hex Board's hexes (one tile apart
+	// horizontally, half a tile over + one row down on the diagonal), so their
+	// axial spacing is dh = 1/H, dv = 1/(2V). Every dodecagon is ringed by its
+	// squares and hexagons, so the outer boundary of the board is a layer of
+	// small shapes on every edge.
+	static metadata = dodeca_board_metadata;
+
+	static default_grid(size) {
+		const grid = DodecaBoardTessagon.grid_from_options({ size });
+		return { H: grid.H, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The dodecagon diagonal lattice reaches (cols + 2*rows) tiles wide and
+		// `rows` tiles tall; the +4 margin (even-ized) holds the frame of small
+		// shapes around the outer dodecagons.
+		const H = cols + 2 * rows + 4;
+		const V = rows + 4;
+		return { H: H % 2 ? H + 1 : H, V: V % 2 ? V + 1 : V, cols, rows };
+	}
+
+	static plane(H, V) {
+		const scale = Math.sqrt(3) * V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = DodecaBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = DodecaBoardTessagon.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+
+		const centers = faces.map(face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length, y / face.length];
+		});
+
+		// The dodecagons are the twelve-sided faces; the origin is the one
+		// nearest the middle of the hv patch.
+		let origin = null;
+		let bestDist = Infinity;
+		faces.forEach((face, i) => {
+			if (face.length !== 12) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const d = (x - 0.5) * (x - 0.5) + (y / sy - 0.5) * (y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = i;
+			}
+		});
+		if (origin === null) {
+			return mesh;
+		}
+		const h0 = centers[origin][0];
+		const v0 = centers[origin][1] / sy;
+
+		const dh = 1 / H;
+		const dv = 1 / (2 * V);
+		const keptBig = new Set();
+		faces.forEach((face, i) => {
+			if (face.length !== 12) {
+				return;
+			}
+			const [x, y] = centers[i];
+			const r = Math.round((y / sy - v0) / dv);
+			const q = Math.round((x - h0 - r * dh / 2) / dh);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				keptBig.add(i);
+			}
+		});
+
+		// Keep every square/hexagon that shares an edge (2 vertices) with a
+		// kept dodecagon; those form the small-shape frame around each cell.
+		const keptSet = new Set(keptBig);
+		faces.forEach((face, i) => {
+			if (keptBig.has(i)) {
+				return;
+			}
+			const faceVerts = new Set(face);
+			for (const bi of keptBig) {
+				let shared = 0;
+				for (const v of faces[bi]) {
+					if (faceVerts.has(v)) {
+						shared++;
+					}
+				}
+				if (shared >= 2) {
+					keptSet.add(i);
+					break;
+				}
+			}
+		});
+
+		const keptIdx = [...keptSet].sort((a, b) => a - b);
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const floret_board_metadata = new TessagonMetadata({
+	name: "Floret Board",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["pentagons"],
+	sides: [5],
+	hv_ratio: 1.0 / Math.sqrt(3)
+});
+class FloretBoardTessagon extends FloretTessagon {
+	// A Floret Board is a Floret tessellation cut to the same oblong hexagon
+	// region as a Hex Board, keeping complete florets (the six-pentagon flowers
+	// around the six-valent vertices) as the cells and every gap pentagon that
+	// touches a kept floret. The floret centers sit two tiles apart horizontally
+	// and one tile over + one row down on the diagonal, so their axial spacing is
+	// dh = 2/H, dv = 1/V (the same lattice as the BigHexTri big hexagons). Every
+	// floret is ringed by gap pentagons, so the outer boundary of the board is a
+	// single layer of gap pentagons on every edge.
+	static metadata = floret_board_metadata;
+
+	static default_grid(size) {
+		const grid = FloretBoardTessagon.grid_from_options({ size });
+		return { H: grid.H, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The board plus its pentagon rim needs a patch several tiles larger
+		// than the board itself; 4 x (cols + rows) by 4 x rows is even (required
+		// by the alternating tiles) and leaves a generous margin.
+		return { H: 4 * (cols + rows), V: 4 * rows, cols, rows };
+	}
+
+	static plane(H, V) {
+		// Same regular-hex plane as HexBoardTessagon: a tile spans 1/H in h and
+		// sqrt(3)/H in v, so a v-span of V tiles is sqrt(3)*V/H.
+		const scale = Math.sqrt(3) * V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = FloretBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = FloretBoardTessagon.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	floret_selection() {
+		// Cut the full Floret patch to the oblong hexagon region and return the
+		// full patch mesh plus the two keep-sets derived from it: keptBig, the
+		// pentagons of every complete floret in the region, and keptSet, keptBig
+		// plus the rim of gap pentagons that touch a kept floret.
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return { mesh, keptBig: new Set(), keptSet: new Set() };
+		}
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+
+		// A floret is a flower of six pentagons around a degree-six vertex;
+		// group the pentagons by that central vertex.
+		const pentAtVert = new Map();
+		faces.forEach((face, i) => {
+			for (const v of face) {
+				if (!pentAtVert.has(v)) pentAtVert.set(v, []);
+				pentAtVert.get(v).push(i);
+			}
+		});
+		const florets = [];
+		pentAtVert.forEach((pents, v) => {
+			if (pents.length === 6) {
+				florets.push({ v, x: verts[v][0], y: verts[v][1], pents });
+			}
+		});
+
+		// The origin floret is the one nearest the middle of the hv patch; its
+		// center must be a real floret vertex for the axial coordinates to land
+		// on integers.
+		let origin = null;
+		let bestDist = Infinity;
+		florets.forEach(f => {
+			const d = (f.x - 0.5) * (f.x - 0.5) + (f.y / sy - 0.5) * (f.y / sy - 0.5);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = f;
+			}
+		});
+		if (origin === null) {
+			return { mesh, keptBig: new Set(), keptSet: new Set() };
+		}
+		const h0 = origin.x;
+		const v0 = origin.y / sy;
+
+		const dh = 2 / H;
+		const dv = 1 / V;
+		const keptBig = new Set();
+		florets.forEach(f => {
+			const r = Math.round((f.y / sy - v0) / dv);
+			const q = Math.round((f.x - h0 - r * dh / 2) / dh);
+			if (Math.abs(r) <= R - 1 &&
+				-(R - 1) <= q && q <= C - 1 &&
+				-(R - 1) <= q + r && q + r <= C - 1) {
+				f.pents.forEach(p => keptBig.add(p));
+			}
+		});
+
+		// Keep every gap pentagon that shares an edge (2 vertices) with a kept
+		// floret pentagon; those are exactly the pentagons of the single-layer
+		// rim between florets.
+		const keptSet = new Set(keptBig);
+		faces.forEach((face, i) => {
+			if (keptBig.has(i)) {
+				return;
+			}
+			const faceVerts = new Set(face);
+			for (const fi of keptBig) {
+				let shared = 0;
+				for (const v of faces[fi]) {
+					if (faceVerts.has(v)) {
+						shared++;
+					}
+				}
+				if (shared >= 2) {
+					keptSet.add(i);
+					break;
+				}
+			}
+		});
+
+		return { mesh, keptBig, keptSet };
+	}
+
+	create_mesh() {
+		const { mesh, keptSet } = this.floret_selection();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const keptIdx = [...keptSet].sort((a, b) => a - b);
+		if (!keptIdx.length) {
+			return mesh;
+		}
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const floret_complete_metadata = new TessagonMetadata({
+	name: "Floret Complete Board",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["pentagons"],
+	sides: [5],
+	hv_ratio: 1.0 / Math.sqrt(3)
+});
+class FloretCompleteBoardTessagon extends FloretBoardTessagon {
+	// A Floret Complete Board keeps only the complete florets of a Floret Board:
+	// the six-pentagon flowers around the six-valent vertices, with every gap
+	// pentagon (the partial petals around the flowers) removed. The florets do not
+	// share edges, so each flower is an island of six cells and the outer boundary
+	// of every floret is made of its petals' outer edges.
+	static metadata = floret_complete_metadata;
+
+	create_mesh() {
+		const { mesh, keptBig } = this.floret_selection();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const keptIdx = [...keptBig].sort((a, b) => a - b);
+		if (!keptIdx.length) {
+			return mesh;
+		}
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const dissected_cross_star_metadata = new TessagonMetadata({
+	name: "Dissected Cross and Star",
+	num_color_patterns: 1,
+	classification: "non_convex",
+	shapes: ["stars", "crosses"],
+	sides: [4, 5],
+	hv_ratio: 1.0
+});
+class DissectedCrossStarTile extends Tile {
+	constructor(tessagon, options = {}) {
+		// A Dissected Cross and Star dissects the Islamic Stars and Crosses pattern:
+		// every star is cut into 8 wedge faces radiating from the star center, and
+		// every cross into a central square plus 4 five-sided arms (one per tile that
+		// meets at the cross corner). The 4/5-gon faces let the pattern be used as a
+		// board made of cells, streets and cities.
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+
+	init_verts() {
+		return {
+			left: {
+				middle: null,
+				top: { h_dominant: null, point: null, v_dominant: null },
+				bottom: { h_dominant: null, point: null, v_dominant: null }
+			},
+			center: { middle: null, top: null, bottom: null },
+			right: {
+				middle: null,
+				top: { h_dominant: null, point: null, v_dominant: null },
+				bottom: { h_dominant: null, point: null, v_dominant: null }
+			}
+		};
+	}
+
+	init_faces() {
+		return {
+			wedge: { w1: null, w2: null, w3: null, w4: null, w5: null, w6: null, w7: null, w8: null },
+			cross: {
+				left: {
+					top: { square: null, armN: null, armE: null, armS: null, armW: null },
+					bottom: { square: null, armN: null, armE: null, armS: null, armW: null }
+				},
+				right: {
+					top: { square: null, armN: null, armE: null, armS: null, armW: null },
+					bottom: { square: null, armN: null, armE: null, armS: null, armW: null }
+				}
+			}
+		};
+	}
+
+	calculate_verts() {
+		const c = 1.0 / (2 * (Math.sqrt(2) + 1));
+		const a = c / Math.sqrt(2);
+		this.add_vert(["left", "middle"], 0.0, 0.5, { h_boundary: true });
+		this.add_vert(["left", "top", "h_dominant"], a, 0.5 + a);
+		this.add_vert(["left", "top", "point"], a, 1.0 - a);
+		this.add_vert(["left", "top", "v_dominant"], 0.5 - a, 1.0 - a);
+		this.add_vert(["center", "top"], 0.5, 1.0, { v_boundary: true });
+		this.add_vert(["center", "middle"], 0.5, 0.5);
+	}
+
+	calculate_faces() {
+		const CEN = ["center", "middle"];
+		this.add_face(["wedge", "w1"], [CEN, ["left", "bottom", "h_dominant"], ["left", "middle"], ["left", "top", "h_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w2"], [CEN, ["left", "top", "h_dominant"], ["left", "top", "point"], ["left", "top", "v_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w3"], [CEN, ["left", "top", "v_dominant"], ["center", "top"], ["right", "top", "v_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w4"], [CEN, ["right", "top", "v_dominant"], ["right", "top", "point"], ["right", "top", "h_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w5"], [CEN, ["right", "top", "h_dominant"], ["right", "middle"], ["right", "bottom", "h_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w6"], [CEN, ["right", "bottom", "h_dominant"], ["right", "bottom", "point"], ["right", "bottom", "v_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w7"], [CEN, ["right", "bottom", "v_dominant"], ["center", "bottom"], ["left", "bottom", "v_dominant"]], { face_type: "star-wedge" });
+		this.add_face(["wedge", "w8"], [CEN, ["left", "bottom", "v_dominant"], ["left", "bottom", "point"], ["left", "bottom", "h_dominant"]], { face_type: "star-wedge" });
+		const S = ["cross", "left", "top"];
+		this.add_face([...S, "square"], [
+			["left", "top", "point"],
+			top_tile(["left", "bottom", "point"]),
+			top_left_tile(["right", "bottom", "point"]),
+			left_tile(["right", "top", "point"])
+		], { face_type: "cross-square", corner: true });
+		this.add_face([...S, "armS"], [
+			["left", "middle"],
+			["left", "top", "h_dominant"],
+			["left", "top", "point"],
+			left_tile(["right", "top", "point"]),
+			left_tile(["right", "top", "h_dominant"])
+		], { face_type: "cross-arm", corner: true });
+		this.add_face([...S, "armE"], [
+			["center", "top"],
+			["left", "top", "v_dominant"],
+			["left", "top", "point"],
+			top_tile(["left", "bottom", "point"]),
+			top_tile(["left", "bottom", "v_dominant"])
+		], { face_type: "cross-arm", corner: true });
+		this.add_face([...S, "armN"], [
+			top_left_tile(["right", "middle"]),
+			top_tile(["left", "bottom", "h_dominant"]),
+			top_tile(["left", "bottom", "point"]),
+			top_left_tile(["right", "bottom", "point"]),
+			top_left_tile(["right", "bottom", "h_dominant"])
+		], { face_type: "cross-arm", corner: true });
+		this.add_face([...S, "armW"], [
+			left_tile(["center", "top"]),
+			left_tile(["right", "top", "v_dominant"]),
+			left_tile(["right", "top", "point"]),
+			top_left_tile(["right", "bottom", "point"]),
+			top_left_tile(["right", "bottom", "v_dominant"])
+		], { face_type: "cross-arm", corner: true });
+	}
+
+	color_pattern1() {
+		this.color_paths_hash({ "1": [["wedge", "w1"], ["wedge", "w2"], ["wedge", "w3"], ["wedge", "w4"], ["wedge", "w5"], ["wedge", "w6"], ["wedge", "w7"], ["wedge", "w8"]] }, 0);
+	}
+}
+class DissectedCrossStarTessagon extends Tessagon {
+	static tile_class = DissectedCrossStarTile;
+	static metadata = dissected_cross_star_metadata;
+}
+
+const dissected_cross_star_board_metadata = new TessagonMetadata({
+	name: "Dissected Cross Star Board",
+	num_color_patterns: 1,
+	classification: "non_convex",
+	shapes: ["stars", "crosses"],
+	sides: [4, 5],
+	hv_ratio: 1.0
+});
+class DissectedCrossStarBoardTessagon extends DissectedCrossStarTessagon {
+	// A Dissected Cross Star Board is a Dissected Cross and Star tessellation cut
+	// to the same oblong hexagon region as a Hex Board, keeping complete stars
+	// (their 8 wedges) as the cells and every cross (square + 4 arms) that touches
+	// a kept star. The star centers sit one tile apart horizontally and half a
+	// tile over + one row down on the diagonal, so their axial spacing is
+	// dh = 1/H, dv = 1/(2V) (the same lattice as the BigHexTri big hexagons).
+	// Crosses are centered on the grid corners between stars, so the outer
+	// boundary of the board is a rim of cross squares with the arms pointing out.
+	static metadata = dissected_cross_star_board_metadata;
+
+	static default_grid(size) {
+		const grid = DissectedCrossStarBoardTessagon.grid_from_options({ size });
+		return { H: grid.H, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// The board plus its crosses needs a patch several tiles larger than
+		// the board itself; 4 x (cols + rows) by 4 x rows is even and leaves a
+		// generous margin so every star and cross of the board is complete.
+		// return { H: 4 * (cols + rows), V: 4 * rows, cols, rows };
+		return { H: cols, V: rows, cols, rows };
+	}
+
+	static plane(H, V) {
+		// Same regular-hex plane as HexBoardTessagon: a tile spans 1/H in h and
+		// sqrt(3)/H in v, so a v-span of V tiles is sqrt(3)*V/H.
+		const scale = Math.sqrt(3) * V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = DissectedCrossStarBoardTessagon.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = DissectedCrossStarBoardTessagon.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		//console.log('was das macht?????')
+		//console.log(this.f)
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+		console.log('sy', sy)
+		const wedgeIdx = this.face_types['star-wedge'] || [];
+		const crossIdx = (this.face_types['cross-square'] || []).concat(this.face_types['cross-arm'] || []);
+		const centerOf = face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+
+			return [x / face.length * H, y / face.length / sy * V];
+		};
+
+		// The origin is the star nearest the middle of the hv patch; its center
+		// must land on integers in tile-index space for the axial coordinates.
+		let origin = null;
+		let bestDist = Infinity;
+		for (const i of wedgeIdx) {
+			const [cu, cv] = centerOf(faces[i]);
+			const d = (cu - H / 2) * (cu - H / 2) + (cv - V / 2) * (cv - V / 2);
+			if (d < bestDist) {
+				bestDist = d;
+				origin = [Math.round(cu - 0.5), Math.round(cv - 0.5)];
+			}
+		}
+		if (origin === null) {
+			return mesh;
+		}
+		const o0 = origin[0];
+		const o1 = origin[1];
+		const kept = new Set();
+		for (const i of wedgeIdx) {
+			const [cu, cv] = centerOf(faces[i]);
+			const q = Math.round(cu - 0.5) - o0;
+			const r = Math.round(cv - 0.5) - o1;
+			// if (Math.abs(r) <= R - 1 &&
+			// 	-(R - 1) <= q && q <= C - 1 &&
+			// 	-(R - 1) <= q + r && q + r <= C - 1) {
+			// 	kept.add(i);
+			// }
+			kept.add(i);
+		}
+		if (!kept.size) {
+			return mesh;
+		}
+
+		//console.log('immer noch!!!')
+		// Keep every whole cross (square + 4 arms) whose corner is a corner of
+		// a kept star; a cross touches a star when any of its faces shares an
+		// edge (2 vertices) with a kept wedge. Group the cross faces by their
+		// corner grid point so a cross is kept whole or not at all.
+		const keptWedge = new Set(wedgeIdx.filter(i => kept.has(i)));
+		const crossGroup = new Map();
+		for (const i of crossIdx) {
+			const [cu, cv] = centerOf(faces[i]);
+			const k = Math.round(cu) + ',' + Math.round(cv);
+			if (!crossGroup.has(k)) {
+				crossGroup.set(k, []);
+			}
+			crossGroup.get(k).push(i);
+		}
+		for (const group of crossGroup.values()) {
+			let touching = false;
+			for (const i of group) {
+				const fv = new Set(faces[i]);
+				for (const si of keptWedge) {
+					let shared = 0;
+					for (const v of faces[si]) {
+						if (fv.has(v)) {
+							shared++;
+						}
+					}
+					if (shared >= 2) {
+						touching = true;
+						break;
+					}
+				}
+				if (touching) {
+					break;
+				}
+			}
+			if (touching) {
+				for (const i of group) {
+					kept.add(i);
+				}
+			}
+		}
+		//console.log(kept)
+
+		const keptIdx = [...kept].sort((a, b) => a - b);
+		//console.log('verts',verts)
+		return {
+			vert_list: verts.map(x => [x[0], x[1] / 2, x[2]]),
+			//vert_list: verts.map(x=>x/2),
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const cross_star_board2_metadata = new TessagonMetadata({
+	name: "Cross Star Board 2",
+	num_color_patterns: 1,
+	classification: "non_convex",
+	shapes: ["stars", "crosses"],
+	sides: [4, 5],
+	hv_ratio: 1.0
+});
+class CrossStarBoard2 extends DissectedCrossStarTessagon {
+	// CrossStarBoard2 is a Dissected Cross and Star board on a full rectangle of
+	// cols x rows stars with square tiles (plane scale V/H) so the 8-pointed
+	// stars and crosses are regular instead of hex-stretched. The tessellation
+	// patch is (cols+2) x (rows+2) tiles: the interior cols x rows stars are kept
+	// (their tile indices are 1..cols by 1..rows) and every cross (square + 4
+	// arms) that touches a kept star is kept whole, so all (cols+1) x (rows+1)
+	// corner crosses of the kept region are complete.
+	static metadata = cross_star_board2_metadata;
+
+	static default_grid(size) {
+		const grid = CrossStarBoard2.grid_from_options({ size });
+		return { H: grid.H, V: grid.V };
+	}
+
+	static grid_from_options(options = {}) {
+		let cols, rows;
+		if (options.size !== undefined) {
+			cols = rows = options.size;
+		} else {
+			cols = options.cols || options.H || options.h_num;
+			rows = options.rows || options.V || options.v_num;
+			if (cols === undefined) cols = rows || 3;
+			if (rows === undefined) rows = cols || 3;
+		}
+		// One-tile margin all around so every cross of the kept region is
+		// complete (its arms reach into the four surrounding tiles).
+		return { H: cols + 2, V: rows + 2, cols, rows };
+	}
+
+	static plane(H, V) {
+		// Square tiles: a tile spans 1/H in h and (V/H)/V = 1/H in v.
+		const scale = V / H;
+		return (h, v) => [h, (1 - v) * scale, 0];
+	}
+
+	constructor(options = {}) {
+		const grid = CrossStarBoard2.grid_from_options(options);
+		const o = Object.assign({}, options);
+		if (!o.hasOwnProperty('function') && !o.hasOwnProperty('simple_2d')) {
+			o.function = CrossStarBoard2.plane(grid.H, grid.V);
+		}
+		o.h_num = grid.H;
+		o.v_num = grid.V;
+		super(o);
+		this.cols = grid.cols;
+		this.rows = grid.rows;
+		this.size = options.size !== undefined ? options.size : grid.rows;
+	}
+
+	create_mesh() {
+		const mesh = super.create_mesh();
+		const faces = mesh.face_list;
+		const verts = mesh.vert_list;
+		const colors = mesh.color_list;
+		const H = this.tile_generator.h_num;
+		const V = this.tile_generator.v_num;
+		const C = this.cols;
+		const R = this.rows;
+		if (!faces.length) {
+			return mesh;
+		}
+		const sy = this.f(0, 0)[1] - this.f(0, 1)[1];
+		const wedgeIdx = this.face_types['star-wedge'] || [];
+		const crossIdx = (this.face_types['cross-square'] || []).concat(this.face_types['cross-arm'] || []);
+		const centerOf = face => {
+			let x = 0;
+			let y = 0;
+			for (const v of face) {
+				x += verts[v][0];
+				y += verts[v][1];
+			}
+			return [x / face.length * H, y / face.length / sy * V];
+		};
+
+		// Keep the stars of the interior cols x rows block (tile indices
+		// 1..cols by 1..rows); their four corner crosses are all complete.
+		const kept = new Set();
+		for (const i of wedgeIdx) {
+			const [cu, cv] = centerOf(faces[i]);
+			const h = Math.round(cu - 0.5);
+			const v = Math.round(cv - 0.5);
+			if (1 <= h && h <= C && 1 <= v && v <= R) {
+				kept.add(i);
+			}
+		}
+		if (!kept.size) {
+			return mesh;
+		}
+		// Keep every whole cross whose corner is a corner of a kept star; a
+		// cross touches a star when any of its faces shares an edge (2 vertices)
+		// with a kept wedge. Group the cross faces by their corner grid point so
+		// a cross is kept whole or not at all.
+		const keptWedge = new Set(wedgeIdx.filter(i => kept.has(i)));
+		const crossGroup = new Map();
+		for (const i of crossIdx) {
+			const [cu, cv] = centerOf(faces[i]);
+			const k = Math.round(cu) + ',' + Math.round(cv);
+			if (!crossGroup.has(k)) {
+				crossGroup.set(k, []);
+			}
+			crossGroup.get(k).push(i);
+		}
+		for (const group of crossGroup.values()) {
+			let touching = false;
+			for (const i of group) {
+				const fv = new Set(faces[i]);
+				for (const si of keptWedge) {
+					let shared = 0;
+					for (const v of faces[si]) {
+						if (fv.has(v)) {
+							shared++;
+						}
+					}
+					if (shared >= 2) {
+						touching = true;
+						break;
+					}
+				}
+				if (touching) {
+					break;
+				}
+			}
+			if (touching) {
+				for (const i of group) {
+					kept.add(i);
+				}
+			}
+		}
+
+		const keptIdx = [...kept].sort((a, b) => a - b);
+		return {
+			vert_list: verts,
+			face_list: keptIdx.map(i => faces[i]),
+			color_list: colors && colors.length === faces.length ? keptIdx.map(i => colors[i]) : colors
+		};
+	}
+}
+
+const brick_metadata = new TessagonMetadata({
+	name: "Bricks",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["rectangles"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class BrickTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: { top: null, middle: null, bottom: null },
+			right: { top: null, middle: null, bottom: null }
+		};
+	}
+	init_faces() {
+		return {
+			left: null,
+			right: null,
+			top: null,
+			bottom: null
+		};
+	}
+	calculate_verts() {
+		// corners: set bottom-left ... symmetry takes care of other 3 corners
+		this.add_vert(["left", "bottom"], 0.25, 0.0, { v_boundary: true });
+		// left middle, symmetry also creates right middle
+		this.add_vert(["left", "middle"], 0.25, 0.5);
+	}
+	calculate_faces() {
+		// Add left, symmetry gives the right side face
+		this.add_face(
+			"left",
+			[
+				["left", "top"],
+				["left", "middle"],
+				["left", "bottom"],
+				left_tile(["right", "bottom"]),
+				left_tile(["right", "middle"]),
+				left_tile(["right", "top"])
+			],
+			{ h_boundary: true }
+		);
+		// Add bottom, symmetry gives the top face
+		this.add_face(
+			"bottom",
+			[
+				["right", "bottom"],
+				["right", "middle"],
+				["left", "middle"],
+				["left", "bottom"],
+				bottom_tile(["left", "middle"]),
+				bottom_tile(["right", "middle"])
+			],
+			{ v_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_paths([["left"], ["right"]], 1, 0);
+	}
+}
+class BrickTessagon extends Tessagon {
+	static tile_class = BrickTile;
+	static metadata = brick_metadata;
+}
+const brickwall_metadata = new TessagonMetadata({
+	name: "Brick Wall",
+	num_color_patterns: 1,
+	classification: "non_edge",
+	shapes: ["rectangles"],
+	sides: [4],
+	hv_ratio: 1.0
+});
+class BrickWallTile extends Tile {
+	constructor(tessagon, options = {}) {
+		// BrickTessagon rotated 90 degrees. The rotation maps (h, v) -> (v, 1 - h),
+		// so within each tile: 'left' <-> 'top', 'right' <-> 'bottom', the neighbor
+		// helpers rotate the same way (left_tile <-> top_tile, right_tile <-> bottom_tile),
+		// and boundary flags swap (h_boundary <-> v_boundary).
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { left: null, middle: null, right: null },
+			bottom: { left: null, middle: null, right: null }
+		};
+	}
+	init_faces() {
+		return {
+			left: null,
+			right: null,
+			top: null,
+			bottom: null
+		};
+	}
+	calculate_verts() {
+		// BrickTile's ["left","bottom"] at (0.25, 0.0) with v_boundary
+		// rotates to ["top","left"] at (0.0, 0.75) with h_boundary.
+		this.add_vert(["top", "left"], 0.0, 0.75, { h_boundary: true });
+		// BrickTile's ["left","middle"] at (0.25, 0.5)
+		// rotates to ["top","middle"] at (0.5, 0.75).
+		this.add_vert(["top", "middle"], 0.5, 0.75);
+	}
+	calculate_faces() {
+		// BrickTile's "left" face (horizontal brick) rotates to the "top"
+		// face (a vertical brick); v_boundary handshakes with the tile above.
+		this.add_face(
+			"top",
+			[
+				["top", "right"],
+				["top", "middle"],
+				["top", "left"],
+				top_tile(["bottom", "left"]),
+				top_tile(["bottom", "middle"]),
+				top_tile(["bottom", "right"])
+			],
+			{ v_boundary: true }
+		);
+		// BrickTile's "bottom" face (vertical brick) rotates to the "left"
+		// face (a horizontal brick); h_boundary handshakes with the tile left.
+		this.add_face(
+			"left",
+			[
+				["bottom", "left"],
+				["bottom", "middle"],
+				["top", "middle"],
+				["top", "left"],
+				left_tile(["top", "middle"]),
+				left_tile(["bottom", "middle"])
+			],
+			{ h_boundary: true }
+		);
+	}
+	color_pattern1() {
+		this.color_paths([["top"], ["bottom"]], 1, 0);
+	}
+}
+class BrickWallTessagon extends Tessagon {
+	static tile_class = BrickWallTile;
+	static metadata = brickwall_metadata;
+}
+
+const dissectedt_triangle2_metadata = new TessagonMetadata({
+	name: "Dissected Triangle2",
+	num_color_patterns: 1,
+	classification: "laves",
+	shapes: ["triangles"],
+	sides: [3],
+	hv_ratio: Math.sqrt(3.0)
+});
+class DissectedTriangle2Tile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			left: {
+				top: { corner: null, v_boundary: null },
+				middle: null,
+				bottom: { corner: null, v_boundary: null }
+			},
+			right: {
+				top: { corner: null, v_boundary: null },
+				middle: null,
+				bottom: { corner: null, v_boundary: null }
+			},
+			center: null
+		};
+	}
+	init_faces() {
+		return {
+			left: {
+				top: { center: null, interior1: null, interior2: null },
+				middle: null,
+				bottom: { center: null, interior1: null, interior2: null }
+			},
+			right: {
+				top: { center: null, interior1: null, interior2: null },
+				middle: null,
+				bottom: { center: null, interior1: null, interior2: null }
+			}
+		};
+	}
+	calculate_verts() {
+		this.add_vert(["left", "top", "corner"], 0, 1, { corner: true });
+		this.add_vert("center", 0.5, 0.5);
+		this.add_vert(["left", "top", "v_boundary"], 1.0 / 3.0, 1, { v_boundary: true });
+		this.add_vert(["left", "middle"], 1.0 / 6.0, 0.5);
+	}
+	calculate_faces() {
+		this.add_face(
+			["left", "middle"],
+			[
+				["left", "middle"],
+				["left", "top", "corner"],
+				["left", "bottom", "corner"]
+			]
+		);
+		// this.add_face(
+		// 	["left", "top", "center"],
+		// 	[
+		// 		["center"],
+		// 		["left", "top", "v_boundary"],
+		// 		top_tile(["center"])
+		// 	],
+		// 	{ v_boundary: true }
+		// );
+		//__________________
+		this.add_face(
+			["left", "bottom", "center"],
+			[
+				["left", "bottom", "v_boundary"],
+				["right", "bottom", "v_boundary"],
+				["center"],
+				//left_tile(["right","middle"]
+			],
+			{ h_boundary: true }
+		);
+		this.add_face(
+			["left", "top", "center"],
+			[
+				["left", "top", "v_boundary"],
+				["right", "top", "v_boundary"],
+				//["center"],
+				top_tile(["center"]),
+			],
+			{ h_boundary: true }
+		);
+		this.add_face(
+			["left", "top", "interior1"],
+			[
+				["center"],
+				["left", "top", "v_boundary"],
+				["left", "top", "corner"]
+			]
+		);
+		this.add_face(
+			["left", "top", "interior2"],
+			[
+				["center"],
+				["left", "middle"],
+				["left", "top", "corner"]
+			]
+		);
+	}
+	color_pattern1() {
+		if (this.fingerprint[1] % 3 === 0) {
+			this.color_paths(
+				[
+					["left", "middle"],
+					["right", "middle"]
+				],
+				1,
+				0
+			);
+		} else if (this.fingerprint[1] % 3 === 2) {
+			this.color_paths(
+				[
+					["left", "top", "interior2"],
+					["right", "top", "interior2"],
+					["left", "top", "interior1"],
+					["right", "top", "interior1"]
+				],
+				1,
+				0
+			);
+			this.color_paths(
+				[
+					["left", "bottom", "center"],
+					["right", "bottom", "center"]
+				],
+				1,
+				0
+			);
+		} else {
+			this.color_paths(
+				[
+					["left", "bottom", "interior2"],
+					["right", "bottom", "interior2"],
+					["left", "bottom", "interior1"],
+					["right", "bottom", "interior1"]
+				],
+				1,
+				0
+			);
+		}
+	}
+}
+class DissectedTriangleBoard extends Tessagon {
+	static tile_class = DissectedTriangle2Tile;
+	static metadata = dissectedt_triangle2_metadata;
+}
+
+
+//#region new code
+class SimpleBoundaryTile extends Tile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+
+	init_verts() {
+		return {
+			left: null,
+			top: null,
+			right: null,
+			bottom: null,
+		};
+	}
+
+	init_faces() {
+		return {};
+	}
+
+	calculate_verts() {
+		let v;
+
+		v = this.add_vert(['left'], 0.0, 0.5, { h_boundary: true });
+		v = this.add_vert(['bottom'], 0.5, 0.0, { v_boundary: true });
+	}
+
+	calculate_faces() { }
+}
+class SimpleBoundaryTessagon extends Tessagon {
+	static tile_class = SimpleBoundaryTile;
+	static metadata = new TessagonMetadata({
+		name: "Simple Boundary Points",
+		num_color_patterns: 0,
+		classification: "debug",
+		shapes: [],
+		sides: [],
+		hv_ratio: 1.0
+	});
+}
+
+class Simple2Tile extends SimpleBoundaryTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+	}
+
+	init_verts() {
+		return {
+			left: { A: null, B: null },
+			top: { A: null, B: null },
+			right: { A: null, B: null },
+			bottom: { A: null, B: null },
+		};
+	}
+
+	init_faces() {
+		return {
+			top: null,
+			right: null,
+			bottom: null,
+		};
+	}
+
+	init_faces() {
+		return {
+			//top: { left: null, right: null },
+			middle: null,
+			inter: null,
+			//bottom: { left: null, right: null }
+		};
+	}
+
+	calculate_verts() {
+		let v;
+		let [j0, j1, j2, j3] = [1 / 3, .5, 1 / 3, .5]; //[rNumber(.3,.7),rNumber(.4,.6),rNumber(.4,.6),rNumber(.4,.6)]; //.5;//rNumber(.4,.6);
+		v = this.add_vert(['left', 'B'], 0.0, j0, { h_boundary: true });
+		v = this.add_vert(['left', 'A'], 0.0, j0 * 2, { h_boundary: true });
+		v = this.add_vert(['bottom', 'A'], j1, 0.0, { v_boundary: true });
+		v = this.add_vert(['right', 'B'], 1.0, j2, { h_boundary: true });
+		v = this.add_vert(['right', 'A'], 1.0, j2 * 2, { h_boundary: true });
+		v = this.add_vert(['top', 'A'], j3, 1.0, { v_boundary: true });
+	}
+
+	calculate_faces() {
+		this.add_face("middle", [
+			["top", "A"],
+			["left", "A"],
+			["left", "B"],
+			["bottom", "A"],
+			["right", "B"],
+			["right", "A"]
+		]
+		);
+		this.add_face("inter", [
+			["top", "A"],
+			["left", "A"],
+			left_tile(["top", "A"]),
+			top_tile(["left", "B"])
+		]
+		);
+
+	}
+	color_pattern1() {
+		console.log('applying color pattern 1')
+		// Add H and V indices to check if the tile is "even" or "odd"
+		if ((this.fingerprint[0] + this.fingerprint[1]) % 2 === 0) {
+			// Even tiles: Middle hexagon is Color 1, Inter quad is Color 0
+			this.color_paths([["middle"]], 1, 0);
+		} else {
+			// Odd tiles: Inter quad is Color 1, Middle hexagon is Color 0
+			this.color_paths([["inter"]], 1, 0);
+		}
+	}
+	color_pattern2() {
+		const h = this.fingerprint[0];
+
+		if (h % 3 === 0) {
+			this.color_paths_hash({
+				1: [["middle"]], // Middle is Color 1
+				2: [["inter"]]   // Inter is Color 2
+			}, 0);
+		} else if (h % 3 === 1) {
+			this.color_paths_hash({
+				2: [["middle"]], // Middle is Color 2
+				0: [["inter"]]   // Inter is Color 0
+			}, 1);
+		} else {
+			this.color_paths_hash({
+				0: [["middle"]], // Middle is Color 0
+				1: [["inter"]]   // Inter is Color 1
+			}, 2);
+		}
+	}
+	color_pattern3() {
+		let h = this.fingerprint[0];
+		let v = this.fingerprint[1];
+		h = h + v; let mod = 4;
+
+		if (h % mod === 0) {
+			this.color_paths_hash({
+				0: [["middle"]], // Middle is Color 1
+				2: [["inter"]]   // Inter is Color 2
+			}, 0);
+		} else if (h % mod === 1) {
+			this.color_paths_hash({
+				1: [["middle"]], // Middle is Color 2
+				3: [["inter"]]   // Inter is Color 0
+			}, 1);
+		} else if (h % mod === 2) {
+			this.color_paths_hash({
+				2: [["middle"]], // Middle is Color 2
+				0: [["inter"]]   // Inter is Color 0
+			}, 2);
+		} else {
+			this.color_paths_hash({
+				3: [["middle"]], // Middle is Color 0
+				1: [["inter"]]   // Inter is Color 1
+			}, 3);
+		}
+	}
+}
+class Simple2Tessagon extends SimpleBoundaryTessagon {
+	static tile_class = Simple2Tile;
+	static metadata = new TessagonMetadata({
+		name: "Simple Boundary Points",
+		num_color_patterns: 3,
+		classification: "debug",
+		shapes: [],
+		sides: [],
+		hv_ratio: 1.0
+	});
+}
+
+class Simple1Tile extends SimpleBoundaryTile {
+	constructor(tessagon, options = {}) {
+		super(tessagon, options);
+		this.h_symmetric = false;
+		this.v_symmetric = false;
+	}
+
+	init_verts() {
+		return {
+			left: null,
+			top: null,
+			right: null,
+			bottom: null,
+		};
+	}
+
+	init_faces() {
+		return {};
+	}
+
+	calculate_verts() {
+		let v;
+		let [j0, j1, j2, j3] = [.5, .5, .5, .5]; //[rNumber(.3,.7),rNumber(.4,.6),rNumber(.4,.6),rNumber(.4,.6)]; //.5;//rNumber(.4,.6);
+		v = this.add_vert(['left'], 0.0, j0, { h_boundary: true });
+		v = this.add_vert(['bottom'], j1, 0.0, { v_boundary: true });
+		v = this.add_vert(['right'], 1.0, j2, { h_boundary: true });
+		v = this.add_vert(['top'], j3, 1.0, { v_boundary: true });
+	}
+
+	calculate_faces() { }
+}
+class Simple1Tessagon extends SimpleBoundaryTessagon {
+	static tile_class = Simple1Tile;
+	static metadata = new TessagonMetadata({
+		name: "Simple Boundary Points",
+		num_color_patterns: 0,
+		classification: "debug",
+		shapes: [],
+		sides: [],
+		hv_ratio: 1.0
+	});
+}
+
+const square_star_metadata = new TessagonMetadata({
+	name: "Square Star",
+	num_color_patterns: 1,
+	classification: "regular",
+	shapes: ["squares", "triangles"],
+	sides: [4, 3],
+	hv_ratio: 1.0
+});
+class SquareStarTile extends Tile {
+	constructor(tessagon, options = {}) {
+		// Each square tile is split into a central diamond (a rotated square) and four
+		// corner triangles. The diamond's vertices sit on the tile's edge midpoints,
+		// which are shared with neighboring tiles, so every edge is shared exactly
+		// twice and the tiles are edge-to-edge.
+		super(tessagon, options);
+		this.h_symmetric = true;
+		this.v_symmetric = true;
+	}
+	init_verts() {
+		return {
+			top: { mid: null, left: null, right: null },
+			bottom: { mid: null, left: null, right: null },
+			left: { mid: null },
+			right: { mid: null }
+		};
+	}
+	init_faces() {
+		return {
+			center: null,
+			corner: {
+				top: { left: null, right: null },
+				bottom: { left: null, right: null }
+			}
+		};
+	}
+	calculate_verts() {
+		// Edge midpoints; symmetry fills in the other three sides.
+		this.add_vert(['top', 'mid'], 0.5, 1.0, { v_boundary: true });
+		this.add_vert(['left', 'mid'], 0.0, 0.5, { h_boundary: true });
+		// Corner shared by the four tiles meeting here.
+		this.add_vert(['bottom', 'left'], 0.0, 0.0, { corner: true });
+	}
+	calculate_faces() {
+		// Central diamond. Symmetry mirrors the corner triangles to the other
+		// three corners.
+		this.add_face('center', [
+			['top', 'mid'],
+			['right', 'mid'],
+			['bottom', 'mid'],
+			['left', 'mid']
+		]);
+		this.add_face(['corner', 'bottom', 'left'], [
+			['bottom', 'left'],
+			['bottom', 'mid'],
+			['left', 'mid']
+		]);
+	}
+	color_pattern1() {
+		this.color_paths([['center']], 1, 2);
+	}
+}
+class SquareStarTessagon extends Tessagon {
+	static tile_class = SquareStarTile;
+	static metadata = square_star_metadata;
+}
+
+const voronoi_metadata = new TessagonMetadata({
+	name: "Voronoi",
+	num_color_patterns: 0,
+	classification: "irregular",
+	shapes: ["polygons"],
+	sides: [3, 4, 5, 6, 7, 8],
+	hv_ratio: 1.0
+});
+
+class VoronoiTessagon extends Tessagon {
+	// Voronoi-style tessellation. Every cell is the intersection of the
+	// half-planes that are closer to its seed than to any other seed, clipped to
+	// the bounding box (h_range, v_range). Seeds are placed at random positions
+	// with a minimum spacing between them (so no two seeds are ever close enough
+	// to make a sliver cell) and are then Lloyd-relaxed (each seed moves to its
+	// cell's centroid), which evens out the cell areas and shapes. The layout is
+	// deliberately irregular, unlike a jittered grid, but no cell is tiny, thin,
+	// or squished against the board edge or into a corner. The boundary cells
+	// still have one or two sides along the box, so they have fewer neighbors.
+	//
+	// After the cells are built, mergeShortSides() collapses every edge that is
+	// shorter than merge_factor-th of the longest edge in the mesh: the two
+	// endpoints of a short edge are combined into a single vertex at the middle of
+	// that edge. This cleans up the tiny notches and slivers that random Voronoi
+	// cells can produce.
+	//
+	// neighborStats(mesh) reports the actual neighbor-count range of a produced
+	// mesh, and getNeighborStats() returns it for the last mesh this tessagon built.
+	//
+	// Options:
+	//   h_num, v_num      : number of seeds (cells = h_num * v_num)
+	//   min_spacing       : minimum distance between seeds as a fraction of the
+	//                       cell size (default 0.6)
+	//   border_fraction   : minimum distance of the seeds from the box, as a
+	//                       fraction of the cell size (0..0.5, default 0.4)
+	//   iterations        : Lloyd relaxation steps (default 3)
+	//   merge_factor      : longest edge divided by this is the minimum valid side
+	//                       length; shorter sides are merged (default 3, use 0 to
+	//                       disable)
+	//   random            : a function returning a uniform random number in [0, 1)
+	//   seeds             : an explicit list of [x, y] seeds (builds the plain
+	//                       Voronoi diagram of those seeds, no relaxation or merge)
+	static tile_class = null;
+	static metadata = voronoi_metadata;
+
+	constructor(options = {}) {
+		super(options);
+		this.h_range = options.h_range || [0, 1];
+		this.v_range = options.v_range || [0, 1];
+		this.h_num = options.h_num || 6;
+		this.v_num = options.v_num || 6;
+		this.random = options.random || Math.random;
+		this.explicit_seeds = options.hasOwnProperty('seeds');
+		this.seeds = options.hasOwnProperty('seeds') ? options.seeds : null;
+		this.min_spacing = options.hasOwnProperty('min_spacing') ? options.min_spacing : 0.6;
+		const border = options.hasOwnProperty('border_fraction') ? options.border_fraction : 0.4;
+		this.border_fraction = Math.max(0, Math.min(0.5, border));
+		this.iterations = options.hasOwnProperty('iterations') ? options.iterations : 3;
+		this.merge_factor = options.hasOwnProperty('merge_factor') ? options.merge_factor : 3;
+		this.last_mesh = null;
+	}
+
+	create_mesh() {
+		this.mesh_adaptor.create_empty_mesh();
+		this._build_mesh();
+		this.mesh_adaptor.finish_mesh();
+		if (this.post_process) {
+			this.post_process(this);
+		}
+		this.last_mesh = this.mesh_adaptor.get_mesh();
+		if (this.merge_factor > 0 && this.last_mesh.face_list && this.last_mesh.vert_list) {
+			const merged = mergeShortSides(this.last_mesh.face_list, this.last_mesh.vert_list, this.merge_factor);
+			this.last_mesh.face_list = merged.face_list;
+			this.last_mesh.vert_list = merged.vert_list;
+		}
+		return this.last_mesh;
+	}
+
+	getNeighborStats() {
+		// Neighbor counts of the last created mesh, or null before create_mesh().
+		return this.last_mesh ? neighborStats(this.last_mesh) : null;
+	}
+
+	_generate_seeds() {
+		// Random seeds with a minimum spacing (so no two seeds can produce a sliver
+		// cell), kept a border_fraction of a cell away from the box so edge and
+		// corner cells are not squished. This is deliberately irregular, unlike a
+		// jittered grid.
+		if (this.explicit_seeds) {
+			return this.seeds;
+		}
+		const x0 = this.h_range[0];
+		const y0 = this.v_range[0];
+		const x1 = this.h_range[1];
+		const y1 = this.v_range[1];
+		const n = this.h_num * this.v_num;
+		const cell = Math.min((x1 - x0) / this.h_num, (y1 - y0) / this.v_num);
+		const margin = Math.max(0, Math.min(
+			this.border_fraction * cell,
+			(x1 - x0) / 2 - 1e-6,
+			(y1 - y0) / 2 - 1e-6
+		));
+		const minDist = this.min_spacing * cell;
+		const seeds = [];
+		for (let k = 0; k < n; k++) {
+			let best = null;
+			let bestD = -1;
+			// Rejection sample; if no candidate is far enough, keep the one that is
+			// furthest from every already-placed seed so the loop always ends.
+			for (let tries = 0; tries < 50; tries++) {
+				const sx = x0 + margin + this.random() * (x1 - x0 - 2 * margin);
+				const sy = y0 + margin + this.random() * (y1 - y0 - 2 * margin);
+				let d = Infinity;
+				for (const s of seeds) {
+					d = Math.min(d, Math.hypot(sx - s[0], sy - s[1]));
+				}
+				if (d >= minDist) {
+					seeds.push([sx, sy]);
+					best = null;
+					break;
+				}
+				if (d > bestD) {
+					bestD = d;
+					best = [sx, sy];
+				}
+			}
+			if (best) {
+				seeds.push(best);
+			}
+		}
+		return seeds;
+	}
+
+	_build_mesh() {
+		const seeds = this._generate_seeds();
+		const x0 = this.h_range[0];
+		const y0 = this.v_range[0];
+		const x1 = this.h_range[1];
+		const y1 = this.v_range[1];
+		const box = [
+			[x0, y0],
+			[x1, y0],
+			[x1, y1],
+			[x0, y1]
+		];
+
+		let polys;
+		if (this.explicit_seeds) {
+			polys = this._cells_of(seeds, box, null);
+		} else {
+			polys = this._relaxed_cells(seeds, box, x0, y0, x1, y1);
+		}
+
+		const vertId = new Map();
+		for (const poly of polys) {
+			const face = [];
+			for (const p of poly) {
+				const key = p[0].toFixed(6) + ',' + p[1].toFixed(6);
+				let id = vertId.get(key);
+				if (id === undefined) {
+					id = this.mesh_adaptor.create_vert([p[0], y0 + y1 - p[1], 0]);
+					vertId.set(key, id);
+				}
+				if (face.length === 0 || face[face.length - 1] !== id) {
+					face.push(id);
+				}
+			}
+			if (face.length >= 3) {
+				this.mesh_adaptor.create_face(face);
+			}
+		}
+	}
+
+	_relaxed_cells(seeds, box, x0, y0, x1, y1) {
+		// Lloyd relaxation of the seed grid. Each seed moves to the centroid of its
+		// Voronoi cell and the cells are rebuilt, which over a few iterations evens
+		// out the cell areas and shapes. Boundary cells keep the box as an outer
+		// side, so they stay full-size and are never squished into the edge or a
+		// corner.
+		let s = seeds;
+		for (let iter = 0; iter < this.iterations; iter++) {
+			const polys = this._cells_of(s, box, null);
+			let moved = false;
+			s = s.map((seed, k) => {
+				const c = centroid(polys[k]);
+				if (Math.hypot(c[0] - seed[0], c[1] - seed[1]) > 1e-9) {
+					moved = true;
+				}
+				return c;
+			});
+			if (!moved) {
+				break;
+			}
+		}
+		return this._cells_of(s, box, null);
+	}
+
+	_cells_of(seeds, box, restrict) {
+		// The Voronoi cell of each seed: the box clipped by the bisector half-plane
+		// of every other seed. Cells with fewer than 3 vertices are dropped.
+		const others = restrict || seeds;
+		const polys = [];
+		for (let k = 0; k < seeds.length; k++) {
+			const s = seeds[k];
+			let poly = box.map(p => p.slice());
+			for (let j = 0; j < others.length; j++) {
+				const t = others[j];
+				if (t === s) {
+					continue;
+				}
+				poly = clipHalfPlane(poly, s, t);
+				if (poly.length < 3) {
+					break;
+				}
+			}
+			if (poly.length >= 3) {
+				polys.push(poly);
+			}
+		}
+		return polys;
+	}
+}
+
+function centroid(poly) {
+	// Area-weighted centroid of a polygon, returned as [x, y].
+	let a = 0;
+	let cx = 0;
+	let cy = 0;
+	const n = poly.length;
+	for (let i = 0; i < n; i++) {
+		const p = poly[i];
+		const q = poly[(i + 1) % n];
+		const cross = p[0] * q[1] - q[0] * p[1];
+		a += cross;
+		cx += (p[0] + q[0]) * cross;
+		cy += (p[1] + q[1]) * cross;
+	}
+	if (Math.abs(a) < 1e-12) {
+		let sx = 0;
+		let sy = 0;
+		for (const p of poly) {
+			sx += p[0];
+			sy += p[1];
+		}
+		return [sx / n, sy / n];
+	}
+	a *= 0.5;
+	return [cx / (6 * a), cy / (6 * a)];
+}
+function mergeShortSides(faceList, vertList, mergeFactor) {
+	// Collapse every short edge into a single vertex at the middle of that edge.
+	// An edge is short when it is shorter than the longest side of one of the two
+	// cells it borders divided by mergeFactor, so the threshold adapts to each
+	// cell's own size. The endpoints of each short edge are combined into one
+	// vertex placed at the average of their positions, applied repeatedly until no
+	// short edge remains (merging one edge can shorten its neighbours). Accepts a
+	// { face_list, vert_list } mesh and returns a new one with the same shape;
+	// faces left with fewer than 3 distinct vertices are dropped.
+	let faces = faceList.map(f => f.slice());
+	let verts = vertList.map(v => v.slice());
+	for (let pass = 0; pass < 20; pass++) {
+		const short = shortEdges(faces, verts, mergeFactor);
+		if (short.length === 0) {
+			break;
+		}
+		const res = mergeEdges(faces, verts, short);
+		if (!res.changed) {
+			break;
+		}
+		faces = res.faces;
+		verts = res.verts;
+	}
+	return { face_list: faces, vert_list: verts };
+}
+function shortEdges(faces, verts, mergeFactor) {
+	// The edges of the mesh that are short: an edge counts as short when it is
+	// shorter than the longest side of one of its own faces divided by
+	// mergeFactor, so a small cell's edges are compared to the cell's own size,
+	// not to the biggest cell in the mesh. Returned as [start, end] vertex-index
+	// pairs (each short edge once).
+	const marks = new Set();
+	for (const f of faces) {
+		const n = f.length;
+		let faceMax = 0;
+		const lens = new Array(n);
+		for (let k = 0; k < n; k++) {
+			const a = f[k];
+			const b = f[(k + 1) % n];
+			const len = a === b ? 0 : Math.hypot(verts[b][0] - verts[a][0], verts[b][1] - verts[a][1]);
+			lens[k] = len;
+			if (len > faceMax) {
+				faceMax = len;
+			}
+		}
+		const threshold = faceMax / mergeFactor;
+		for (let k = 0; k < n; k++) {
+			if (lens[k] > 0 && lens[k] < threshold) {
+				const a = f[k];
+				const b = f[(k + 1) % n];
+				marks.add(a < b ? a + ':' + b : b + ':' + a);
+			}
+		}
+	}
+	const out = [];
+	for (const key of marks) {
+		const split = key.split(':');
+		out.push([+split[0], +split[1]]);
+	}
+	return out;
+}
+function mergeEdges(faces, verts, shortEdges) {
+	// Merge the given vertex pairs: every connected group of endpoints is combined
+	// into one vertex at the average of their positions, and every face that used
+	// any of those vertices now uses the merged vertex (consecutive duplicates
+	// removed). Returns { faces, verts, changed }.
+	const n = verts.length;
+	const parent = new Array(n);
+	for (let i = 0; i < n; i++) {
+		parent[i] = i;
+	}
+	const find = x => {
+		while (parent[x] !== x) {
+			parent[x] = parent[parent[x]];
+			x = parent[x];
+		}
+		return x;
+	};
+	for (const [a, b] of shortEdges) {
+		const ra = find(a);
+		const rb = find(b);
+		if (ra !== rb) {
+			parent[Math.max(ra, rb)] = Math.min(ra, rb);
+		}
+	}
+	const groups = new Map();
+	for (let i = 0; i < n; i++) {
+		const r = find(i);
+		if (!groups.has(r)) {
+			groups.set(r, []);
+		}
+		groups.get(r).push(i);
+	}
+	const newVerts = verts.map(v => v.slice());
+	const map = new Array(n);
+	for (let i = 0; i < n; i++) {
+		map[i] = i;
+	}
+	let changed = false;
+	for (const members of groups.values()) {
+		if (members.length < 2) {
+			continue;
+		}
+		changed = true;
+		let sx = 0;
+		let sy = 0;
+		for (const i of members) {
+			sx += verts[i][0];
+			sy += verts[i][1];
+		}
+		const mid = newVerts.length;
+		newVerts.push([sx / members.length, sy / members.length, verts[members[0]][2] || 0]);
+		for (const i of members) {
+			map[i] = mid;
+		}
+	}
+	const outFaces = [];
+	for (const f of faces) {
+		const out = [];
+		for (const i of f) {
+			const j = map[i];
+			if (out.length === 0 || out[out.length - 1] !== j) {
+				out.push(j);
+			}
+		}
+		if (out.length > 1 && out[0] === out[out.length - 1]) {
+			out.pop();
+		}
+		if (out.length >= 3) {
+			outFaces.push(out);
+		}
+		if (out.length !== f.length) {
+			changed = true;
+		}
+	}
+	return { faces: outFaces, verts: newVerts, changed };
+}
+function neighborStats(mesh) {
+	// Count how many cells share an edge with each cell. Accepts a mesh from
+	// create_mesh() ({ face_list, vert_list }) or a board from buildTessellation()
+	// ({ faces, verts }). Returns { min, max, avg, counts } where counts maps a
+	// neighbor count to the number of cells that have it. Cells touching the box
+	// have one or two edges along it, so they have one or two fewer neighbors.
+	const faces = mesh.face_list || mesh.faces || [];
+	const edges = new Map();
+	for (let i = 0; i < faces.length; i++) {
+		const f = faces[i];
+		for (let k = 0; k < f.length; k++) {
+			const a = f[k];
+			const b = f[(k + 1) % f.length];
+			const key = a < b ? a + ':' + b : b + ':' + a;
+			if (!edges.has(key)) {
+				edges.set(key, []);
+			}
+			edges.get(key).push(i);
+		}
+	}
+	const degrees = new Array(faces.length).fill(0);
+	for (const cells of edges.values()) {
+		if (cells.length === 2) {
+			degrees[cells[0]]++;
+			degrees[cells[1]]++;
+		}
+	}
+	const counts = {};
+	let min = Infinity;
+	let max = -Infinity;
+	let sum = 0;
+	for (const d of degrees) {
+		counts[d] = (counts[d] || 0) + 1;
+		if (d < min) {
+			min = d;
+		}
+		if (d > max) {
+			max = d;
+		}
+		sum += d;
+	}
+	return {
+		min: degrees.length ? min : 0,
+		max: degrees.length ? max : 0,
+		avg: degrees.length ? sum / degrees.length : 0,
+		counts
+	};
+}
+function clipHalfPlane(poly, s, t) {
+	// Keep the points of `poly` that are closer to seed s than to seed t. The
+	// boundary is the perpendicular bisector of the two seeds: a point p is on s's
+	// side when dot(p - mid, t - s) <= 0.
+	const midX = (s[0] + t[0]) / 2;
+	const midY = (s[1] + t[1]) / 2;
+	const dx = t[0] - s[0];
+	const dy = t[1] - s[1];
+	const out = [];
+	const n = poly.length;
+	for (let i = 0; i < n; i++) {
+		const p = poly[i];
+		const q = poly[(i + 1) % n];
+		const dp = (p[0] - midX) * dx + (p[1] - midY) * dy;
+		const dq = (q[0] - midX) * dx + (q[1] - midY) * dy;
+		const inP = dp <= 0;
+		const inQ = dq <= 0;
+		if (inP) {
+			out.push(p);
+		}
+		if (inP !== inQ) {
+			const denom = dp - dq;
+			if (denom !== 0) {
+				const r = dp / denom;
+				out.push([p[0] + r * (q[0] - p[0]), p[1] + r * (q[1] - p[1])]);
+			}
+		}
+	}
+	return out;
+}
+function attachHoverHighlight(svgElement, neighborMap) {
+	const faces = svgElement.querySelectorAll('.tess-face');
+
+	faces.forEach(face => {
+		face.addEventListener('mouseenter', () => {
+			const index = parseInt(face.getAttribute('data-index'));
+			const neighbors = neighborMap[index] || [];
+
+			// Highlight the current face
+			face.classList.add('is-active');
+
+			// Highlight the neighbors
+			neighbors.forEach(nIdx => {
+				const nFace = svgElement.querySelector(`[data-index="${nIdx}"]`);
+				if (nFace) nFace.classList.add('is-neighbor');
+			});
+		});
+
+		face.addEventListener('mouseleave', () => {
+			// Clear all highlights
+			faces.forEach(f => {
+				f.classList.remove('is-active', 'is-neighbor');
+			});
+		});
+	});
+}
+function getFaceNeighbors(faceList) {
+	const vertexToFaces = {};
+	const neighborMap = {};
+
+	// Map each vertex to the faces that use it
+	faceList.forEach((face, faceIdx) => {
+		face.forEach(vertIdx => {
+			if (!vertexToFaces[vertIdx]) vertexToFaces[vertIdx] = [];
+			vertexToFaces[vertIdx].push(faceIdx);
+		});
+	});
+
+	// Two faces are neighbors if they share 2 or more vertices (an edge)
+	faceList.forEach((face, faceIdx) => {
+		const potentialNeighbors = {};
+		face.forEach(vertIdx => {
+			vertexToFaces[vertIdx].forEach(otherFaceIdx => {
+				if (otherFaceIdx === faceIdx) return;
+				potentialNeighbors[otherFaceIdx] = (potentialNeighbors[otherFaceIdx] || 0) + 1;
+			});
+		});
+
+		neighborMap[faceIdx] = Object.keys(potentialNeighbors)
+			.filter(otherIdx => potentialNeighbors[otherIdx] >= 2)
+			.map(Number);
+	});
+
+	return neighborMap;
+}
+function getFaceNeighborsAll(faceList) {
+	const vertexToFaces = {};
+	const neighborMap = {};
+
+	// 1. Create an inverted index: which faces use which vertex?
+	faceList.forEach((face, faceIdx) => {
+		face.forEach(vertIdx => {
+			if (!vertexToFaces[vertIdx]) {
+				vertexToFaces[vertIdx] = [];
+			}
+			vertexToFaces[vertIdx].push(faceIdx);
+		});
+	});
+
+	// 2. For each face, collect all unique neighbors from its vertices
+	faceList.forEach((face, faceIdx) => {
+		const neighbors = new Set();
+
+		face.forEach(vertIdx => {
+			const sharingFaces = vertexToFaces[vertIdx];
+
+			sharingFaces.forEach(otherFaceIdx => {
+				// Don't add the face itself as its own neighbor
+				if (otherFaceIdx !== faceIdx) {
+					neighbors.add(otherFaceIdx);
+				}
+			});
+		});
+
+		// Convert the Set back to an Array for the final map
+		neighborMap[faceIdx] = Array.from(neighbors);
+	});
+
+	return neighborMap;
+}
+function logVerts(arr) {
+	// Usage: logVerts(mesh.vert_list);
+	arr.forEach((element, index) => {
+		// Stringifying helps ensure the console doesn't collapse the array
+		console.log(`${index}: ${JSON.stringify(element)}`);
+	});
+}
+function drawTessagonVertices(tessagon, width, height, radius = 15) {
+	const { mesh, svg } = tessagon.create_mesh(); //console.log('mesh', mesh);
+	const vertList = mesh.vert_list || [];
+
+	if (vertList.length === 0) {
+		return `<svg width="${width}" height="${height}"><text y="20">No vertices found.</text></svg>`;
+	}
+
+	const margin = radius * 2 + 20;
+	const innerWidth = width - (margin * 2);
+	const innerHeight = height - (margin * 2);
+
+	let svgParts = [];
+	svgParts.push(`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`);
+	svgParts.push('<rect width="100%" height="100%" fill="#1a1a1a" />');
+
+	// Background Grid
+	svgParts.push('<g stroke="#333" stroke-width="1" fill="none">');
+	for (let i = 0; i <= tessagon.h_num; i++) {
+		const x = margin + (i / tessagon.h_num) * innerWidth;
+		svgParts.push(`<line x1="${x}" y1="${margin}" x2="${x}" y2="${height - margin}" />`);
+	}
+	for (let j = 0; j <= tessagon.v_num; j++) {
+		const y = margin + (j / tessagon.v_num) * innerHeight;
+		svgParts.push(`<line x1="${margin}" y1="${y}" x2="${width - margin}" y2="${y}" />`);
+	}
+	svgParts.push('</g>');
+
+	// Vertices with Centered Text
+	vertList.forEach((coords, index) => {
+		const cx = margin + (coords[0] * innerWidth);
+		const cy = margin + (coords[1] * innerHeight);
+		//console.log(index,cx,cy)
+		svgParts.push(`
+      <g id="vert-${index}">
+        <circle cx="${cx}" cy="${cy}" r="${radius}" 
+                fill="#edc71d" 
+                stroke="#fff" 
+                stroke-width="2" />
+        <text x="${cx}" y="${cy}" 
+              fill="#000" 
+              font-size="${radius}px" 
+              font-family="sans-serif"
+              font-weight="bold"
+              text-anchor="middle" 
+              dominant-baseline="central">
+          ${index}
+        </text>
+      </g>
+    `);
+	});
+
+	svgParts.push('</svg>');
+	return svgParts.join('\n');
+}
+function exportTessagonToSVGPlusTiles(tessagon, width, height) {
+	// 1. SAFETY CHECKS
+	if (!tessagon.tile_generator || !tessagon.tile_generator.tiles) {
+		throw new Error("Tessagon Error: No tiles found. Ensure you called .create_mesh() before exporting.");
+	}
+
+	const adaptor = tessagon.mesh_adaptor;
+	if (!adaptor || !adaptor.vert_list || !adaptor.face_list) {
+		throw new Error("Tessagon Error: The mesh adaptor is missing vertex or face data.");
+	}
+
+	let svgParts = [];
+
+	// Start SVG Document
+	svgParts.push(`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`);
+
+	// Add a background
+	svgParts.push(`<rect width="100%" height="100%" fill="#f8f8f8" />`);
+
+	// 2. DRAW THE TILES (The organizational grid)
+	// These are the logical boundaries the library uses to partition space.
+	svgParts.push('<g id="tile-boundaries" fill="none" stroke="#ff4444" stroke-width="1" stroke-dasharray="4" opacity="0.6">');
+
+	const tiles = tessagon.tile_generator.tiles;
+	for (let h = 0; h < tiles.length; h++) {
+		if (!tiles[h]) continue;
+		for (let v = 0; v < tiles[h].length; v++) {
+			const tile = tiles[h][v];
+			if (!tile || !tile.corners) continue;
+
+			// corners in tess.js are [BottomLeft, BottomRight, TopLeft, TopRight]
+			// For a polygon path, we need to visit them in order: BL -> BR -> TR -> TL
+			const c = tile.corners;
+			const points = [
+				`${c[0][0] * width},${c[0][1] * height}`, // BL
+				`${c[1][0] * width},${c[1][1] * height}`, // BR
+				`${c[3][0] * width},${c[3][1] * height}`, // TR
+				`${c[2][0] * width},${c[2][1] * height}`  // TL
+			].join(' ');
+
+			svgParts.push(`<polygon points="${points}" />`);
+
+			// Optional: Label the tile index (H, V)
+			const labelX = c[0][0] * width + 4;
+			const labelY = c[0][1] * height + 12;
+			svgParts.push(`<text x="${labelX}" y="${labelY}" fill="#cc0000" font-family="sans-serif" font-size="8">${h},${v}</text>`);
+		}
+	}
+	svgParts.push('</g>');
+
+	// 3. DRAW THE FACES (The actual geometric tessellation)
+	// These often span across multiple tiles.
+	svgParts.push('<g id="tessellation-faces" fill="rgba(64, 128, 255, 0.2)" stroke="#222" stroke-width="1.5" stroke-linejoin="round">');
+
+	adaptor.face_list.forEach(faceIndices => {
+		// faceIndices is an array of pointers into adaptor.vert_list
+		const points = faceIndices.map(index => {
+			const coords = adaptor.vert_list[index];
+			if (!coords) return "0,0";
+			return `${coords[0] * width},${coords[1] * height}`;
+		}).join(' ');
+
+		svgParts.push(`<polygon points="${points}" />`);
+	});
+
+	svgParts.push('</g>');
+
+	// Close SVG
+	svgParts.push('</svg>');
+
+	return svgParts.join('\n');
+}
+function exportTessagonToSVG(tessagon, width, height, palette = null) {
+	// 1. DEFAULT PALETTE
+	// Maps index 0, 1, 2... to specific colors.
+	// Adjust these hex codes to match your design.
+	const colors = palette || {
+		0: '#e0e0e0', // Light Gray (Default/Background)
+		1: '#4080ff', // Blue
+		2: '#ff4080', // Pink/Red
+		3: '#40ff80'  // Green
+	};
+
+	// 2. SAFETY CHECKS
+	if (!tessagon.tile_generator || !tessagon.tile_generator.tiles) {
+		throw new Error("Tessagon Error: No tiles found. Ensure you called .create_mesh() before exporting.");
+	}
+
+	const adaptor = tessagon.mesh_adaptor;
+	if (!adaptor || !adaptor.vert_list || !adaptor.face_list) {
+		throw new Error("Tessagon Error: The mesh adaptor is missing vertex or face data.");
+	}
+
+	let svgParts = [];
+
+	// Start SVG Document
+	svgParts.push(`<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`);
+
+	// Add a background
+	svgParts.push(`<rect width="100%" height="100%" fill="#ffffff" />`);
+
+	// 3. DRAW THE TILES (Optional Debug Layer)
+	svgParts.push('<g id="tile-boundaries" fill="none" stroke="#ccc" stroke-width="0.5" stroke-dasharray="2" opacity="0.3">');
+	const tiles = tessagon.tile_generator.tiles;
+	for (let h = 0; h < tiles.length; h++) {
+		for (let v = 0; v < tiles[h].length; v++) {
+			const tile = tiles[h][v];
+			if (!tile || !tile.corners) continue;
+			const c = tile.corners;
+			const points = [
+				`${c[0][0] * width},${c[0][1] * height}`, // BL
+				`${c[1][0] * width},${c[1][1] * height}`, // BR
+				`${c[3][0] * width},${c[3][1] * height}`, // TR
+				`${c[2][0] * width},${c[2][1] * height}`  // TL
+			].join(' ');
+			svgParts.push(`<polygon points="${points}" />`);
+		}
+	}
+	svgParts.push('</g>');
+
+	// 4. DRAW THE FACES (With Color Patterns)
+	svgParts.push('<g id="tessellation-faces" stroke="#333" stroke-width="1" stroke-linejoin="round">');
+
+	adaptor.face_list.forEach((faceIndices, i) => {
+		// Retrieve the color index for this specific face
+		// This was generated by your color_pattern1() or color_pattern2()
+		const colorIndex = (adaptor.color_list && adaptor.color_list[i] !== undefined)
+			? adaptor.color_list[i]
+			: 0;
+
+		const fillColor = colors[colorIndex] || colors[0];
+
+		const points = faceIndices.map(index => {
+			const coords = adaptor.vert_list[index];
+			if (!coords) return "0,0";
+			return `${coords[0] * width},${coords[1] * height}`;
+		}).join(' ');
+
+		// Apply the color pattern to the fill attribute
+		//svgParts.push(`<polygon points="${points}" fill="${fillColor}" />`);
+		// Inside the face_list loop of exportTessagonToSVG:
+		svgParts.push(`<polygon points="${points}" fill="${fillColor}" data-index="${i}" class="tess-face" />`);
+	});
+
+	svgParts.push('</g>');
+	svgParts.push('</svg>');
+
+	return svgParts.join('\n');
+}
+function labelVertices(mesh, svg) {
+	svg = toElem(svg);
+	const svgNS = "http://www.w3.org/2000/svg";
+
+	mesh.vert_list.forEach((point, id) => {
+		const [x, y] = point;
+
+		const text = document.createElementNS(svgNS, "text");
+		text.setAttribute("x", x);
+		text.setAttribute("fill", "white");
+		// Offset y slightly so the text doesn't sit exactly on the circle
+		text.setAttribute("y", y); // - 0.02);
+		text.setAttribute("font-size", "0.015");
+		text.setAttribute("text-anchor", "middle");
+		text.setAttribute("dominant-baseline", "central");
+		text.textContent = id; // The index in vert_list
+
+		svg.appendChild(text);
+	});
+}
+function drawEdges(mesh, svgId) {
+	const svg = document.getElementById(svgId);
+	if (!svg) return;
+
+	const svgNS = "http://www.w3.org/2000/svg";
+	const edgeSet = new Set();
+
+	mesh.face_list.forEach(faceIndices => {
+		// A face is an array of vertex indices in winding order
+		for (let i = 0; i < faceIndices.length; i++) {
+			const v1Idx = faceIndices[i];
+			const v2Idx = faceIndices[(i + 1) % faceIndices.length]; // Wrap to start
+
+			// Create a unique key (e.g., "5_12") so we don't draw shared edges twice
+			const edgeKey = v1Idx < v2Idx ? `${v1Idx}_${v2Idx}` : `${v2Idx}_${v1Idx}`;
+
+			if (!edgeSet.has(edgeKey)) {
+				edgeSet.add(edgeKey);
+
+				const p1 = mesh.vert_list[v1Idx];
+				const p2 = mesh.vert_list[v2Idx];
+
+				const line = document.createElementNS(svgNS, "line");
+				line.setAttribute("x1", p1[0]);
+				line.setAttribute("y1", p1[1]);
+				line.setAttribute("x2", p2[0]);
+				line.setAttribute("y2", p2[1]);
+
+				// Styling for 0 to 1 scale
+				line.setAttribute("stroke", "red"); // Dark grey
+				line.setAttribute("stroke-width", "0.02"); // Very thin for 0-1 scale
+				line.setAttribute("stroke-linecap", "round");
+
+				svg.appendChild(line);
+			}
+		}
+	});
+}
+function drawEdges(mesh, svgId) {
+	const svg = document.getElementById(svgId);
+	if (!svg) return;
+
+	const svgNS = "http://www.w3.org/2000/svg";
+	const edgeCounts = new Map(); // Stores "edgeKey" => count
+	const edgeData = new Map();   // Stores "edgeKey" => [v1Idx, v2Idx]
+
+	// 1. First pass: Count how many faces use each edge
+	mesh.face_list.forEach(faceIndices => {
+		for (let i = 0; i < faceIndices.length; i++) {
+			const v1Idx = faceIndices[i];
+			const v2Idx = faceIndices[(i + 1) % faceIndices.length];
+			const edgeKey = v1Idx < v2Idx ? `${v1Idx}_${v2Idx}` : `${v2Idx}_${v1Idx}`;
+
+			edgeCounts.set(edgeKey, (edgeCounts.get(edgeKey) || 0) + 1);
+			if (!edgeData.has(edgeKey)) {
+				edgeData.set(edgeKey, [v1Idx, v2Idx]);
+			}
+		}
+	});
+
+	// 2. Second pass: Draw the lines
+	edgeData.forEach((indices, key) => {
+		const count = edgeCounts.get(key);
+		const [v1Idx, v2Idx] = indices;
+		const p1 = mesh.vert_list[v1Idx];
+		const p2 = mesh.vert_list[v2Idx];
+
+		const line = document.createElementNS(svgNS, "line");
+		line.setAttribute("x1", p1[0]);
+		line.setAttribute("y1", p1[1]);
+		line.setAttribute("x2", p2[0]);
+		line.setAttribute("y2", p2[1]);
+		line.setAttribute("class", "edge");
+
+		// Boundary Logic:
+		// count === 1 means it's an edge on the outer border of the board.
+		// count === 2 (or more) means it's an internal divider.
+		if (count === 1) {
+			line.setAttribute("stroke", "black");      // Border color
+			line.setAttribute("stroke-width", "0.01"); // Slightly thicker
+		} else {
+			line.setAttribute("stroke", "#999");        // Internal color (grey)
+			line.setAttribute("stroke-width", "0.01");
+		}
+
+		line.setAttribute("stroke-linecap", "round");
+		svg.appendChild(line);
+	});
+}
+function addCircle(svgId, x, y, radius = 5, color = "red", id) {
+	const svgNS = "http://www.w3.org/2000/svg";
+	const svgElement = toElem(svgId); //document.getElementById(svgId);
+
+	// 1. Create the circle element with the SVG namespace
+	const circle = document.createElementNS(svgNS, "circle");
+
+	// 2. Set attributes
+	circle.setAttribute("cx", x);
+	circle.setAttribute("cy", y);
+	circle.setAttribute("r", radius);
+	circle.setAttribute("fill", color);
+	circle.setAttribute("class", "corner-point");
+	circle.setAttribute("data-id", id); // This is the vertex ID
+	// 3. Append to the SVG
+	svgElement.appendChild(circle);
+}
+function buildTopology(mesh) {
+	const topology = {
+		// For a circle (vertex): adjacent edges and adjacent faces
+		circle_edges: {},  // id -> [edgeId1, edgeId2, ...]
+		circle_faces: {},  // id -> [faceId1, faceId2, ...]
+
+		// For a face: adjacent circles and adjacent edges
+		face_corners: {},  // id -> [circleId1, circleId2, ...]
+		face_edges: {},    // id -> [edgeId1, edgeId2, ...]
+
+		// For an edge: the two circles it connects and the faces it separates
+		edge_data: {}      // edgeId -> { circles: [c1, c2], faces: [f1, f2] }
+	};
+
+	const edgeMap = new Map(); // internal helper: "v1_v2" -> edgeId
+	let edgeCounter = 0;
+
+	// Process Faces
+	mesh.face_list.forEach((faceVertices, faceId) => {
+		topology.face_corners[faceId] = faceVertices;
+		topology.face_edges[faceId] = [];
+
+		// Track faces connected to each vertex
+		faceVertices.forEach(vId => {
+			if (!topology.circle_faces[vId]) topology.circle_faces[vId] = [];
+			topology.circle_faces[vId].push(faceId);
+		});
+
+		// Process Edges within this face
+		for (let i = 0; i < faceVertices.length; i++) {
+			const v1 = faceVertices[i];
+			const v2 = faceVertices[(i + 1) % faceVertices.length];
+			const edgeKey = v1 < v2 ? `${v1}_${v2}` : `${v2}_${v1}`;
+
+			let edgeId;
+			if (!edgeMap.has(edgeKey)) {
+				edgeId = `e${edgeCounter++}`;
+				edgeMap.set(edgeKey, edgeId);
+
+				// Initialize edge data
+				topology.edge_data[edgeId] = {
+					circles: [v1, v2],
+					faces: [faceId]
+				};
+
+				// Link circle to edge
+				[v1, v2].forEach(vId => {
+					if (!topology.circle_edges[vId]) topology.circle_edges[vId] = [];
+					topology.circle_edges[vId].push(edgeId);
+				});
+			} else {
+				edgeId = edgeMap.get(edgeKey);
+				// This edge is shared; add the second face
+				topology.edge_data[edgeId].faces.push(faceId);
+			}
+
+			// Link face to edge
+			topology.face_edges[faceId].push(edgeId);
+		}
+	});
+
+	return topology;
+}
+function labelEdges(mesh, topology, svgId) {
+	const svg = document.getElementById(svgId);
+	Object.entries(topology.edge_data).forEach(([edgeId, data]) => {
+		const p1 = mesh.vert_list[data.circles[0]];
+		const p2 = mesh.vert_list[data.circles[1]];
+
+		// Midpoint for the label
+		const mx = (p1[0] + p2[0]) / 2;
+		const my = (p1[1] + p2[1]) / 2;
+
+		const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+		text.setAttribute("x", mx);
+		text.setAttribute("y", my);
+		text.setAttribute("fill", "yellow");
+		text.setAttribute("font-size", "0.006");
+		text.textContent = edgeId;
+		svg.appendChild(text);
+	});
+}
+function getNeibors(faceId, tessagon) {
+	console.log(faceId, tessagon)
+	const face = tessagon.mesh.face_instances[faceId];
+	if (!face) return [];
+	let results = [];
+	// Walk through all edges of the current face
+	face.edge_instances.forEach(edge => results.push(edge));
+	return results;
+
+}
+function getFacesByType(faceId, targetType, tessagon) {
+	const face = tessagon.mesh.face_instances[faceId];
+	if (!face) return [];
+
+	let results = [];
+	// Walk through all edges of the current face
+	face.edge_instances.forEach(edge => {
+		// Check both faces connected to this edge
+		edge.face_instances.forEach(neighbor => {
+			// 1. Don't include the face we started with
+			// 2. Check if the metadata 'face_type' matches
+			const type = neighbor.opts.face_type;
+			if (neighbor !== face && type === targetType) {
+				if (!results.find(f => f.id === neighbor.id)) {
+					results.push(neighbor);
+				}
+			}
+		});
+	});
+	return results;
+}
+function getNeighboringRoads(faceId, tessagon) {
+	// 1. Get the 'Streets' (Squares) surrounding a Hex or connected to a City
+	return getFacesByType(faceId, 'road', tessagon);
+}
+function getNeighboringCities(faceId, tessagon) {
+	// 2. Get the 'Settlements/Cities' (Triangles) at the ends of a Road
+	// or corners of a Hex
+	return getFacesByType(faceId, 'node', tessagon);
+}
+function getNeighboringTiles(faceId, tessagon) {
+	// 3. Get the 'Resource Tiles' (Hexagons) adjacent to a Road or City
+	return getFacesByType(faceId, 'hex', tessagon);
+}
+
+//#region === TESSAGON BOARD API (moved from hexboard.js) ===
+function addKeys(ofrom, oto) {
+	// tess.js references this helper, so it must be in scope before building a tessagon.
+	for (const k in ofrom) if (!oto.hasOwnProperty(k)) oto[k] = ofrom[k];
+	return oto;
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function hexPlane(h, v, scale) {
+	// HexTessagon tiles are regular only when v is scaled by sqrt(3) * V / H.
+	// When H equals V that is simply sqrt(3). The v axis is flipped to screen
+	// coordinates: v=1 (the tile's top edge) maps to y=0 at the screen top.
+	return [h, (1 - v) * scale, 0];
+}
+
+function defaultPlane(h, v) {
+	// The default plane for a generic tessellation maps hv space directly to xy
+	// in screen coordinates: v=1 (the tile's top edge) maps to y=0 at the top.
+	return [h, 1 - v, 0];
+}
+
+const TessagonTypes = {
+	// Every tessagon type provided by alibs/tess.js.
+	BigHexTriTessagon,
+	CloverdaleTessagon,
+	DissectedHexQuadTessagon,
+	DissectedHexTriTessagon,
+	DissectedSquareTessagon,
+	DissectedTriangleTessagon,
+	DissectedTriangleBoard, 
+	DodecaTessagon,
+	DodecaTriTessagon,
+	FloretTessagon,
+	HexBigTriTessagon,
+	HexSquareTriTessagon,
+	HexTriTessagon,
+	IslamicHexStarsTessagon,
+	IslamicStarsCrossesTessagon,
+	OctoTessagon,
+	PentaTessagon,
+	Penta2Tessagon,
+	PythagoreanTessagon,
+	RhombusTessagon,
+	SquareTessagon,
+	SquareTriTessagon,
+	SquareTri2Tessagon,
+	StanleyParkTessagon,
+	TriTessagon,
+	ValemountTessagon,
+	WeaveTessagon,
+	ZigZagTessagon,
+	HexTessagon,
+	HexBoardTessagon,
+	BigHexTriBoardTessagon,
+	DodecaBoardTessagon,
+	FloretBoardTessagon,
+	FloretCompleteBoardTessagon,
+	DissectedCrossStarBoardTessagon,
+	CrossStarBoard2,
+	BrickTessagon,
+	BrickWallTessagon,
+	SimpleBoundaryTessagon,
+	Simple2Tessagon,
+	Simple1Tessagon,
+	SquareStarTessagon,
+	VoronoiTessagon
+};
+
+function buildHexBoard(size, options = {}) {
+	// Build a hexagonal board of side length `size` from a HexTessagon.
+	//
+	// A HexTessagon lays out tiles on a H x V grid. Each tile owns one hexagon,
+	// so the patch is a rectangle of hexagons. A hexagonal board is that
+	// rectangle with every hexagon lying outside the hexagon |q|,|r|,|q+r| <=
+	// size-1 discarded, where (q, r) are the axial coordinates of the hexagon
+	// center. Returns the kept cells, their centers, and their edge adjacency.
+	const N = size;
+	const H = options.H || 2 * N;
+	const V = options.V || N;
+	const scale = Math.sqrt(3) * V / H;
+
+	const tessagon = new HexTessagon({
+		function: (h, v) => hexPlane(h, v, scale),
+		h_range: [0, 1],
+		v_range: [0, 1],
+		h_num: H,
+		v_num: V,
+		h_cyclic: false,
+		v_cyclic: false,
+		adaptor_class: ListAdaptor
+	});
+	const mesh = tessagon.create_mesh();
+	const faces = mesh.face_list;
+	const verts = mesh.vert_list;
+
+	const centers = faces.map(face => {
+		let x = 0;
+		let y = 0;
+		for (const v of face) {
+			x += verts[v][0];
+			y += verts[v][1];
+		}
+		return [x / face.length, y / face.length];
+	});
+
+	// The center cell is the one nearest the middle of the hv patch; it must
+	// be a real hexagon center for the axial coordinates to land on integers.
+	let origin = 0;
+	let bestDist = Infinity;
+	centers.forEach(([x, y], i) => {
+		const d = (x - 0.5) * (x - 0.5) + (y / scale - 0.5) * (y / scale - 0.5);
+		if (d < bestDist) {
+			bestDist = d;
+			origin = i;
+		}
+	});
+	const h0 = centers[origin][0];
+	// y / scale is the screen-space vertical position (0 at the tile top edge,
+	// 1 at the tile bottom edge), so v0 is that position of the origin cell.
+	const v0 = centers[origin][1] / scale;
+
+	// Adjacent centers sit one tile apart horizontally (dh) and half a tile
+	// over and one row down on the diagonal (dh/2, dv).
+	const dh = 1 / H;
+	const dv = 1 / (2 * V);
+	const axial = centers.map(([x, y]) => {
+		const r = Math.round((y / scale - v0) / dv);
+		const q = Math.round((x - h0 - r * dh / 2) / dh);
+		return [q, r];
+	});
+
+	const inBoard = axial.map(([q, r]) =>
+		Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) <= N - 1
+	);
+
+	const cellIds = [];
+	const toNew = {};
+	faces.forEach((face, i) => {
+		if (inBoard[i]) {
+			toNew[i] = cellIds.length;
+			cellIds.push(i);
+		}
+	});
+
+	const neighborMap = getFaceNeighbors(faces);
+	const neighbors = cellIds.map(id =>
+		neighborMap[id].filter(n => inBoard[n]).map(n => toNew[n])
+	);
+
+	const board = {
+		size: N,
+		H,
+		V,
+		faces: cellIds.map(i => faces[i]),
+		verts,
+		centers: cellIds.map(i => centers[i]),
+		axial: cellIds.map(i => axial[i]),
+		neighbors
+	};
+	analyzeBoard(board);
+	return board;
+}
+
+function renderHexBoard(board, container, options = {}) {
+	// Render a board built by buildHexBoard into an SVG container.
+	//
+	// With options.palette (an array of css colors) and a board that carries a
+	// color_list (buildTessellation keeps it from the tessagon's mesh when a
+	// color_pattern is set), each cell is filled with
+	// palette[color_list[cell] % palette.length] instead of the single `fill`
+	// color; the per-cell color is restored on mouseleave.
+	const fill = options.fill || '#e9ecef';
+	const stroke = options.stroke || '#3d5870';
+	const strokeWidth = options.strokeWidth || '0.006';
+	const hoverFill = options.hoverFill || '#ffd166';
+	const colorList = Array.isArray(board.color_list) && board.color_list.length === board.faces.length ? board.color_list : null;
+	const palette = Array.isArray(options.palette) && colorList ? options.palette : null;
+
+	container.innerHTML = '';
+	const svg = document.createElementNS(SVG_NS, 'svg');
+	svg.setAttribute('class', options.className || 'board');
+	svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+	for (const face of board.faces) {
+		for (const v of face) {
+			const [x, y] = board.verts[v];
+			if (x < minX) minX = x;
+			if (y < minY) minY = y;
+			if (x > maxX) maxX = x;
+			if (y > maxY) maxY = y;
+		}
+	}
+	const pad = 0.02 * Math.max(maxX - minX, maxY - minY);
+	if (board.faces.length === 0) {
+		svg.setAttribute('viewBox', '0 0 1 1');
+	} else {
+		svg.setAttribute(
+			'viewBox',
+			(minX - pad) + ' ' + (minY - pad) + ' ' + (maxX - minX + 2 * pad) + ' ' + (maxY - minY + 2 * pad)
+		);
+	}
+
+	board.faces.forEach((face, idx) => {
+		const poly = document.createElementNS(SVG_NS, 'polygon');
+		poly.setAttribute('points', face.map(v => board.verts[v][0] + ',' + board.verts[v][1]).join(' '));
+		const baseFill = palette ? palette[colorList[idx] % palette.length] : fill;
+		poly.setAttribute('fill', baseFill);
+		poly.setAttribute('stroke', stroke);
+		poly.setAttribute('stroke-width', strokeWidth);
+		poly.setAttribute('stroke-linejoin', 'round');
+		poly.setAttribute('class', 'cell');
+		if (options.onCellClick) {
+			poly.addEventListener('click', () => options.onCellClick(idx, board));
+		}
+		poly.addEventListener('mouseenter', () => poly.setAttribute('fill', hoverFill));
+		poly.addEventListener('mouseleave', () => poly.setAttribute('fill', baseFill));
+		svg.appendChild(poly);
+	});
+
+	container.appendChild(svg);
+	return svg;
+}
+
+function addStreets(board, svg, options = {}) {
+	// Add a street on every edge of the board: the edge shared by two adjacent
+	// hexes and the outer edges of the board's perimeter. Each street is a line
+	// centered on that edge. Returns board.streets, each entry
+	// { id, a, b, i, j, outer, cells, x1, y1, x2, y2, mid, len, line } where a and
+	// b are the vertex indices of its endpoints, i is the first adjacent cell and,
+	// for interior streets, j is the second adjacent cell (i < j).
+	analyzeBoard(board);
+	const color = options.color || 'red';
+	const width = options.width || 10;
+	const hoverColor = options.hoverColor || '#ff6b6b';
+
+	for (const street of board.streets) {
+		const pa = board.verts[street.a];
+		const pb = board.verts[street.b];
+
+		const line = document.createElementNS(SVG_NS, 'line');
+		line.setAttribute('x1', pa[0]);
+		line.setAttribute('y1', pa[1]);
+		line.setAttribute('x2', pb[0]);
+		line.setAttribute('y2', pb[1]);
+		line.setAttribute('stroke', color);
+		line.setAttribute('stroke-width', width);
+		line.setAttribute('vector-effect', 'non-scaling-stroke');
+		line.setAttribute('stroke-linecap', 'round');
+		line.setAttribute('class', 'street');
+		line.dataset.street = street.id;
+		line.dataset.cells = street.cells.join(',');
+
+		street.line = line;
+		if (options.onStreetClick) {
+			line.addEventListener('click', () => options.onStreetClick(street, board));
+		}
+		line.addEventListener('mouseenter', () => {
+			line.setAttribute('stroke', hoverColor);
+			if (options.onStreetHover) options.onStreetHover(street, true, board);
+		});
+		line.addEventListener('mouseleave', () => {
+			line.setAttribute('stroke', color);
+			if (options.onStreetHover) options.onStreetHover(street, false, board);
+		});
+
+		svg.appendChild(line);
+	}
+	return board.streets;
+}
+
+function addCities(board, svg, options = {}) {
+	// Add a city (a filled circle) at every polygon corner of the board, drawn on
+	// top of the hexes and streets. Returns board.cities, each entry
+	// { id, v, x, y, cells, circle } where v is the vertex index and cells are the
+	// ids of the hexes that meet at that corner.
+	//
+	// With options.showIsolatedCities === true, also draws the vertices that do
+	// not touch any cell (positions that survive in board.verts after a patch is
+	// clipped) as lighter, smaller circles; they are stored on board.isolatedCities
+	// as { id, v, x, y, cells: [], isolated: true, circle } and never merged into
+	// board.cities, so board.adj is unaffected.
+	analyzeBoard(board);
+	const color = options.color || 'blue';
+	const hoverColor = options.hoverColor || '#66b3ff';
+
+	let radius = options.radius;
+	if (!radius) {
+		const viewBox = svg.getAttribute ? svg.getAttribute('viewBox') : null;
+		const parts = viewBox ? viewBox.split(/[\s,]+/).map(Number) : null;
+		radius = (parts && parts.length === 4 && parts[2] > 0) ? 0.02 * parts[2] : 0.02;
+	}
+	const isolatedColor = options.isolatedColor || '#8496a6';
+	const isolatedHover = options.isolatedHover || '#b7c4cf';
+	const isolatedRadius = options.isolatedRadius || radius * 0.6;
+
+	const makeCircle = (cx, cy, r, fill, hoverFill, cls, dataset) => {
+		const circle = document.createElementNS(SVG_NS, 'circle');
+		circle.setAttribute('cx', cx);
+		circle.setAttribute('cy', cy);
+		circle.setAttribute('r', r);
+		circle.setAttribute('fill', fill);
+		circle.setAttribute('stroke', '#14212e');
+		circle.setAttribute('stroke-width', r * 0.25);
+		circle.setAttribute('vector-effect', 'non-scaling-stroke');
+		circle.setAttribute('class', cls);
+		for (const k in dataset) {
+			circle.dataset[k] = dataset[k];
+		}
+		circle.addEventListener('mouseenter', () => circle.setAttribute('fill', hoverFill));
+		circle.addEventListener('mouseleave', () => circle.setAttribute('fill', fill));
+		return circle;
+	};
+
+	for (const city of board.cities) {
+		const circle = makeCircle(city.x, city.y, radius, color, hoverColor, 'city', {
+			city: city.id,
+			vertex: city.v
+		});
+
+		city.circle = circle;
+		if (options.onCityClick) {
+			circle.addEventListener('click', () => options.onCityClick(city, board));
+		}
+		if (options.onCityHover) {
+			circle.addEventListener('mouseenter', () => options.onCityHover(city, true, board));
+			circle.addEventListener('mouseleave', () => options.onCityHover(city, false, board));
+		}
+
+		svg.appendChild(circle);
+	}
+
+	const isolated = [];
+	if (options.showIsolatedCities) {
+		for (const city of isolatedCities(board)) {
+			const circle = makeCircle(city.x, city.y, isolatedRadius, isolatedColor, isolatedHover, 'city city-isolated', {
+				city: city.id,
+				vertex: city.v,
+				isolated: '1'
+			});
+
+			city.circle = circle;
+			if (options.onCityClick) {
+				circle.addEventListener('click', () => options.onCityClick(city, board));
+			}
+			if (options.onCityHover) {
+				circle.addEventListener('mouseenter', () => options.onCityHover(city, true, board));
+				circle.addEventListener('mouseleave', () => options.onCityHover(city, false, board));
+			}
+
+			isolated.push(city);
+			svg.appendChild(circle);
+		}
+	}
+	board.isolatedCities = isolated;
+	return board.cities;
+}
+
+function isolatedCities(board) {
+	// Vertices that are not referenced by any face: their positions remain in
+	// board.verts (e.g. after a HexTessagon patch is clipped to a hexagonal board)
+	// but no board cell touches them. Returns city-like entries
+	// { id, v, x, y, cells: [], isolated: true } with ids continuing the city
+	// sequence so labels never collide.
+	analyzeBoard(board);
+	const used = new Set();
+	for (const face of board.faces) {
+		for (const v of face) {
+			used.add(v);
+		}
+	}
+	const out = [];
+	for (let v = 0; v < board.verts.length; v++) {
+		if (used.has(v)) {
+			continue;
+		}
+		out.push({
+			id: 'v' + (board.cities.length + out.length),
+			v,
+			x: board.verts[v][0],
+			y: board.verts[v][1],
+			cells: [],
+			isolated: true
+		});
+	}
+	return out;
+}
+
+function addLabels(board, svg, options = {}) {
+	// Label every cell, city and street of the board with its id as SVG <text>
+	// elements, centered on the cell centroid, the city position and the street
+	// midpoint. A white halo behind the text keeps the ids readable over any fill.
+	//
+	// Options (all true by default): labelCells, labelStreets, labelCities.
+	// options.showIsolatedCities adds the ids of the vertices that do not touch
+	// any cell (they must be drawn as circles too via addCities with the same
+	// option). fontSize, color and haloWidth override the defaults; fontSize
+	// otherwise scales with the svg viewBox width.
+	//
+	// Cells whose face is a duplicate face and cities whose vertex is a duplicate
+	// vertex (see detectDuplicates) are painted red so a degenerate tessagon is
+	// spotted at a glance; dupColor overrides the red.
+	//
+	// Returns { cells, streets, cities, isolated } arrays of the <text> elements.
+	analyzeBoard(board);
+	const labelCells = options.labelCells !== false;
+	const labelStreets = options.labelStreets !== false;
+	const labelCities = options.labelCities !== false;
+	const showIsolated = options.showIsolatedCities === true;
+	const color = options.color || '#14212e';
+	const dupColor = options.dupColor || '#e63946';
+	const halo = options.halo !== undefined ? options.halo : 'rgba(255,255,255,0.85)';
+
+	const duplicates = detectDuplicates(board);
+	const dupVertIds = new Set();
+	for (const group of duplicates.vertGroups) {
+		for (const id of group) {
+			dupVertIds.add(id);
+		}
+	}
+	const dupFaceIds = new Set();
+	for (const group of duplicates.faceGroups) {
+		for (const id of group) {
+			dupFaceIds.add(id);
+		}
+	}
+
+	let fontSize = options.fontSize;
+	if (!fontSize) {
+		const viewBox = svg.getAttribute ? svg.getAttribute('viewBox') : null;
+		const parts = viewBox ? viewBox.split(/[\s,]+/).map(Number) : null;
+		fontSize = (parts && parts.length === 4 && parts[2] > 0) ? 0.03 * parts[2] : 0.03;
+	}
+	const haloWidth = options.haloWidth !== undefined ? options.haloWidth : fontSize * 0.3;
+
+	const makeText = (x, y, text, cls, dataset, dup) => {
+		const t = document.createElementNS(SVG_NS, 'text');
+		t.setAttribute('x', x);
+		t.setAttribute('y', y);
+		t.setAttribute('text-anchor', 'middle');
+		t.setAttribute('dominant-baseline', 'central');
+		t.setAttribute('font-size', fontSize);
+		t.setAttribute('font-family', 'system-ui, sans-serif');
+		t.setAttribute('font-weight', 600);
+		t.setAttribute('fill', dup ? dupColor : color);
+		t.setAttribute('paint-order', 'stroke');
+		t.setAttribute('stroke', halo);
+		t.setAttribute('stroke-width', haloWidth);
+		t.setAttribute('stroke-linejoin', 'round');
+		t.setAttribute('class', dup ? cls + ' label-duplicate' : cls);
+		for (const k in dataset) {
+			t.dataset[k] = dataset[k];
+		}
+		if (dup) {
+			t.dataset.duplicate = '1';
+		}
+		t.textContent = text;
+		return t;
+	};
+
+	const result = { cells: [], streets: [], cities: [], isolated: [] };
+
+	if (labelCells) {
+		for (const c of board.cells) {
+			result.cells.push(makeText(c.center[0], c.center[1], c.id, 'label label-cell', {
+				label: 'cell',
+				cell: c.id
+			}, dupFaceIds.has(c.idx)));
+		}
+	}
+
+	if (labelStreets) {
+		for (const s of board.streets) {
+			result.streets.push(makeText(s.mid[0], s.mid[1], s.id, 'label label-street', {
+				label: 'street',
+				street: s.id
+			}, false));
+		}
+	}
+
+	if (labelCities) {
+		for (const c of board.cities) {
+			result.cities.push(makeText(c.x, c.y, c.id, 'label label-city', {
+				label: 'city',
+				city: c.id
+			}, dupVertIds.has(c.v)));
+		}
+	}
+
+	if (showIsolated) {
+		for (const c of isolatedCities(board)) {
+			result.isolated.push(makeText(c.x, c.y, c.id, 'label label-city label-isolated', {
+				label: 'city',
+				city: c.id,
+				isolated: '1'
+			}, dupVertIds.has(c.v)));
+		}
+	}
+
+	for (const arr of [result.cells, result.streets, result.cities, result.isolated]) {
+		for (const t of arr) {
+			svg.appendChild(t);
+		}
+	}
+	return result;
+}
+
+function detectDuplicates(board) {
+	// Record which vertices share a position and which faces share a vertex set
+	// as board.duplicates = { vertGroups, faceGroups } (each entry a list of ids
+	// that duplicate one another). Idempotent and silent: the tessagon mesh build
+	// logs the notification (tess.js create_mesh), this just records what
+	// addLabels needs to paint the offenders red.
+	if (board.duplicates) {
+		return board.duplicates;
+	}
+	board.duplicates = findDuplicateGroups(board.verts, board.faces);
+	return board.duplicates;
+}
+
+function analyzeBoard(board) {
+	// Build the complete adjacency map of a board. From { faces, verts } this
+	// derives board.cells, board.cities, board.streets and board.adj:
+	//
+	//   board.cells[i]    { id, idx, face, center, adj }   (face.id === cell.id)
+	//   board.streets[i]  { id, a, b, i, j, outer, cells, x1, y1, x2, y2, mid,
+	//                       len, adj }
+	//   board.cities[i]   { id, v, x, y, cells, adj }
+	//   board.adj[id]     { cells: [...], streets: [...], cities: [...] }
+	//
+	// Every entry of an adj list is { id, deg, compass } where deg is the bearing
+	// of the neighbor from this element's reference point (east = 0, south = 90,
+	// degrees measured clockwise in the SVG y-down plane) and compass is the
+	// nearest of N, NE, E, SE, S, SW, W, NW. Reference points are the cell center,
+	// the street midpoint and the city position. City-to-city neighbours are the
+	// cities one street away, street-to-street neighbours share a city, and
+	// cell-to-cell neighbours share a street.
+	//
+	// Idempotent: calling it again on a board that already has board.adj does
+	// nothing.
+	detectDuplicates(board);
+	if (board.adj) {
+		return board;
+	}
+	const faces = board.faces;
+	const verts = board.verts;
+
+	const cells = faces.map((face, idx) => {
+		face.id = 'c' + idx;
+		let sx = 0;
+		let sy = 0;
+		for (const v of face) {
+			sx += verts[v][0];
+			sy += verts[v][1];
+		}
+		return { id: 'c' + idx, idx, face, center: [sx / face.length, sy / face.length] };
+	});
+
+	const edgeMap = new Map();
+	const vertexFaces = new Map();
+	faces.forEach((face, i) => {
+		const seen = new Set();
+		for (const v of face) {
+			if (seen.has(v)) {
+				continue;
+			}
+			seen.add(v);
+			if (!vertexFaces.has(v)) {
+				vertexFaces.set(v, []);
+			}
+			vertexFaces.get(v).push(i);
+		}
+		for (let k = 0; k < face.length; k++) {
+			const a = face[k];
+			const b = face[(k + 1) % face.length];
+			if (a === b) {
+				continue;
+			}
+			const key = a < b ? a + ',' + b : b + ',' + a;
+			if (!edgeMap.has(key)) {
+				edgeMap.set(key, { a, b, cells: [] });
+			}
+			edgeMap.get(key).cells.push(i);
+		}
+	});
+
+	const streets = [];
+	for (const e of edgeMap.values()) {
+		const i = e.cells[0];
+		const j = e.cells.length > 1 ? e.cells[1] : null;
+		const pa = verts[e.a];
+		const pb = verts[e.b];
+		streets.push({
+			id: 's' + streets.length,
+			a: e.a,
+			b: e.b,
+			i,
+			j,
+			outer: j === null,
+			cells: j === null ? ['c' + i] : ['c' + i, 'c' + j],
+			x1: pa[0],
+			y1: pa[1],
+			x2: pb[0],
+			y2: pb[1],
+			mid: [(pa[0] + pb[0]) / 2, (pa[1] + pb[1]) / 2],
+			len: Math.hypot(pb[0] - pa[0], pb[1] - pa[1])
+		});
+	}
+
+	const cities = [];
+	for (const v of vertexFaces.keys()) {
+		const [x, y] = verts[v];
+		cities.push({
+			id: 'v' + cities.length,
+			v,
+			x,
+			y,
+			cells: vertexFaces.get(v).map(i => 'c' + i)
+		});
+	}
+
+	board.cells = cells;
+	board.cities = cities;
+	board.streets = streets;
+	board.adj = buildAdjacency(board);
+	return board;
+}
+
+function bearing(from, to) {
+	// Bearing of `to` from `from` in the y-down plane: east = 0, south = 90,
+	// west = 180, north = 270, plus the nearest 8-point compass label.
+	let deg = Math.atan2(to[1] - from[1], to[0] - from[0]) * 180 / Math.PI;
+	if (deg < 0) {
+		deg += 360;
+	}
+	const compass = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'][Math.round(deg / 45) % 8];
+	return { deg: Math.round(deg * 100) / 100, compass };
+}
+
+function buildAdjacency(board) {
+	// Derive board.adj from board.cells/streets/cities (see analyzeBoard). Each
+	// element's adj entry is also attached to the element itself.
+	const { cells, cities, streets } = board;
+	const adj = {};
+
+	const refOf = {};
+	for (const c of cells) {
+		refOf[c.id] = c.center;
+	}
+	for (const s of streets) {
+		refOf[s.id] = s.mid;
+	}
+	for (const t of cities) {
+		refOf[t.id] = [t.x, t.y];
+	}
+	const rel = (fromId, toId) => Object.assign({ id: toId }, bearing(refOf[fromId], refOf[toId]));
+
+	const vertexStreetIds = new Map();
+	for (const s of streets) {
+		for (const v of [s.a, s.b]) {
+			if (!vertexStreetIds.has(v)) {
+				vertexStreetIds.set(v, []);
+			}
+			vertexStreetIds.get(v).push(s.id);
+		}
+	}
+	const vertexCityId = new Map();
+	for (const t of cities) {
+		vertexCityId.set(t.v, t.id);
+	}
+	const streetCityIds = new Map();
+	for (const s of streets) {
+		streetCityIds.set(s.id, [vertexCityId.get(s.a), vertexCityId.get(s.b)]);
+	}
+
+	for (const c of cells) {
+		const entry = { cells: [], streets: [], cities: [] };
+		const seenCells = new Set();
+		const seenStreets = new Set();
+		const seenCities = new Set();
+		const push = (arr, set, toId) => {
+			if (set.has(toId)) {
+				return;
+			}
+			set.add(toId);
+			arr.push(rel(c.id, toId));
+		};
+		for (const s of streets) {
+			if (s.i === c.idx || s.j === c.idx) {
+				push(entry.streets, seenStreets, s.id);
+				const other = s.i === c.idx ? s.j : s.i;
+				if (other !== null) {
+					push(entry.cells, seenCells, 'c' + other);
+				}
+			}
+		}
+		for (const v of c.face) {
+			push(entry.cities, seenCities, vertexCityId.get(v));
+		}
+		adj[c.id] = entry;
+		c.adj = entry;
+	}
+
+	for (const s of streets) {
+		const entry = { cells: [], streets: [], cities: [] };
+		const seenCells = new Set();
+		const seenStreets = new Set();
+		const seenCities = new Set();
+		const push = (arr, set, toId) => {
+			if (set.has(toId)) {
+				return;
+			}
+			set.add(toId);
+			arr.push(rel(s.id, toId));
+		};
+		for (const id of s.cells) {
+			push(entry.cells, seenCells, id);
+		}
+		for (const id of streetCityIds.get(s.id)) {
+			push(entry.cities, seenCities, id);
+		}
+		for (const v of [s.a, s.b]) {
+			for (const id of vertexStreetIds.get(v) || []) {
+				if (id !== s.id) {
+					push(entry.streets, seenStreets, id);
+				}
+			}
+		}
+		adj[s.id] = entry;
+		s.adj = entry;
+	}
+
+	for (const t of cities) {
+		const entry = { cells: [], streets: [], cities: [] };
+		const seenCells = new Set();
+		const seenStreets = new Set();
+		const seenCities = new Set();
+		const push = (arr, set, toId) => {
+			if (set.has(toId)) {
+				return;
+			}
+			set.add(toId);
+			arr.push(rel(t.id, toId));
+		};
+		for (const id of t.cells) {
+			push(entry.cells, seenCells, id);
+		}
+		for (const id of vertexStreetIds.get(t.v) || []) {
+			push(entry.streets, seenStreets, id);
+		}
+		for (const sid of vertexStreetIds.get(t.v) || []) {
+			for (const id of streetCityIds.get(sid)) {
+				if (id !== t.id) {
+					push(entry.cities, seenCities, id);
+				}
+			}
+		}
+		adj[t.id] = entry;
+		t.adj = entry;
+	}
+
+	return adj;
+}
+
+function serializeBoard(board) {
+	// Serialize a board to a plain JSON-able object: the vertex positions and the
+	// faces (each cell as an ordered list of vertex indices). Streets, cities and
+	// all adjacencies are derived again on load, so the serialized form carries
+	// positions and deduces structure.
+	analyzeBoard(board);
+	return {
+		verts: board.verts,
+		faces: board.faces,
+		H: board.H || null,
+		V: board.V || null
+	};
+}
+
+function deserializeBoard(data) {
+	// Rebuild a board from serializeBoard() output (or any object with the same
+	// { verts, faces, H, V } shape). Returns a board with cells, cities, streets
+	// and the full adjacency map, ready for addStreets/addCities to draw.
+	const board = {
+		faces: data.faces.map(f => f.slice()),
+		verts: data.verts.map(v => v.slice()),
+		H: data.H || null,
+		V: data.V || null
+	};
+	analyzeBoard(board);
+	return board;
+}
+
+function buildTessellation(tessagon, options = {}) {
+	// Build the mesh of any tessagon. Accept a class, a name from TessagonTypes,
+	// or an already-built instance. An already-built mesh ({ faces, verts }) is
+	// passed through unchanged, so streets and cities can be added to exactly the
+	// mesh that was rendered (important for random tessagons like Voronoi).
+	// Returns { faces, verts, H, V, tess }.
+	if (tessagon && Array.isArray(tessagon.faces) && Array.isArray(tessagon.verts)) {
+		analyzeBoard(tessagon);
+		return tessagon;
+	}
+	if (tessagon && Array.isArray(tessagon.face_list) && Array.isArray(tessagon.vert_list)) {
+		const board = {
+			faces: tessagon.face_list,
+			verts: tessagon.vert_list,
+			H: null,
+			V: null,
+			tess: tessagon
+		};
+		analyzeBoard(board);
+		return board;
+	}
+	const H = options.H || options.cols || 6;
+	const V = options.V || options.rows || 6;
+
+	let Tess = null;
+	if (typeof tessagon === 'string') {
+		Tess = TessagonTypes[tessagon] || globalThis[tessagon];
+		if (!Tess) throw new Error('Unknown tessagon: ' + tessagon);
+	} else if (typeof tessagon === 'function') {
+		Tess = tessagon;
+	}
+
+	// Some tessagons define their own grid (e.g. HexBoard always cuts a
+	// (cols + rows) x rows patch from its `size` / cols/H / rows/V options).
+	let grid = null;
+	let shape = null;
+	if (Tess && typeof Tess.grid_from_options === 'function') {
+		grid = Tess.grid_from_options(options);
+		shape = grid.cols !== undefined ? grid : null;
+	} else if (options.size !== undefined && Tess && typeof Tess.default_grid === 'function') {
+		grid = Tess.default_grid(options.size);
+	}
+	const gridH = grid ? grid.H : H;
+	const gridV = grid ? grid.V : V;
+
+	const common = {
+		function: options.function || (Tess && typeof Tess.plane === 'function' ? Tess.plane(gridH, gridV) : defaultPlane),
+		h_range: options.h_range || [0, 1],
+		v_range: options.v_range || [0, 1],
+		h_num: gridH,
+		v_num: gridV,
+		h_cyclic: options.h_cyclic === true,
+		v_cyclic: options.v_cyclic === true,
+		adaptor_class: options.adaptor_class || ListAdaptor
+	};
+	if (shape) {
+		common.cols = shape.cols;
+		common.rows = shape.rows;
+	}
+	for (const k of ['random', 'min_spacing', 'border_fraction', 'iterations', 'merge_factor', 'seeds', 'size', 'color_pattern']) {
+		if (k in options) {
+			common[k] = options[k];
+		}
+	}
+
+	let tess;
+	if (Tess) {
+		tess = new Tess(common);
+	} else if (tessagon && typeof tessagon.create_mesh === 'function') {
+		tess = tessagon;
+	} else {
+		throw new Error('Invalid tessagon: ' + tessagon);
+	}
+
+	const mesh = tess.create_mesh();
+	const board = { faces: mesh.face_list, verts: mesh.vert_list, H: gridH, V: gridV, tess, color_list: mesh.color_list };
+	analyzeBoard(board);
+	return board;
+}
+
+function addStreetsToTessellation(tessagon, svg, options = {}) {
+	// Add streets (the shared edges between tiles) to the svg for any tessagon.
+	return addStreets(buildTessellation(tessagon, options), svg, options);
+}
+
+function addCitiesToTessellation(tessagon, svg, options = {}) {
+	// Add cities (the corners where tiles meet) to the svg for any tessagon.
+	return addCities(buildTessellation(tessagon, options), svg, options);
+}
+
+function addLabelsToTessellation(tessagon, svg, options = {}) {
+	// Add cell/street/city id labels to the svg for any tessagon.
+	return addLabels(buildTessellation(tessagon, options), svg, options);
+}
+//#endregion
+
+function generateListTessellation(cols = 10, rows = 10, name = 'HexTessagon') {
+	let shapeFunc = getTessagonDict()[name]
+	const options = {
+		function: (h, v) => [h, 1 - v, 0],
+		h_range: [0.0, 1.0],
+		v_range: [0.0, 1.0],
+		h_num: cols,
+		v_num: rows,
+		h_cyclic: false,
+		v_cyclic: false,
+		adaptor_class: ListAdaptor
+	};
+	const tessagon = new shapeFunc(options);
+	const list = tessagon.create_mesh();
+	return { tessagon, list };
+}
+function onclickSvg(e, tessagon) {
+	const faceEl = e.target.closest('.tess-face');
+	let info = {
+		id: faceEl.dataset.id,
+		colorIndex: parseInt(faceEl.dataset.colorIndex),
+		cx: parseFloat(faceEl.dataset.cx),
+		cy: parseFloat(faceEl.dataset.cy),
+		element: faceEl,
+		event: e,
+		dataset: faceEl.dataset,
+		neibors: getNeibors(faceEl.dataset.id, tessagon),
+	};
+	console.log('faceEl', info); return;
+	if (!faceEl) return;
+
+	// Toggle a selection class (defined in your CSS/Style block)
+	faceEl.classList.toggle('selected');
+
+	if (func) {
+		func({
+			id: faceEl.dataset.id,
+			colorIndex: parseInt(faceEl.dataset.colorIndex),
+			cx: parseFloat(faceEl.dataset.cx),
+			cy: parseFloat(faceEl.dataset.cy),
+			element: faceEl,
+			event: e
+		});
+	}
+}
+function generateSvgTessellation(cols = 10, rows = 10, name = 'HexTessagon', opts = {}) {
+
+	const options = {
+		function: (h, v) => [h, 1 - v, 0],
+		h_range: [0.0, 1.0], //xmin,xmax
+		v_range: [0.0, 1.0], //ymin,ymax
+		h_num: cols, //#tiles
+		v_num: rows,
+		h_cyclic: false,
+		v_cyclic: false,
+		adaptor_class: SvgAdaptor
+	};
+
+	for (const k in opts) { options[k] = opts[k]; }
+
+	let shapeFunc = getTessagonDict()[name];
+	const tessagon = new shapeFunc(options);
+	const mesh = tessagon.create_mesh();
+	const svg = mesh;
+	console.log("internal mesh graph", tessagon.mesh);
+	//const svg = tessagon.create_mesh();
+	return { tessagon, svg };
+}
+function wrapGElements(gElements, id, stroke = 'white') {
+	// We use viewBox="0 0 1 1" because Tessagon uses normalized 0.0 to 1.0 coordinates
+	//background-color: #ff0;
+	return `
+    <svg
+     id="${id}"  
+      viewBox="0 0 1 1" 
+      xmlns="http://www.w3.org/2000/svg" 
+      style="width: 500px; height: 500px; ">
+      <style>
+        /* Optional: ensures lines are thin regardless of zoom */
+        polygon { 
+          stroke: ${stroke}; 
+          stroke-width: 1px; 
+          vector-effect: non-scaling-stroke; 
+        }
+      </style>
+      ${gElements}
+    </svg>
+    `.trim();
+}
+function genTess(dParent, rows, cols, name, opts = {}, func, id = null) {
+	// 1. Generate a unique ID if one isn't provided
+	//const svg_id = opts.svg_id || `tess_${Math.floor(Math.random() * 10000)}`;
+
+	// 2. Auto-detect the color method based on provided options
+	if (!opts.color_method) {
+		if (opts.svg_fill_colors) {
+			opts.color_method = 'palette';
+			if (opts.color_pattern === undefined) opts.color_pattern = 1;
+		} else if (opts.svg_fill_color) {
+			opts.color_method = 'solid';
+		} else {
+			opts.color_method = 'hsl';
+		}
+	}
+
+	// 3. Generate the geometry and groups
+	let { tessagon, svg } = generateSvgTessellation(rows, cols, name, opts);
+
+	// 4. Inject into DOM using your updated wrapper function
+	dParent.innerHTML = ''; // Clear previous attempts
+	dParent.innerHTML = wrapGElements(svg, id ?? `tess_${Math.floor(Math.random() * 10000)}`);
+	//dParent.innerHTML = wrapGElements(svg, svg_id);
+
+	// 5. Select the container and attach interaction logic
+	const svgContainer = dParent.querySelector(`#${id}`);
+	if (!svgContainer) return { tessagon, svg };
+
+	console.log('NOCH DA!!!')
+
+	svgContainer.addEventListener('click', (e) => {
+		const faceEl = e.target.closest('.tess-face');
+		if (!faceEl) return;
+
+		// Toggle a selection class (defined in your CSS/Style block)
+		faceEl.classList.toggle('selected');
+
+		if (func) {
+			func({
+				id: faceEl.dataset.id,
+				colorIndex: parseInt(faceEl.dataset.colorIndex),
+				cx: parseFloat(faceEl.dataset.cx),
+				cy: parseFloat(faceEl.dataset.cy),
+				element: faceEl,
+				event: e
+			});
+		}
+	});
+
+	// svgContainer.addEventListener('mouseover', (e) => {
+	// 	const faceEl = e.target.closest('.tess-face');
+	// 	if (faceEl && opts.onhover) {
+	// 		opts.onhover({ id: faceEl.dataset.id, element: faceEl });
+	// 	}
+	// });
+	svgContainer.addEventListener('mouseover', (e) => {
+		const faceEl = e.target.closest('.tess-face');
+		if (faceEl) {
+			// TEMPORARY: Highlight the actual element the mouse is hitting
+			faceEl.style.outline = "2px solid red";
+			//setTimeout(() => faceEl.style.outline = "none", 500);
+
+			//if (opts.onhover) opts.onhover({ id: faceEl.dataset.id, element: faceEl });
+		}
+	});
+	return { tessagon, svgContainer };
+}
+function updateTessColors(svgElement, newPalette) {
+	const faces = svgElement.querySelectorAll('.tess-face');
+	faces.forEach(face => {
+		const idx = parseInt(face.dataset.colorIndex);
+		if (!isNaN(idx)) {
+			face.setAttribute('fill', newPalette[idx % newPalette.length]);
+		}
+	});
+}
+function generateAllTessellationVariants(cols = 10, rows = 10) {
+	const tessagonDict = getTessagonDict();
+	const results = [];
+
+	// A robust palette to ensure we cover tessellations 
+	// that use indices 0, 1, 2, and 3
+	const defaultPalette = ['#264653', '#2a9d8f', '#e9c46a', '#f4a261', '#e76f51'];
+
+	for (const name in tessagonDict) {
+		const Klass = tessagonDict[name];
+
+		// Get the number of patterns from the static metadata method we fixed
+		// If num_color_patterns is 1, we usually want to test pattern 1.
+		// If it's 0, we just run the default.
+		const numPatterns = Klass.num_color_patterns();
+
+		// Always run at least once (pattern 0 or default)
+		const patternsToRun = numPatterns === 0 ? [0] : Array.from({ length: numPatterns }, (_, i) => i + 1);
+
+		patternsToRun.forEach(patternIndex => {
+			console.log(`Generating ${name} with color_pattern: ${patternIndex}`);
+
+			const options = {
+				function: planeFunction, // Assuming planeFunction is in your scope
+				h_range: [0.0, 1.0],
+				v_range: [0.0, 1.0],
+				h_num: cols,
+				v_num: rows,
+				h_cyclic: false,
+				v_cyclic: false,
+				adaptor_class: SvgAdaptor,
+				color_pattern: patternIndex,
+				svg_fill_colors: defaultPalette,
+				svg_stroke_color: '#333',
+				svg_stroke_width: 0.002,
+				svg_root_tag: true
+			};
+			if (name == 'WeaveTessagon') {
+				console.log('HAAAAAAAAAAAAAAAAAAAAAAAAAA')
+				options.h_cyclic = true;
+				options.v_cyclic = true;
+			}
+
+			try {
+				const tessagon = new Klass(options);
+				const svg = tessagon.create_mesh();
+
+				results.push({
+					name: name,
+					pattern: patternIndex,
+					svg: svg,
+					metadata: Klass.metadata
+				});
+			} catch (e) {
+				console.error(`Failed to generate ${name} pattern ${patternIndex}:`, e);
+			}
+		});
+	}
+
+	return results;
+}
+
+
+//#endregion

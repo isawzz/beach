@@ -413,14 +413,14 @@ function ari_add_harvest_cards(fen) {
 		}
 	}
 }
-function ari_calc_fictive_vps(fen, plname) {
-	let pl = fen.players[plname];
+function ari_calc_fictive_vps(pl, plname) {
+	//let pl = fen.players[plname];
 	let bs = pl.buildings;
 	let vps = calc_building_vps(bs);
 	return vps;
 }
-function ari_calc_real_vps(fen, plname) {
-	let pl = fen.players[plname];
+function ari_calc_real_vps(pl, plname) {
+	//let pl = fen.players[plname];
 	let bs = ari_get_correct_buildings(pl.buildings);
 	let vps = calc_building_vps(bs);
 	for (const btype in bs) {
@@ -795,6 +795,7 @@ function ari_next_phase() {
 	return Z.stage;
 }
 function ari_open_market(fen, phase, deck, market) {
+	//console.log(deck)
 	DA.qanim = [];
 	let n_market = phase == 'jack' ? 3 : 2;
 	fen.stage = Z.stage = phase == 'jack' ? 12 : phase == 'queen' ? 11 : 4;
@@ -826,205 +827,6 @@ function ari_open_rumors(stage = 28) {
 	DA.qanim.push([q_mirror_fen, ['deck_rumors', 'rumor_top']]);
 	DA.qanim.push([ari_pre_action, []]);
 	qanim();
-}
-function ari_pre_action() {
-	let [stage, A, fen, phase, uplayer, deck, market] = [Z.stage, Z.A, Z.fen, Z.phase, Z.uplayer, Z.deck, Z.market];
-	if (Z.num_actions > 0) fen.progress = `(action ${Z.action_number} of ${Z.total_pl_actions})`; else delete fen.progress;
-	show_progress();
-	switch (ARI_LEGACY.stage[stage]) {
-		case 'action: command': Z.stage = 6; select_add_items(ui_get_commands(uplayer), process_command, 'must select an action', 1, 1); break; //5
-		case 'action step 2':
-			switch (A.command) {
-				case 'trade': select_add_items(ui_get_trade_items(uplayer), post_trade, 'must select 2 cards to trade', 2, 2); break;
-				case 'build': select_add_items(ui_get_payment_items('K'), payment_complete, 'must select payment for building', 1, 1); break;
-				case 'upgrade': select_add_items(ui_get_payment_items('K'), payment_complete, 'must select payment for upgrade', 1, 1); break;
-				case 'downgrade': select_add_items(ui_get_building_items(uplayer, A.payment), process_downgrade, 'must select a building to downgrade', 1, 1); break;
-				case 'pickup': select_add_items(ui_get_stall_items(uplayer), post_pickup, 'must select a stall card to take into your hand', 1, 1); break;
-				case 'harvest': select_add_items(ui_get_harvest_items(uplayer), post_harvest, 'must select a farm to harvest from', 1, 1); break;
-				case 'sell': select_add_items(ui_get_stall_items(uplayer), post_sell, 'must select 2 stall cards to sell', 2, 2); break;
-				case 'buy': select_add_items(ui_get_payment_items('J'), payment_complete, 'must select payment option', 1, 1); break;
-				case 'buy rumor': ari_open_rumors(); break;
-				case 'exchange': select_add_items(ui_get_exchange_items(uplayer), post_exchange, 'must select cards to exchange', 2, 2); break;
-				case 'visit': select_add_items(ui_get_payment_items('Q'), payment_complete, 'must select payment for visiting', 1, 1); break;
-				case 'rumor': select_add_items(ui_get_other_buildings_and_rumors(uplayer), process_rumor, 'must select a building and a rumor card to place', 2, 2); break;
-				case 'inspect': select_add_items(ui_get_other_buildings(uplayer), process_inspect, 'must select building to visit', 1, 1); break;
-				case 'blackmail': select_add_items(ui_get_payment_items('Q'), payment_complete, 'must select payment for blackmailing', 1, 1); break;
-				case 'commission': select_add_items(ui_get_commission_items(uplayer), process_commission, 'must select a card to commission', 1, 1); break;
-				case 'pass': post_pass(); break;
-			}
-			break;
-		case 'pick_schwein': select_add_items(ui_get_schweine_candidates(A.uibuilding), post_inspect, 'must select the new schwein', 1, 1); break;
-		case 'comm_weitergeben': if (!is_playerdata_set(uplayer)) select_add_items(ui_get_all_commission_items(uplayer), leg_process_comm_setup, `must select ${fen.comm_setup_num} card${fen.comm_setup_num > 1 ? 's' : ''} to discard`, fen.comm_setup_num, fen.comm_setup_num); break;
-		case 'rumors_weitergeben':
-			let rumitems = ui_get_rumors_and_players_items(uplayer);
-			if (isEmpty(rumitems)) {
-				show_waiting_message('waiting for other players...');
-				Z.state = null;
-				let done = rumor_playerdata_complete();
-				if (done) {
-					Z.turn = [Z.host];
-					Z.stage = 105; //'next_rumors_setup_stage';
-					clear_transaction();
-					take_turn_fen();
-				} else autopoll();
-			} else select_add_items(rumitems, process_rumors_setup, `must select a player and a rumor to pass on`, 2, 2);
-			break;
-		case 'next_rumor_setup_stage': post_rumor_setup(); break;
-		case 'buy rumor': select_add_items(ui_get_top_rumors(), post_buy_rumor, 'must select one of the new rumor cards', 1, 1); break;
-		case 'rumor discard': select_add_items(ui_get_rumors_items(uplayer), process_rumor_discard, 'must select a rumor card to discard', 1, 1); break;
-		case 'rumor_both': select_add_items(ui_get_top_rumors(), post_rumor_both, 'must select one of the new rumor cards', 1, 1); break;
-		case 'blackmail': select_add_items(ui_get_other_buildings_with_rumors(uplayer), process_blackmail, 'must select a building to blackmail', 1, 1); break;
-		case 'blackmail_owner': select_add_items(ui_get_blackmailed_items(), being_blackmailed, 'must react to BLACKMAIL!!!', 1, 1); break; //console.log('YOU ARE BEING BLACKMAILED!!!',uplayer); break;
-		case 'accept_blackmail': select_add_items(ui_get_stall_items(uplayer), post_accept_blackmail, 'must select a card to pay off blackmailer', 1, 1); break;
-		case 'blackmail_complete': post_blackmail(); break;
-		case 'journey': select_add_items(ui_get_hand_and_journey_items(uplayer), process_journey, 'may form new journey or add cards to existing one'); break;
-		case 'add new journey': post_new_journey(); break;
-		case 'auto market': ari_open_market(fen, phase, deck, market); break;
-		case 'TEST_starts_in_stall_selection_complete':
-			if (is_stall_selection_complete()) {
-				delete fen.stallSelected;
-				fen.actionsCompleted = [];
-				if (check_if_church()) ari_start_church_stage(); else ari_start_action_stage();
-			} else select_add_items(ui_get_hand_items(uplayer), post_stall_selected, 'must select your stall'); break;
-		case 'stall selection': select_add_items(ui_get_hand_items(uplayer), post_stall_selected, 'must select cards for stall'); break;
-		case 'church': select_add_items(ui_get_hand_and_stall_items(uplayer), post_tithe, `must select cards to tithe ${isdef(fen.tithemin) ? `(current minimum is ${fen.tithemin})` : ''}`, 1, 100); break;
-		case 'church_minplayer_tithe_add': select_add_items(ui_get_hand_and_stall_items(uplayer), post_tithe_minimum, `must select cards to reach at least ${fen.tithe_minimum}`, 1, 100); break;
-		case 'church_minplayer_tithe_downgrade': select_add_items(ui_get_building_items(uplayer, A.payment), process_downgrade, 'must select a building to downgrade', 1, 1); break;
-		case 'church_minplayer_tithe': console.log('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO');
-			let pl = fen.players[uplayer];
-			let hst = pl.hand.concat(pl.stall);
-			let vals = hst.map(x => ari_get_card(x).val);
-			let sum = arrSum(vals);
-			let min = fen.tithe_minimum;
-			if (sum < min) {
-				ari_history_list([`${uplayer} must downgrade a building to tithe ${min}!`], 'downgrade');
-				select_add_items(ui_get_building_items(uplayer, A.payment), process_downgrade, 'must select a building to downgrade', 1, 1);
-			} else {
-				ari_history_list([`${uplayer} must tithe more cards to reach ${min}!`], 'tithe');
-				select_add_items(ui_get_hand_and_stall_items(uplayer), post_tithe_minimum, `must select cards to reach at least ${fen.tithe_minimum}`, 1, 100);
-			}
-			break;
-		case 'church_newcards':
-			reveal_church_cards();
-			let items = ui_get_church_items(uplayer);
-			let num_select = items.length == fen.church.length ? 1 : 2;
-			let instr = num_select == 1 ? `must select a card for ${fen.candidates[0]}` : 'must select card and player';
-			select_add_items(items, post_church, instr, num_select, num_select);
-			break;
-		case 'complementing_market_after_church':
-			select_add_items(ui_get_hand_items(uplayer), post_complementing_market_after_church, 'may complement stall'); break;
-		case 'tax': let n = fen.pl_tax[uplayer]; select_add_items(ui_get_hand_items(uplayer), post_tax, `must pay ${n} card${if_plural(n)} tax`, n, n); break;
-		case 'build': select_add_items(ui_get_build_items(uplayer, A.payment), post_build, 'must select cards to build (first card determines rank)', 4, 6, true); break;
-		case 'commission_stall': select_add_items(ui_get_commission_stall_items(), process_commission_stall, 'must select matching stall card to discard', 1, 1); break;
-		case 'commission new': select_add_items(ui_get_commission_new_items(uplayer), post_commission, 'must select a new commission', 1, 1); break;
-		case 'upgrade': select_add_items(ui_get_build_items(uplayer, A.payment), process_upgrade, 'must select card(s) to upgrade a building', 1); break;
-		case 'select building to upgrade': select_add_items(ui_get_farms_estates_items(uplayer), post_upgrade, 'must select a building', 1, 1); break;
-		case 'select downgrade cards': select_add_items(A.possible_downgrade_cards, post_downgrade, 'must select card(s) to downgrade a building', 1, is_in_middle_of_church() ? 1 : 100); break;
-		case 'buy': select_add_items(ui_get_open_discard_items(uplayer, A.payment), post_buy, 'must select a card to buy', 1, 1); break;
-		case 'visit': select_add_items(ui_get_other_buildings(uplayer, A.payment), process_visit, 'must select a building to visit', 1, 1); break;
-		case 'visit destroy': select_add_items(ui_get_string_items(['destroy', 'get cash']), post_visit, 'must destroy the building or select the cash', 1, 1); break;
-		case 'ball': select_add_items(ui_get_hand_items(uplayer), post_ball, 'may add cards to the ball'); break;
-		case 'auction: bid': select_add_items(ui_get_coin_amounts(uplayer), process_auction, 'must bid for the auction', 1, 1); break;
-		case 'auction: buy': select_add_items(ui_get_market_items(), post_auction, 'must buy a card', 1, 1); break;
-		case 'end game?': select_add_items(ui_get_endgame(uplayer), post_endgame, 'may end the game here and now or go on!', 1, 1); break;
-		case 'pick luxury or journey cards': select_add_items(ui_get_string_items(['luxury cards', 'journey cards']), post_luxury_or_journey_cards, 'must select luxury cards or getting cards from the other end of the journey', 1, 1); break;
-		case 'next_comm_setup_stage': select_confirm_weiter(post_comm_setup_stage); break;
-		default: console.log('stage is', stage); break;
-	}
-}
-function ari_present(dParent) {
-	let [fen, ui, uplayer, stage, pl] = [Z.fen, UI, Z.uplayer, Z.stage, Z.pl];
-	let [dOben, dOpenTable, dMiddle, dRechts] = tableLayoutMR(dParent);
-	if (fen.num_actions > 0 && (Z.role == 'active' || Z.mode == 'hotseat')) {
-		mStyle(dOben, { hmin: 110 })
-	}
-	ari_stats(dRechts);
-	show_history(fen, dRechts);
-	let deck = ui.deck = ui_type_deck(fen.deck, dOpenTable, { maleft: 12 }, 'deck', 'deck', ari_get_card);
-	let market = ui.market = ui_type_market(fen.market, dOpenTable, { maleft: 12 }, 'market', 'market', ari_get_card, true);
-	let open_discard = ui.open_discard = ui_type_market(fen.open_discard, dOpenTable, { maleft: 12 }, 'open_discard', 'discard', ari_get_card);
-	let deck_discard = ui.deck_discard = ui_type_deck(fen.deck_discard, dOpenTable, { maleft: 12 }, 'deck_discard', '', ari_get_card);
-	if (exp_commissions(Z.options)) {
-		let open_commissions = ui.open_commissions = ui_type_market(fen.open_commissions, dOpenTable, { maleft: 12 }, 'open_commissions', 'bank', ari_get_card);
-		mMagnifyOnHoverControlPopup(ui.open_commissions.cardcontainer);
-		let deck_commission = ui.deck_commission = ui_type_deck(fen.deck_commission, dOpenTable, { maleft: 4 }, 'deck_commission', '', ari_get_card);
-		let comm = ui.commissioned = ui_type_rank_count(fen.commissioned, dOpenTable, {}, 'commissioned', 'sentiment', ari_get_card);
-		if (comm.items.length > 0) { let isent = arrLast(comm.items); let dsent = iDiv(isent); set_card_border(dsent, 15, 'green'); }
-	}
-	if (exp_church(Z.options)) {
-		let church = ui.church = ui_type_church(fen.church, dOpenTable, { maleft: 28 }, 'church', 'church', ari_get_card);
-	}
-	if (exp_rumors(Z.options)) {
-		let deck_rumors = ui.deck_rumors = ui_type_deck(fen.deck_rumors, dOpenTable, { maleft: 25 }, 'deck_rumors', 'rumors', ari_get_card);
-	}
-	let uname_plays = fen.plorder.includes(Z.uname);
-	let show_first = uname_plays && Z.mode == 'multi' ? Z.uname : uplayer;
-	let order = get_present_order();
-	for (const plname of order) {
-		let pl = fen.players[plname];
-		let playerstyles = { w: '100%', bg: '#ffffff80', fg: 'black', padding: 4, margin: 4, rounding: 9, border: `2px ${get_user_color(plname)} solid` };
-		let d = mDiv(dMiddle, playerstyles, null, get_user_pic_html(plname, 25));
-		mFlexWrap(d);
-		mLinebreak(d, 9);
-		let hidden = compute_hidden(plname);
-		ari_present_player(plname, d, hidden);
-	}
-	ari_show_handsorting_buttons_for(Z.mode == 'hotseat' ? Z.uplayer : Z.uname); delete Clientdata.handsorting;
-	show_view_buildings_button(uplayer);
-	let desc = ARI_LEGACY.stage[Z.stage];
-	Z.isWaiting = false;
-	if (isdef(fen.winners)) ari_reveal_all_buildings(fen);
-	else if (desc == 'comm_weitergeben' && is_playerdata_set(uplayer)) {
-		if ((Z.mode == 'hotseat' || Z.host == uplayer) && check_resolve()) {
-			Z.turn = [Z.host];
-			Z.stage = 104; //'next_comm_setup_stage';
-		}
-		show_waiting_message(`waiting for other players...`);
-		Z.isWaiting = true;
-	}
-}
-function ari_present_player(plname, d, ishidden = false) {
-	let fen = Z.fen;
-	let pl = fen.players[plname];
-	let ui = UI.players[plname] = { div: d };
-	let hand = ui.hand = ui_type_hand(pl.hand, d, {}, `players.${plname}.hand`, 'hand', ari_get_card);
-	if (ishidden) { hand.items.map(x => face_down(x)); }
-	let stall = ui.stall = ui_type_market(pl.stall, d, { maleft: 12 }, `players.${plname}.stall`, 'stall', ari_get_card);
-	if (fen.stage < 5 && ishidden) { stall.items.map(x => face_down(x)); }
-	if (exp_commissions(Z.options)) {
-		if (!ishidden) pl.commissions = correct_handsorting(pl.commissions, plname);
-		ui.commissions = ui_type_market(pl.commissions, d, { maleft: 12 }, `players.${plname}.commissions`, 'commissions', Z.stage == 23 ? ari_get_card_large : ari_get_card);
-		if (ishidden) { ui.commissions.items.map(x => face_down(x)); }
-		else mMagnifyOnHoverControlPopup(ui.commissions.cardcontainer);
-	}
-	if (exp_rumors(Z.options)) {
-		if (!ishidden) pl.rumors = correct_handsorting(pl.rumors, plname);
-		ui.rumors = ui_type_market(pl.rumors, d, { maleft: 12 }, `players.${plname}.rumors`, 'rumors', Z.stage == 24 ? ari_get_card_large : ari_get_card);
-		if (ishidden) { ui.rumors.items.map(x => face_down(x)); }
-		else mMagnifyOnHoverControlPopup(ui.rumors.cardcontainer);
-	}
-	ui.journeys = [];
-	let i = 0;
-	for (const j of pl.journeys) {
-		let jui = ui_type_hand(j, d, { maleft: 12 }, `players.${plname}.journeys.${i}`, '', ari_get_card);//list, dParent, path, title, get_card_func
-		i += 1;
-		ui.journeys.push(jui);
-	}
-	mLinebreak(d, 8);
-	ui.buildinglist = [];
-	ui.indexOfFirstBuilding = arrChildren(d).length;
-	for (const k in pl.buildings) {
-		let i = 0;
-		for (const b of pl.buildings[k]) {
-			let type = k;
-			let b_ui = ui_type_building(b, d, { maleft: 8 }, `players.${plname}.buildings.${k}.${i}`, type, ari_get_card, true, ishidden);
-			b_ui.type = k;
-			ui.buildinglist.push(b_ui);
-			if (b.isblackmailed) { mStamp(b_ui.cardcontainer, 'blackmail'); }
-			lookupAddToList(ui, ['buildings', k], b_ui); //GEHT!!!!!!!!!!!!!!!!!!!!!
-			i += 1;
-		}
-	}
 }
 function ari_refill_deck(fen) {
 	fen.deck = fen.deck.concat(fen.open_discard).concat(fen.deck_discard);
@@ -1067,15 +869,6 @@ function ari_select_next_player_according_to_stall_value() {
 		fen.action_number = 1;
 		return minplayer;
 	}
-}
-function ari_show_handsorting_buttons_for(plname) {
-	if (Z.role == 'spectator' || isdef(mBy('dHandButtons'))) return;
-	let fen = Z.fen;
-	let pl = fen.players[plname];
-	if (pl.hand.length <= 1) return;
-	let d = UI.players[plname].hand.container; mStyle(d, { position: 'relative' });
-	let dHandButtons = mDiv(d, { position: 'absolute', bottom: -2, left: 52, height: 25 }, 'dHandButtons');
-	show_player_button('sort', dHandButtons, onclick_by_rank);
 }
 function ari_start_action_stage() {
 	let next = ari_select_next_player_according_to_stall_value();
@@ -1409,7 +1202,32 @@ function correct_handsorting(hand, plname) {
 	hand = sort_cards(hand, s == 'suit', 'CDSH', true, Z.func.rankstr);
 	return hand;
 }
-
+function create_card_assets_c52() {
+	let ranknames = { A: 'Ace', K: 'King', T: '10', J: 'Jack', Q: 'Queen' };
+	let suitnames = { S: 'Spades', H: 'Hearts', C: 'Clubs', D: 'Diamonds' };
+	let rankstr = '23456789TJQKA';
+	let suitstr = 'SHDC';
+	sz = 100;
+	let di = {};
+	for (const r of toLetters(rankstr)) {
+		for (const s of toLetters(suitstr)) {
+			let k = r + s;
+			let info = di[k] = { key: k, val: 1, irank: rankstr.indexOf(r), isuit: suitstr.indexOf(s), rank: r, suit: s, color: RED, c52key: 'card_' + r + s, w: sz * .7, h: sz, sz: sz, ov: .25, friendly: `${isNumber(r) ? r : ranknames[r]} of ${suitnames[s]}`, short: `${r}${s}` };
+			info.isort = info.isuit * 13 + info.irank;
+		}
+	}
+	C52Cards = di;
+	return di;
+}
+function create_fen_deck(cardtype, num_decks = 1, num_jokers = 0) {
+	//console.log('!!!',C52Cards);
+	if (!C52Cards) C52Cards = create_card_assets_c52();
+	let arr = Object.keys(C52Cards).map(x => x + cardtype);
+	let newarr = [];
+	while (num_decks > 0) { newarr = newarr.concat(arr); num_decks--; }
+	while (num_jokers > 0) { newarr.push('*H' + cardtype); num_jokers--; }
+	return newarr;
+}
 function data_from_client(raw) {
 	assertion(is_stringified(raw), 'data should be stringified json!!!!!!!!!!!!!!!', raw);
 	let js = JSON.parse(raw);
@@ -1475,7 +1293,7 @@ function determine_church_turn_order() {
 	let initial = [];
 	for (const plname of fen.plorder) {
 		let pl = fen.players[plname];
-		pl.vps = ari_calc_fictive_vps(fen, plname);
+		pl.vps = ari_calc_fictive_vps(pl, plname);
 		pl.max_journey_length = ari_get_max_journey_length(fen, plname);
 		pl.score = pl.vps * 10000 + pl.max_journey_length * 100 + pl.coins;
 		initial.push(pl);
@@ -2028,7 +1846,7 @@ function get_trade_history(uplayer, i0, i1) {
 	if (i1.path.includes(uplayer)) { let h = i0; i0 = i1; i1 = h; }
 	return [`${uplayer} trades ${i0.key} (from own stall) for ${i1.key} (from ${i1.path == 'market' ? 'market' : stringBetween(i1.path, '.', '.')})`];
 }
-function get_user_color(uname) { let u = firstCond(Serverdata.users, x => x.name == uname); return colorFrom(u.color); }
+function get_user_color(uname) { return colorFrom(M.users[uname].color); }
 function get_user_pic_and_name(uname, dParent, sz = 50, border = 'solid medium white') {
 	let html = `
 			<div username='${uname}' style='text-align:center;font-size:${sz / 2.8}px'>
@@ -2040,7 +1858,7 @@ function get_user_pic_and_name(uname, dParent, sz = 50, border = 'solid medium w
 	return elem;
 }
 function get_values(o) { return Object.values(o); }
-function get_waiting_html(sz = 30) { return `<img src="../base/assets/images/active_player.gif" height="${sz}" style="margin:0px ${sz / 3}px" />`; }
+function get_waiting_html(sz = 30) { return `<img src="../assets/icons/active_player.gif" height="${sz}" style="margin:0px ${sz / 3}px" />`; }
 function handle_gehtHoch() {
 	let [A, fen, uplayer] = [Z.A, Z.fen, Z.uplayer];
 	let [bid, bidder] = [fen.lastbid, fen.lastbidder];
@@ -2257,13 +2075,13 @@ function new_cards_animation(n = 2) {
 	}
 }
 function new_deal(fen) {
-  let deck = fen.deck = create_fen_deck('n', fen.num_decks);
-  shuffle(deck);
-  for (const plName in fen.players) {
-    let pl = fen.players[plName];
-    let handsize = pl.handsize;
-    pl.hand = cDeckDeal(deck, handsize);
-  }
+	let deck = fen.deck = create_fen_deck('n', fen.num_decks);
+	shuffle(deck);
+	for (const plName in fen.players) {
+		let pl = fen.players[plName];
+		let handsize = pl.handsize;
+		pl.hand = cDeckDeal(deck, handsize);
+	}
 }
 function object2string(o, props = [], except_props = []) {
 	let s = '';
@@ -2283,7 +2101,7 @@ function onclick_advanced_test() {
 	DA.showTestButtons = toggle_visibility('dTestButtons');
 	style_advanced_button();
 }
-function onclick_by_rank() {
+function onclick_by_rank(rankstr='23456789TJQKA*') {
 	let [plorder, stage, A, fen, uplayer, pl] = [Z.plorder, Z.stage, Z.A, Z.fen, Z.uplayer, Z.fen.players[Z.uplayer]];
 	let items = ui_get_hand_items(uplayer).map(x => x.o);
 	let h = UI.players[uplayer].hand;
@@ -2293,13 +2111,13 @@ function onclick_by_rank() {
 	let cardcont = h.cardcontainer;
 	let ch = arrChildren(cardcont);
 	ch.map(x => x.remove());
-	let sorted = sortCardItemsByRank(items, Z.func.rankstr); //window[Z.game.toUpperCase()].rankstr); //'23456789TJQKA*');
+	let sorted = sortCardItemsByRank(items, rankstr); //window[Z.game.toUpperCase()].rankstr); //'23456789TJQKA*');
 	h.sortedBy = 'rank';
 	for (const item of sorted) {
 		mAppend(cardcont, iDiv(item));
 	}
 }
-function onclick_by_suit() {
+function onclick_by_suit(rankstr='23456789TJQKA*',suitstr='CDSH') {
 	let [plorder, stage, A, fen, uplayer, pl] = [Z.plorder, Z.stage, Z.A, Z.fen, Z.uplayer, Z.fen.players[Z.uplayer]];
 	let items = ui_get_hand_items(uplayer).map(x => x.o);
 	let h = UI.players[uplayer].hand;
@@ -2308,8 +2126,8 @@ function onclick_by_suit() {
 	let cardcont = h.cardcontainer;
 	let ch = arrChildren(cardcont);
 	ch.map(x => x.remove());
-	let sorted = sortCardItemsByRank(items, Z.func.rankstr); //'23456789TJQKA*');
-	sorted = sortCardItemsBySuit(sorted);
+	let sorted = sortCardItemsByRank(items, rankstr, suitstr); //Z.func.rankstr); //'23456789TJQKA*');
+	sorted = sortCardItemsBySuit(sorted,suitstr);
 	h.sortedBy = 'suit';
 	for (const item of sorted) {
 		mAppend(cardcont, iDiv(item));
@@ -2691,7 +2509,7 @@ function post_endgame() {
 		console.log('GAMEOVER!!!!!!!!!!!!!!!!!!!');
 		for (const plname of fen.plorder) {
 			let pl = fen.players[plname];
-			pl.vps = ari_calc_real_vps(fen, plname);
+			pl.vps = ari_calc_real_vps(pl, plname);
 			pl.max_journey_length = ari_get_max_journey_length(fen, plname);
 			pl.score = pl.vps * 10000 + pl.max_journey_length * 100 + pl.coins;
 			console.log('score', plname, pl.score);
@@ -3368,6 +3186,7 @@ function qanim() {
 	} //else console.log('...anim q done!')
 }
 function qanim_flip(card, ms = 400) {
+	//console.log(card)
 	mAnimate(iDiv(card), 'transform', [`scale(1,1)`, `scale(0,1)`],
 		() => {
 			if (card.faceUp) face_down(card); else face_up(card);
@@ -3436,9 +3255,10 @@ function rumor_update_playerdata(data, receiver, rumor) {
 }
 function select_add_items(items, callback = null, instruction = null, min = 0, max = 100, prevent_autoselect = false) { //, show_submit_button=true) {
 	let A = Z.A;
+	//console.log('Z', Z)
 	select_clear_previous_level();
 	A.level++; A.items = items; A.callback = callback; A.selected = []; A.minselected = min; A.maxselected = max;
-	show_progress();
+	show_progress(Z.fen);
 	let dInstruction = mBy('dSelections0');
 	mClass(dInstruction, 'instruction');
 	mCenterCenterFlex(dInstruction);
@@ -4197,6 +4017,37 @@ function turn_new_schwein_up(schwein, fenbuilding, uibuilding) {
 		ari_next_action();
 	}
 }
+function ui_add_cards_to_deck_container(cont, items, list) {
+	if (nundef(list)) list = items.map(x => x.key);
+	for (const item of items) {
+		mAppend(cont, iDiv(item));
+		mItemSplay(item, list, 4, Card.ovdeck);
+		face_down(item);
+	}
+	return items[0];
+}
+function ui_add_cards_to_hand_container(cont, items, list) {
+	if (nundef(list)) list = items.map(x => x.key);
+	for (const item of items) {
+		mAppend(cont, iDiv(item));
+		mItemSplay(item, list, 2, Card.ovw);
+	}
+}
+function ui_add_container_title(title, cont, items, show_if_empty) {
+	if (isdef(title) && (!isEmpty(items) || show_if_empty)) {
+		mDom(cont, { w100: true, align: 'center', maleft: -2, matop: 2 }, { html: title });
+	}
+}
+function ui_get_all_commission_items(uplayer, table, ui) {
+	let items = [], i = 0;
+	let comm = ui.players[uplayer].commissions;
+	for (const o of comm.items) {
+		let item = { itemtype: 'card', o: o, a: o.key, key: o.key, friendly: o.short, path: comm.path, index: i };
+		i++;
+		items.push(item);
+	}
+	return items;
+}
 function ui_get_blackmailed_items() {
 	let [fen, uplayer] = [Z.fen, Z.uplayer];
 	let commands = ['accept', 'reject'];
@@ -4319,6 +4170,16 @@ function ui_get_deck_item(uideck) {
 	return item;
 }
 function ui_get_endgame(uplayer) { return ui_get_string_items(['end game', 'go on']); }
+function ui_get_exchange_items(uplayer) {
+	let ihand = ui_get_hand_items(uplayer);
+	let istall = ui_get_stall_items(uplayer);
+	let irepair = ui_get_all_hidden_building_items(uplayer);
+	irepair.map(x => face_up(x.o));
+	let items = ihand.concat(istall).concat(irepair);
+	reindex_items(items);
+	return items;
+}
+function ui_get_farms_estates_items(uplayer) { return ui_get_building_items_of_type(uplayer, ['farm', 'estate']); }
 function ui_get_ferro_items() {
 	let [plorder, stage, A, fen, uplayer, pl] = [Z.plorder, Z.stage, Z.A, Z.fen, Z.uplayer, Z.fen.players[Z.uplayer]];
 	let items = ui_get_hand_items(uplayer);	//hand items
@@ -4343,6 +4204,94 @@ function ui_get_ferro_items() {
 	let cmds = ui_get_submit_items(['discard', 'auflegen', 'jolly', 'anlegen']);
 	items = items.concat(cmds);
 	reindex_items(items);
+	return items;
+}
+function ui_get_hand_and_journey_items(uplayer) {
+	let items = ui_get_hand_items(uplayer);
+	let matching = [];
+	for (const plName of Z.plorder) {
+		let jitems = ui_get_journey_items(plName);
+		for (const j of jitems) {
+			for (const card of items) {
+				if (matches_on_either_end(card, j)) { matching.push(j); break; }
+			}
+		}
+	}
+	items = items.concat(matching);
+	reindex_items(items);
+	return items;
+}
+function ui_get_hand_and_stall_items(uplayer) {
+	let items = ui_get_hand_items(uplayer);
+	items = items.concat(ui_get_stall_items(uplayer));
+	reindex_items(items);
+	return items;
+}
+function ui_get_hand_items(uplayer) {
+	let items = [], i = 0;
+	let hand = UI.players[uplayer].hand;
+	for (const o of hand.items) {
+		o.index = i;
+		let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: hand.path, index: i };
+		i++;
+		items.push(item);
+	}
+	return items;
+}
+function ui_get_harvest_items(uplayer) {
+	let items = []; let i = 0;
+	for (const gb of UI.players[uplayer].buildinglist) {
+		if (isdef(gb.harvest)) {
+			let d = gb.harvest;
+			mStyle(d, { cursor: 'pointer', opacity: 1 });
+			gb.div = d;
+			let name = 'H' + i + ':' + (gb.list[0][0] == 'T' ? '10' : gb.list[0][0]);
+			let item = { o: gb, a: name, key: name, friendly: name, path: gb.path, index: i };
+			i++;
+			items.push(item);
+		}
+	}
+	return items;
+}
+function ui_get_hidden_building_items(uibuilding) {
+	let items = [];
+	for (let i = 1; i < uibuilding.items.length; i++) {
+		let o = uibuilding.items[i];
+		o.index = i;
+		let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: uibuilding.path, index: i - 1 };
+		items.push(item);
+	}
+	return items;
+}
+function ui_get_journey_items(plName) {
+	let gblist = UI.players[plName].journeys;
+	let items = [], i = 0;
+	for (const o of gblist) {
+		let name = `${plName}_j${i}`;
+		o.div = o.container;
+		let item = { o: o, a: name, key: o.list[0], friendly: name, path: o.path, index: i, ui: o.container };
+		i++;
+		items.push(item);
+	}
+	return items;
+}
+function ui_get_market_items() {
+	let items = [], i = 0;
+	for (const o of UI.market.items) {
+		o.index = i;
+		let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: `market`, index: i };
+		i++;
+		items.push(item);
+	}
+	return items;
+}
+function ui_get_open_discard_items() {
+	let items = [], i = 0;
+	for (const o of UI.open_discard.items) {
+		let item = { o: o, a: o.key, key: o.key, friendly: o.short, path: `open_discard`, index: i };
+		i++;
+		items.push(item);
+	}
 	return items;
 }
 function ui_get_other_buildings(uplayer) {
@@ -4468,6 +4417,58 @@ function ui_get_trade_items(uplayer) {
 	reindex_items(items);
 	return items;
 }
+function ui_make_container(dParent, styles = { bg: 'random', padding: 10 }) {
+	let id = getUID('u');
+	let d = mDiv(dParent, styles, id);
+	return d;
+}
+function ui_make_deck_container(list, dParent, styles = { bg: 'random', padding: 10 }, get_card_func) {
+	let id = getUID('u'); // 'deck_cont'; //getUID('u');
+	let d = mDiv(dParent, styles, id);
+	if (isEmpty(list)) return d;
+	let c = get_card_func(list[0]);
+	mContainerSplay(d, 4, c.w, c.h, n, 0);
+	return d;
+}
+function ui_make_hand_container(items, dParent, styles = { bg: 'random', padding: 10 }) {
+	let id = getUID('u');
+	let d = mDiv(dParent, styles, id);
+	if (!isEmpty(items)) {
+		let card = items[0];
+		mContainerSplay(d, 2, card.w, card.h, items.length, card.ov * card.w);
+	}
+	return d;
+}
+function ui_player_info(dParent, outerStyles = { dir: 'column' }, innerStyles = {}) {
+	let fen = Z.fen;
+	if (nundef(outerStyles.display)) outerStyles.display = 'flex';
+	mStyle(dParent, outerStyles);
+	let items = {};
+	let styles = jsCopy(innerStyles); addKeys({ rounding: 10, bg: '#00000050', margin: 4, padding: 4, patop: 12, box: true, 'border-style': 'solid', 'border-width': 6 }, styles);
+	let order = get_present_order();
+	for (const plName of order) {
+		let pl = fen.players[plName];
+		console.log('pl', pl);
+		let uname = pl.name;
+		let imgPath = `../assets/img/users/${M.users[uname].imgKey}.jpg`;
+		styles['border-color'] = get_user_color(uname);
+		let id = name2id(uname);
+		let item = mItem(id, { div: mDom(dParent, styles) }); // mDivItem(dParent, styles, name2id(uname));
+		let d = iDiv(item);
+		let picstyle = { w: 50, h: 50, box: true };
+		let ucolor = get_user_color(uname);
+		if (pl.playmode == 'bot') {
+			copyKeys({ rounding: 0, border: `double 6px ${ucolor}` }, picstyle);
+		} else {
+			copyKeys({ rounding: '50%', border: `solid 2px white` }, picstyle);
+		}
+		let img = mImg(imgPath, d, picstyle, { className: 'img_person' });
+		img.onclick = () => onclick_user(uname);
+		items[uname] = item;
+	}
+	//if (DA.SIMSIM || is_advanced_user()) activate_playerstats(items)
+	return items;
+}
 function ui_type_building(b, dParent, styles = {}, path = 'farm', title = '', get_card_func = ari_get_card, separate_lead = false, ishidden = false) {
 	let cont = ui_make_container(dParent, get_container_styles(styles));
 	let cardcont = mDiv(cont);
@@ -4571,12 +4572,14 @@ function ui_type_deck(list, dParent, styles = {}, path = 'deck', title = 'deck',
 		renew: ensure_ui,
 	};
 }
-function ui_type_hand(list, dParent, styles = {}, path = 'hand', title = 'hand', get_card_func = ari_get_card, show_if_empty = false) {
-	let cont = ui_make_container(dParent, get_container_styles(styles));
-	let items = list.map(x => get_card_func(x));
+function ui_type_lead_hand(list, dParent, styles = {}, path = 'hand', title = 'hand', get_card_func = ari_get_card, show_if_empty = false) {
+	let hcard = isdef(styles.h) ? styles.h - 30 : Config.ui.card.h;
+	addKeys(get_container_styles(styles), styles);
+	let cont = ui_make_container(dParent, styles);
+	let items = list.map(x => get_card_func(x, hcard));
 	let cardcont = mDiv(cont);
-	let card = isEmpty(items) ? { w: 1, h: Config.ui.card.h, ov: 0 } : items[0];
-	let splay = 2;
+	let card = isEmpty(items) ? { w: 1, h: hcard, ov: 0 } : items[0];
+	let splay = 5;
 	mContainerSplay(cardcont, splay, card.w, card.h, items.length, card.ov * card.w);
 	ui_add_cards_to_hand_container(cardcont, items, list);
 	ui_add_container_title(title, cont, items, show_if_empty);
@@ -4589,6 +4592,43 @@ function ui_type_hand(list, dParent, styles = {}, path = 'hand', title = 'hand',
 		splay: splay,
 		items: items,
 	};
+}
+function ui_type_market(list, dParent, styles = {}, path = 'market', title = 'market', get_card_func = ari_get_card, show_if_empty = false) {
+	let cont = ui_make_container(dParent, get_container_styles(styles));
+	let cardcont = mDiv(cont, { display: 'flex', gap: 2 });
+	let items = list.map(x => get_card_func(x));
+	items.map(x => mAppend(cardcont, iDiv(x)));
+	ui_add_container_title(title, cont, items, show_if_empty);
+	return {
+		ctype: 'market',
+		list: list,
+		path: path,
+		container: cont,
+		cardcontainer: cardcont,
+		items: items,
+	};
+}
+function ui_type_rank_count(list, dParent, styles, path, title, get_card_func, show_if_empty = false) {
+	let cont = ui_make_container(dParent, get_container_styles(styles));
+	let cardcont = mDiv(cont, { display: 'flex' });
+	let items = [];
+	for (const o of list) {
+		let d = mDiv(cardcont, { display: 'flex', dir: 'c', padding: 1, fz: 12, align: 'center', position: 'relative' });
+		let c = get_card_func(o.key);
+		mAppend(d, iDiv(c));
+		remove_card_shadow(c);
+		d.innerHTML += `<span style="font-weight:bold">${o.count}</span>`;
+		let item = { card: c, count: o.count, div: d };
+		items.push(item);
+	}
+	ui_add_container_title(title, cont, items, show_if_empty);
+	return {
+		list: list,
+		path: path,
+		container: cont,
+		cardcontainer: cardcont,
+		items: items,
+	}
 }
 function unpack_table(table) {
 	for (const k of ['players', 'fen', 'options', 'scoring']) {
