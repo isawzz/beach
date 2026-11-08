@@ -4,7 +4,7 @@
     "target": "es6"
   },
   "include": [
-    "daba",
+    "daba"
   ],
   "exclude": [
     "*/**/closure.js",

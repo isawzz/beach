@@ -16,11 +16,15 @@ function clrMaxContrast(hex, list, fDist) {
   );
 }
 
-function clrRand() {
-  return "#" + Math.floor(Math.random() * 0x1000000)
-    .toString(16)
-    .padStart(6, "0");
+function clrRand() { return "#" + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, "0"); }
+function clrRandom(h = [0, 360], s = 100, l = 50) {
+  const hue = isList(h) ? rChoose(range(...h)) : h;
+  const sat = isList(s) ? rChoose(range(...s)) : s;
+  const li = isList(l) ? rChoose(range(...l)) : l;
+  //console.log(hue, sat, li);
+  return clrHslToHex(hue, sat, li);
 }
+function rColor() { return rChoose(Object.keys(ColorByHex)); }
 
 
 function justDark(hex, space = "oklch") {
@@ -68,14 +72,6 @@ function justDark(hex, space = "oklch") {
 
   return clrMixMany(hex, "#000000", [high], space)[0];
 }
-function rColor(h = [0, 360], s = 100, l = 50) {
-  const hue = isList(h) ? rChoose(range(...h)) : h;
-  const sat = isList(s) ? rChoose(range(...s)) : s;
-  const li = isList(l) ? rChoose(range(...l)) : l;
-  console.log(hue, sat, li);
-  return clrHslToHex(hue, sat, li);
-}
-function clrRandom() { return rChoose(Object.keys(ColorByHex)); }
 
 function sortColors(hexlist, fDistance) {
   if (hexlist.length < 2) return [...hexlist];
@@ -268,6 +264,20 @@ function clrDarker(c, percent = 10) {
   b = Math.max(0, Math.floor(b * factor));
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
+function clrDarkest(colors) {
+  if (!colors.length) return null;
+
+  const luminance = hex => {
+    const value = hex.replace('#', '');
+    const rgb = [0, 2, 4].map(i => parseInt(value.slice(i, i + 2), 16) / 255);
+    const linear = rgb.map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+
+  return colors.reduce((darkest, color) =>
+    luminance(color) < luminance(darkest) ? color : darkest
+  );
+}
 function clrLighter(c, percent = 10) {
   /* Returns a new lighter HEX string adjusted by the given percentage */
   let hex = clrHex(c);
@@ -296,6 +306,7 @@ function clrDetect(hex, dict) {
   //console.log(CLR_LAB.keys[bi],bi,ColorByHex[CLR_LAB.keys[bi]]);
   return CLR_LAB.keys[bi];   // the hex, not the name
 }
+function clrX(c) { return ColorByName[c] ?? c; }
 function clrHex(c) {
   if (!c) return '#000000';
   let str = c.trim().toLowerCase();
@@ -303,7 +314,8 @@ function clrHex(c) {
     return str.length == 7 ? str : str.length == 9 ? str.slice(0, 7) : ('#' + str[1] + str[1] + str[2] + str[2] + str[3] + str[3]);
   }
   else if (ColorByName[str]) return ColorByName[str];
-  console.assert(false, 'no color for', str);
+  else return c;
+  //console.assert(false, 'no color for', str);
 }
 function clrHue(hex) { return clrRgbToHsl(...clrHexToRgb(hex))[0]; }
 

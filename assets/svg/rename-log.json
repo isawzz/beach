@@ -1,0 +1,8082 @@
+[
+ {
+  "from": "emoji_u002a_20e3.svg",
+  "to": "keycap_.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0030_20e3.svg",
+  "to": "keycap_0.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0031_20e3.svg",
+  "to": "keycap_1.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0032_20e3.svg",
+  "to": "keycap_2.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0033_20e3.svg",
+  "to": "keycap_3.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0034_20e3.svg",
+  "to": "keycap_4.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0035_20e3.svg",
+  "to": "keycap_5.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0036_20e3.svg",
+  "to": "keycap_6.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0037_20e3.svg",
+  "to": "keycap_7.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0038_20e3.svg",
+  "to": "keycap_8.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u0039_20e3.svg",
+  "to": "keycap_9.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u00a9.svg",
+  "to": "copyright.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u00ae.svg",
+  "to": "registered.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f004.svg",
+  "to": "mahjong_red_dragon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f0cf.svg",
+  "to": "joker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f170.svg",
+  "to": "a_button_blood_type_.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f171.svg",
+  "to": "b_button_blood_type_.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f17e.svg",
+  "to": "o_button_blood_type_.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f17f.svg",
+  "to": "p_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f18e.svg",
+  "to": "ab_button_blood_type_.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f191.svg",
+  "to": "cl_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f192.svg",
+  "to": "cool_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f193.svg",
+  "to": "free_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f194.svg",
+  "to": "id_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f195.svg",
+  "to": "new_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f196.svg",
+  "to": "ng_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f197.svg",
+  "to": "ok_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f198.svg",
+  "to": "sos_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f199.svg",
+  "to": "up_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f19a.svg",
+  "to": "vs_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f201.svg",
+  "to": "japanese_here_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f202.svg",
+  "to": "japanese_service_charge_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f21a.svg",
+  "to": "japanese_free_of_charge_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f22f.svg",
+  "to": "japanese_reserved_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f232.svg",
+  "to": "japanese_prohibited_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f233.svg",
+  "to": "japanese_vacancy_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f234.svg",
+  "to": "japanese_passing_grade_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f235.svg",
+  "to": "japanese_no_vacancy_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f236.svg",
+  "to": "japanese_not_free_of_charge_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f237.svg",
+  "to": "japanese_monthly_amount_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f238.svg",
+  "to": "japanese_application_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f239.svg",
+  "to": "japanese_discount_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f23a.svg",
+  "to": "japanese_open_for_business_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f250.svg",
+  "to": "japanese_bargain_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f251.svg",
+  "to": "japanese_acceptable_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f300.svg",
+  "to": "cyclone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f301.svg",
+  "to": "foggy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f302.svg",
+  "to": "closed_umbrella.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f303.svg",
+  "to": "night_with_stars.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f304.svg",
+  "to": "sunrise_over_mountains.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f305.svg",
+  "to": "sunrise.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f306.svg",
+  "to": "cityscape_at_dusk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f307.svg",
+  "to": "sunset.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f308.svg",
+  "to": "rainbow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f309.svg",
+  "to": "bridge_at_night.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30a.svg",
+  "to": "water_wave.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30b.svg",
+  "to": "volcano.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30c.svg",
+  "to": "milky_way.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30d.svg",
+  "to": "globe_showing_europe_africa.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30e.svg",
+  "to": "globe_showing_americas.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f30f.svg",
+  "to": "globe_showing_asia_australia.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f310.svg",
+  "to": "globe_with_meridians.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f311.svg",
+  "to": "new_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f312.svg",
+  "to": "waxing_crescent_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f313.svg",
+  "to": "first_quarter_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f314.svg",
+  "to": "waxing_gibbous_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f315.svg",
+  "to": "full_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f316.svg",
+  "to": "waning_gibbous_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f317.svg",
+  "to": "last_quarter_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f318.svg",
+  "to": "waning_crescent_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f319.svg",
+  "to": "crescent_moon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31a.svg",
+  "to": "new_moon_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31b.svg",
+  "to": "first_quarter_moon_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31c.svg",
+  "to": "last_quarter_moon_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31d.svg",
+  "to": "full_moon_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31e.svg",
+  "to": "sun_with_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f31f.svg",
+  "to": "glowing_star.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f320.svg",
+  "to": "shooting_star.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f321.svg",
+  "to": "thermometer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f324.svg",
+  "to": "sun_behind_small_cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f325.svg",
+  "to": "sun_behind_large_cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f326.svg",
+  "to": "sun_behind_rain_cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f327.svg",
+  "to": "cloud_with_rain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f328.svg",
+  "to": "cloud_with_snow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f329.svg",
+  "to": "cloud_with_lightning.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32a.svg",
+  "to": "tornado.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32b.svg",
+  "to": "fog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32c.svg",
+  "to": "wind_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32d.svg",
+  "to": "hot_dog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32e.svg",
+  "to": "taco.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f32f.svg",
+  "to": "burrito.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f330.svg",
+  "to": "chestnut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f331.svg",
+  "to": "seedling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f332.svg",
+  "to": "evergreen_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f333.svg",
+  "to": "deciduous_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f334.svg",
+  "to": "palm_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f335.svg",
+  "to": "cactus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f336.svg",
+  "to": "hot_pepper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f337.svg",
+  "to": "tulip.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f338.svg",
+  "to": "cherry_blossom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f339.svg",
+  "to": "rose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33a.svg",
+  "to": "hibiscus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33b.svg",
+  "to": "sunflower.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33c.svg",
+  "to": "blossom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33d.svg",
+  "to": "ear_of_corn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33e.svg",
+  "to": "sheaf_of_rice.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f33f.svg",
+  "to": "herb.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f340.svg",
+  "to": "four_leaf_clover.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f341.svg",
+  "to": "maple_leaf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f342.svg",
+  "to": "fallen_leaf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f343.svg",
+  "to": "leaf_fluttering_in_wind.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f344.svg",
+  "to": "mushroom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f344_200d_1f7eb.svg",
+  "to": "brown_mushroom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f345.svg",
+  "to": "tomato.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f346.svg",
+  "to": "eggplant.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f347.svg",
+  "to": "grapes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f348.svg",
+  "to": "melon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f349.svg",
+  "to": "watermelon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34a.svg",
+  "to": "tangerine.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34b.svg",
+  "to": "lemon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34b_200d_1f7e9.svg",
+  "to": "lime.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34c.svg",
+  "to": "banana.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34d.svg",
+  "to": "pineapple.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34e.svg",
+  "to": "red_apple.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f34f.svg",
+  "to": "green_apple.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f350.svg",
+  "to": "pear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f351.svg",
+  "to": "peach.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f352.svg",
+  "to": "cherries.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f353.svg",
+  "to": "strawberry.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f354.svg",
+  "to": "hamburger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f355.svg",
+  "to": "pizza.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f356.svg",
+  "to": "meat_on_bone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f357.svg",
+  "to": "poultry_leg.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f358.svg",
+  "to": "rice_cracker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f359.svg",
+  "to": "rice_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35a.svg",
+  "to": "cooked_rice.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35b.svg",
+  "to": "curry_rice.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35c.svg",
+  "to": "steaming_bowl.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35d.svg",
+  "to": "spaghetti.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35e.svg",
+  "to": "bread.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f35f.svg",
+  "to": "french_fries.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f360.svg",
+  "to": "roasted_sweet_potato.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f361.svg",
+  "to": "dango.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f362.svg",
+  "to": "oden.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f363.svg",
+  "to": "sushi.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f364.svg",
+  "to": "fried_shrimp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f365.svg",
+  "to": "fish_cake_with_swirl.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f366.svg",
+  "to": "soft_ice_cream.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f367.svg",
+  "to": "shaved_ice.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f368.svg",
+  "to": "ice_cream.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f369.svg",
+  "to": "doughnut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36a.svg",
+  "to": "cookie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36b.svg",
+  "to": "chocolate_bar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36c.svg",
+  "to": "candy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36d.svg",
+  "to": "lollipop.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36e.svg",
+  "to": "custard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f36f.svg",
+  "to": "honey_pot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f370.svg",
+  "to": "shortcake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f371.svg",
+  "to": "bento_box.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f372.svg",
+  "to": "pot_of_food.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f373.svg",
+  "to": "cooking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f374.svg",
+  "to": "fork_and_knife.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f375.svg",
+  "to": "teacup_without_handle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f376.svg",
+  "to": "sake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f377.svg",
+  "to": "wine_glass.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f378.svg",
+  "to": "cocktail_glass.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f379.svg",
+  "to": "tropical_drink.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37a.svg",
+  "to": "beer_mug.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37b.svg",
+  "to": "clinking_beer_mugs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37c.svg",
+  "to": "baby_bottle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37d.svg",
+  "to": "fork_and_knife_with_plate.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37e.svg",
+  "to": "bottle_with_popping_cork.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f37f.svg",
+  "to": "popcorn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f380.svg",
+  "to": "ribbon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f381.svg",
+  "to": "wrapped_gift.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f382.svg",
+  "to": "birthday_cake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f383.svg",
+  "to": "jack_o_lantern.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f384.svg",
+  "to": "christmas_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f385.svg",
+  "to": "santa_claus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f386.svg",
+  "to": "fireworks.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f387.svg",
+  "to": "sparkler.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f388.svg",
+  "to": "balloon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f389.svg",
+  "to": "party_popper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38a.svg",
+  "to": "confetti_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38b.svg",
+  "to": "tanabata_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38c.svg",
+  "to": "crossed_flags.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38d.svg",
+  "to": "pine_decoration.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38e.svg",
+  "to": "japanese_dolls.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f38f.svg",
+  "to": "carp_streamer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f390.svg",
+  "to": "wind_chime.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f391.svg",
+  "to": "moon_viewing_ceremony.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f392.svg",
+  "to": "backpack.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f393.svg",
+  "to": "graduation_cap.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f396.svg",
+  "to": "medal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f397.svg",
+  "to": "reminder_ribbon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f399.svg",
+  "to": "studio_microphone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f39a.svg",
+  "to": "level_slider.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f39b.svg",
+  "to": "control_knobs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f39e.svg",
+  "to": "film_frames.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f39f.svg",
+  "to": "admission_tickets.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a0.svg",
+  "to": "carousel_horse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a1.svg",
+  "to": "ferris_wheel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a2.svg",
+  "to": "roller_coaster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a3.svg",
+  "to": "fishing_pole.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a4.svg",
+  "to": "microphone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a5.svg",
+  "to": "movie_camera.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a6.svg",
+  "to": "cinema.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a7.svg",
+  "to": "headphone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a8.svg",
+  "to": "artist_palette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3a9.svg",
+  "to": "top_hat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3aa.svg",
+  "to": "circus_tent.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ab.svg",
+  "to": "ticket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ac.svg",
+  "to": "clapper_board.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ad.svg",
+  "to": "performing_arts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ae.svg",
+  "to": "video_game.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3af.svg",
+  "to": "bullseye.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b0.svg",
+  "to": "slot_machine.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b1.svg",
+  "to": "pool_8_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b2.svg",
+  "to": "game_die.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b3.svg",
+  "to": "bowling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b4.svg",
+  "to": "flower_playing_cards.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b5.svg",
+  "to": "musical_note.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b6.svg",
+  "to": "musical_notes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b7.svg",
+  "to": "saxophone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b8.svg",
+  "to": "guitar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3b9.svg",
+  "to": "musical_keyboard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ba.svg",
+  "to": "trumpet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3bb.svg",
+  "to": "violin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3bc.svg",
+  "to": "musical_score.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3bd.svg",
+  "to": "running_shirt.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3be.svg",
+  "to": "tennis.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3bf.svg",
+  "to": "skis.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c0.svg",
+  "to": "basketball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c1.svg",
+  "to": "chequered_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c2.svg",
+  "to": "snowboarder.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3.svg",
+  "to": "person_running.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3_200d_2640.svg",
+  "to": "woman_running.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3_200d_2640_200d_27a1.svg",
+  "to": "woman_running_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3_200d_2642.svg",
+  "to": "man_running.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3_200d_2642_200d_27a1.svg",
+  "to": "man_running_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c3_200d_27a1.svg",
+  "to": "person_running_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c4.svg",
+  "to": "person_surfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c4_200d_2640.svg",
+  "to": "woman_surfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c4_200d_2642.svg",
+  "to": "man_surfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c5.svg",
+  "to": "award.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c6.svg",
+  "to": "trophy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c7.svg",
+  "to": "horse_racing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c8.svg",
+  "to": "american_football.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3c9.svg",
+  "to": "rugby_football.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ca.svg",
+  "to": "person_swimming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ca_200d_2640.svg",
+  "to": "woman_swimming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ca_200d_2642.svg",
+  "to": "man_swimming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cb.svg",
+  "to": "person_lifting_weights.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cb_200d_2640.svg",
+  "to": "woman_lifting_weights.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cb_200d_2642.svg",
+  "to": "man_lifting_weights.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cc.svg",
+  "to": "person_golfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cc_200d_2640.svg",
+  "to": "woman_golfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cc_200d_2642.svg",
+  "to": "man_golfing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cd.svg",
+  "to": "motorcycle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ce.svg",
+  "to": "racing_car.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3cf.svg",
+  "to": "cricket_game.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d0.svg",
+  "to": "volleyball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d1.svg",
+  "to": "field_hockey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d2.svg",
+  "to": "ice_hockey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d3.svg",
+  "to": "ping_pong.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d4.svg",
+  "to": "snow_capped_mountain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d5.svg",
+  "to": "camping.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d6.svg",
+  "to": "beach_with_umbrella.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d7.svg",
+  "to": "building_construction.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d8.svg",
+  "to": "houses.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3d9.svg",
+  "to": "cityscape.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3da.svg",
+  "to": "derelict_house.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3db.svg",
+  "to": "classical_building.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3dc.svg",
+  "to": "desert.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3dd.svg",
+  "to": "desert_island.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3de.svg",
+  "to": "national_park.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3df.svg",
+  "to": "stadium.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e0.svg",
+  "to": "house.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e1.svg",
+  "to": "house_with_garden.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e2.svg",
+  "to": "office_building.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e3.svg",
+  "to": "japanese_post_office.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e4.svg",
+  "to": "post_office.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e5.svg",
+  "to": "hospital.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e6.svg",
+  "to": "bank.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e7.svg",
+  "to": "atm_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e8.svg",
+  "to": "hotel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3e9.svg",
+  "to": "love_hotel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ea.svg",
+  "to": "convenience_store.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3eb.svg",
+  "to": "school.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ec.svg",
+  "to": "department_store.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ed.svg",
+  "to": "factory.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ee.svg",
+  "to": "red_paper_lantern.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3ef.svg",
+  "to": "japanese_castle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f0.svg",
+  "to": "castle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f3.svg",
+  "to": "white_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f3_200d_1f308.svg",
+  "to": "rainbow_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f3_200d_26a7.svg",
+  "to": "transgender_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f4.svg",
+  "to": "black_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f4_200d_2620.svg",
+  "to": "pirate_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f5.svg",
+  "to": "rosette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f7.svg",
+  "to": "label.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f8.svg",
+  "to": "badminton.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3f9.svg",
+  "to": "bow_and_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f3fa.svg",
+  "to": "amphora.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f400.svg",
+  "to": "rat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f401.svg",
+  "to": "mouse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f402.svg",
+  "to": "buffalo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f403.svg",
+  "to": "water_buffalo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f404.svg",
+  "to": "cow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f405.svg",
+  "to": "tiger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f406.svg",
+  "to": "leopard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f407.svg",
+  "to": "rabbit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f408.svg",
+  "to": "cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f408_200d_2b1b.svg",
+  "to": "black_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f409.svg",
+  "to": "dragon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40a.svg",
+  "to": "crocodile.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40b.svg",
+  "to": "whale.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40c.svg",
+  "to": "snail.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40d.svg",
+  "to": "snake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40e.svg",
+  "to": "horse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f40f.svg",
+  "to": "ram.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f410.svg",
+  "to": "goat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f411.svg",
+  "to": "ewe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f412.svg",
+  "to": "monkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f413.svg",
+  "to": "rooster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f414.svg",
+  "to": "chicken.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f415.svg",
+  "to": "dog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f415_200d_1f9ba.svg",
+  "to": "service_dog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f416.svg",
+  "to": "pig.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f417.svg",
+  "to": "boar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f418.svg",
+  "to": "elephant.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f419.svg",
+  "to": "octopus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41a.svg",
+  "to": "spiral_shell.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41b.svg",
+  "to": "bug.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41c.svg",
+  "to": "ant.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41d.svg",
+  "to": "bee.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41e.svg",
+  "to": "ladybug.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f41f.svg",
+  "to": "fish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f420.svg",
+  "to": "tropical_fish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f421.svg",
+  "to": "blowfish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f422.svg",
+  "to": "turtle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f423.svg",
+  "to": "hatching_chick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f424.svg",
+  "to": "baby_chick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f425.svg",
+  "to": "front_facing_baby_chick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f426.svg",
+  "to": "bird.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f426_200d_1f525.svg",
+  "to": "phoenix.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f426_200d_2b1b.svg",
+  "to": "black_bird.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f427.svg",
+  "to": "penguin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f428.svg",
+  "to": "koala.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f429.svg",
+  "to": "poodle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42a.svg",
+  "to": "camel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42b.svg",
+  "to": "two_hump_camel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42c.svg",
+  "to": "dolphin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42d.svg",
+  "to": "mouse_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42e.svg",
+  "to": "cow_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f42f.svg",
+  "to": "tiger_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f430.svg",
+  "to": "rabbit_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f431.svg",
+  "to": "cat_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f432.svg",
+  "to": "dragon_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f433.svg",
+  "to": "spouting_whale.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f434.svg",
+  "to": "horse_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f435.svg",
+  "to": "monkey_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f436.svg",
+  "to": "dog_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f437.svg",
+  "to": "pig_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f438.svg",
+  "to": "frog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f439.svg",
+  "to": "hamster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43a.svg",
+  "to": "wolf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43b.svg",
+  "to": "bear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43b_200d_2744.svg",
+  "to": "polar_bear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43c.svg",
+  "to": "panda.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43d.svg",
+  "to": "pig_nose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43e.svg",
+  "to": "paws.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f43f.svg",
+  "to": "chipmunk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f440.svg",
+  "to": "eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f441.svg",
+  "to": "eye.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f441_200d_1f5e8.svg",
+  "to": "eye_in_speech_bubble.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f442.svg",
+  "to": "ear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f443.svg",
+  "to": "nose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f444.svg",
+  "to": "mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f445.svg",
+  "to": "tongue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f446.svg",
+  "to": "backhand_index_pointing_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f447.svg",
+  "to": "backhand_index_pointing_down.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f448.svg",
+  "to": "backhand_index_pointing_left.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f449.svg",
+  "to": "backhand_index_pointing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44a.svg",
+  "to": "oncoming_fist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44b.svg",
+  "to": "waving_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44c.svg",
+  "to": "ok_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44d.svg",
+  "to": "thumbs_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44e.svg",
+  "to": "thumbs_down.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f44f.svg",
+  "to": "clapping_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f450.svg",
+  "to": "open_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f451.svg",
+  "to": "crown.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f452.svg",
+  "to": "woman_s_hat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f453.svg",
+  "to": "glasses.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f454.svg",
+  "to": "necktie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f455.svg",
+  "to": "t_shirt.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f456.svg",
+  "to": "jeans.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f457.svg",
+  "to": "dress.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f458.svg",
+  "to": "kimono.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f459.svg",
+  "to": "bikini.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45a.svg",
+  "to": "woman_s_clothes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45b.svg",
+  "to": "purse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45c.svg",
+  "to": "handbag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45d.svg",
+  "to": "clutch_bag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45e.svg",
+  "to": "man_s_shoe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f45f.svg",
+  "to": "running_shoe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f460.svg",
+  "to": "high_heeled_shoe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f461.svg",
+  "to": "woman_s_sandal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f462.svg",
+  "to": "woman_s_boot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f463.svg",
+  "to": "footprints.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f464.svg",
+  "to": "bust_in_silhouette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f465.svg",
+  "to": "busts_in_silhouette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f466.svg",
+  "to": "boy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f467.svg",
+  "to": "girl.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468.svg",
+  "to": "man.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f33e.svg",
+  "to": "man_farmer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f373.svg",
+  "to": "man_cook.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f37c.svg",
+  "to": "man_feeding_baby.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f393.svg",
+  "to": "man_student.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f3a4.svg",
+  "to": "man_singer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f3a8.svg",
+  "to": "man_artist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f3eb.svg",
+  "to": "man_teacher.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f3ed.svg",
+  "to": "man_factory_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f4bb.svg",
+  "to": "man_technologist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f4bc.svg",
+  "to": "man_office_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f527.svg",
+  "to": "man_mechanic.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f52c.svg",
+  "to": "man_scientist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f680.svg",
+  "to": "man_astronaut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f692.svg",
+  "to": "man_firefighter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9af.svg",
+  "to": "man_with_white_cane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9af_200d_27a1.svg",
+  "to": "man_with_white_cane_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9b0.svg",
+  "to": "man_red_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9b1.svg",
+  "to": "man_curly_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9b2.svg",
+  "to": "man_bald.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9b3.svg",
+  "to": "man_white_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9bc.svg",
+  "to": "man_in_motorized_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9bc_200d_27a1.svg",
+  "to": "man_in_motorized_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9bd.svg",
+  "to": "man_in_manual_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_1f9bd_200d_27a1.svg",
+  "to": "man_in_manual_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_2695.svg",
+  "to": "man_health_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_2696.svg",
+  "to": "man_judge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f468_200d_2708.svg",
+  "to": "man_pilot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469.svg",
+  "to": "woman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f33e.svg",
+  "to": "woman_farmer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f373.svg",
+  "to": "woman_cook.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f37c.svg",
+  "to": "woman_feeding_baby.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f393.svg",
+  "to": "woman_student.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f3a4.svg",
+  "to": "woman_singer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f3a8.svg",
+  "to": "woman_artist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f3eb.svg",
+  "to": "woman_teacher.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f3ed.svg",
+  "to": "woman_factory_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f4bb.svg",
+  "to": "woman_technologist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f4bc.svg",
+  "to": "woman_office_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f527.svg",
+  "to": "woman_mechanic.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f52c.svg",
+  "to": "woman_scientist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f680.svg",
+  "to": "woman_astronaut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f692.svg",
+  "to": "woman_firefighter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9af.svg",
+  "to": "woman_with_white_cane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9af_200d_27a1.svg",
+  "to": "woman_with_white_cane_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9b0.svg",
+  "to": "woman_red_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9b1.svg",
+  "to": "woman_curly_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9b2.svg",
+  "to": "woman_bald.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9b3.svg",
+  "to": "woman_white_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9bc.svg",
+  "to": "woman_in_motorized_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9bc_200d_27a1.svg",
+  "to": "woman_in_motorized_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9bd.svg",
+  "to": "woman_in_manual_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_1f9bd_200d_27a1.svg",
+  "to": "woman_in_manual_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_2695.svg",
+  "to": "woman_health_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_2696.svg",
+  "to": "woman_judge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f469_200d_2708.svg",
+  "to": "woman_pilot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46a.svg",
+  "to": "family.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46b.svg",
+  "to": "woman_and_man_holding_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46c.svg",
+  "to": "men_holding_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46d.svg",
+  "to": "women_holding_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46e.svg",
+  "to": "police_officer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46e_200d_2640.svg",
+  "to": "woman_police_officer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46e_200d_2642.svg",
+  "to": "man_police_officer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46f.svg",
+  "to": "people_with_bunny_ears.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46f_200d_2640.svg",
+  "to": "women_with_bunny_ears.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f46f_200d_2642.svg",
+  "to": "men_with_bunny_ears.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f470.svg",
+  "to": "person_with_veil.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f470_200d_2640.svg",
+  "to": "woman_with_veil.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f470_200d_2642.svg",
+  "to": "man_with_veil.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f471.svg",
+  "to": "person_blond_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f471_200d_2640.svg",
+  "to": "woman_blond_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f471_200d_2642.svg",
+  "to": "man_blond_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f472.svg",
+  "to": "person_with_skullcap.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f473.svg",
+  "to": "person_wearing_turban.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f473_200d_2640.svg",
+  "to": "woman_wearing_turban.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f473_200d_2642.svg",
+  "to": "man_wearing_turban.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f474.svg",
+  "to": "old_man.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f475.svg",
+  "to": "old_woman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f476.svg",
+  "to": "baby.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f477.svg",
+  "to": "construction_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f477_200d_2640.svg",
+  "to": "woman_construction_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f477_200d_2642.svg",
+  "to": "man_construction_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f478.svg",
+  "to": "princess.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f479.svg",
+  "to": "ogre.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47a.svg",
+  "to": "goblin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47b.svg",
+  "to": "ghost.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47c.svg",
+  "to": "baby_angel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47d.svg",
+  "to": "alien.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47e.svg",
+  "to": "alien_monster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f47f.svg",
+  "to": "angry_face_with_horns.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f480.svg",
+  "to": "skull.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f481.svg",
+  "to": "person_tipping_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f481_200d_2640.svg",
+  "to": "woman_tipping_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f481_200d_2642.svg",
+  "to": "man_tipping_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f482.svg",
+  "to": "guard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f482_200d_2640.svg",
+  "to": "woman_guard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f482_200d_2642.svg",
+  "to": "man_guard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f483.svg",
+  "to": "woman_dancing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f484.svg",
+  "to": "lipstick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f485.svg",
+  "to": "nail_polish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f486.svg",
+  "to": "person_getting_massage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f486_200d_2640.svg",
+  "to": "woman_getting_massage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f486_200d_2642.svg",
+  "to": "man_getting_massage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f487.svg",
+  "to": "person_getting_haircut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f487_200d_2640.svg",
+  "to": "woman_getting_haircut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f487_200d_2642.svg",
+  "to": "man_getting_haircut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f488.svg",
+  "to": "barber_pole.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f489.svg",
+  "to": "syringe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48a.svg",
+  "to": "pill.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48b.svg",
+  "to": "kiss_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48c.svg",
+  "to": "love_letter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48d.svg",
+  "to": "ring.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48e.svg",
+  "to": "gem_stone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f48f.svg",
+  "to": "kiss.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f490.svg",
+  "to": "bouquet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f491.svg",
+  "to": "couple_with_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f492.svg",
+  "to": "wedding.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f493.svg",
+  "to": "beating_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f494.svg",
+  "to": "broken_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f495.svg",
+  "to": "two_hearts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f496.svg",
+  "to": "sparkling_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f497.svg",
+  "to": "growing_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f498.svg",
+  "to": "heart_with_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f499.svg",
+  "to": "blue_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49a.svg",
+  "to": "green_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49b.svg",
+  "to": "yellow_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49c.svg",
+  "to": "purple_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49d.svg",
+  "to": "heart_with_ribbon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49e.svg",
+  "to": "revolving_hearts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f49f.svg",
+  "to": "heart_decoration.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a0.svg",
+  "to": "diamond_with_a_dot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a1.svg",
+  "to": "light_bulb.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a2.svg",
+  "to": "anger_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a3.svg",
+  "to": "bomb.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a4.svg",
+  "to": "zzz.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a5.svg",
+  "to": "collision.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a6.svg",
+  "to": "sweat_droplets.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a7.svg",
+  "to": "droplet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a8.svg",
+  "to": "dashing_away.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4a9.svg",
+  "to": "pile_of_poo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4aa.svg",
+  "to": "flexed_biceps.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ab.svg",
+  "to": "dizzy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ac.svg",
+  "to": "speech_balloon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ad.svg",
+  "to": "thought_balloon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ae.svg",
+  "to": "white_flower.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4af.svg",
+  "to": "hundred_points.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b0.svg",
+  "to": "money_bag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b1.svg",
+  "to": "currency_exchange.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b2.svg",
+  "to": "heavy_dollar_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b3.svg",
+  "to": "credit_card.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b4.svg",
+  "to": "yen_banknote.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b5.svg",
+  "to": "dollar_banknote.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b6.svg",
+  "to": "euro_banknote.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b7.svg",
+  "to": "pound_banknote.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b8.svg",
+  "to": "money_with_wings.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4b9.svg",
+  "to": "chart_increasing_with_yen.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ba.svg",
+  "to": "seat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4bb.svg",
+  "to": "laptop.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4bc.svg",
+  "to": "briefcase.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4bd.svg",
+  "to": "computer_disk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4be.svg",
+  "to": "floppy_disk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4bf.svg",
+  "to": "optical_disk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c0.svg",
+  "to": "dvd.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c1.svg",
+  "to": "file_folder.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c2.svg",
+  "to": "open_file_folder.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c3.svg",
+  "to": "page_with_curl.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c4.svg",
+  "to": "page_facing_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c5.svg",
+  "to": "calendar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c6.svg",
+  "to": "tear_off_calendar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c7.svg",
+  "to": "card_index.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c8.svg",
+  "to": "chart_increasing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4c9.svg",
+  "to": "chart_decreasing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ca.svg",
+  "to": "bar_chart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4cb.svg",
+  "to": "clipboard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4cc.svg",
+  "to": "pushpin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4cd.svg",
+  "to": "round_pushpin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ce.svg",
+  "to": "paperclip.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4cf.svg",
+  "to": "straight_ruler.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d0.svg",
+  "to": "triangular_ruler.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d1.svg",
+  "to": "bookmark_tabs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d2.svg",
+  "to": "ledger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d3.svg",
+  "to": "notebook.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d4.svg",
+  "to": "notebook_with_decorative_cover.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d5.svg",
+  "to": "closed_book.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d6.svg",
+  "to": "open_book.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d7.svg",
+  "to": "green_book.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d8.svg",
+  "to": "blue_book.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4d9.svg",
+  "to": "orange_book.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4da.svg",
+  "to": "books.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4db.svg",
+  "to": "name_badge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4dc.svg",
+  "to": "scroll.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4dd.svg",
+  "to": "memo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4de.svg",
+  "to": "telephone_receiver.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4df.svg",
+  "to": "pager.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e0.svg",
+  "to": "fax_machine.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e1.svg",
+  "to": "satellite_antenna.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e2.svg",
+  "to": "loudspeaker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e3.svg",
+  "to": "megaphone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e4.svg",
+  "to": "outbox_tray.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e5.svg",
+  "to": "inbox_tray.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e6.svg",
+  "to": "package.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e7.svg",
+  "to": "e_mail.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e8.svg",
+  "to": "incoming_envelope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4e9.svg",
+  "to": "envelope_with_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ea.svg",
+  "to": "closed_mailbox_with_lowered_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4eb.svg",
+  "to": "closed_mailbox_with_raised_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ec.svg",
+  "to": "open_mailbox_with_raised_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ed.svg",
+  "to": "open_mailbox_with_lowered_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ee.svg",
+  "to": "postbox.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ef.svg",
+  "to": "postal_horn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f0.svg",
+  "to": "newspaper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f1.svg",
+  "to": "mobile_phone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f2.svg",
+  "to": "mobile_phone_with_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f3.svg",
+  "to": "vibration_mode.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f4.svg",
+  "to": "mobile_phone_off.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f5.svg",
+  "to": "no_mobile_phones.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f6.svg",
+  "to": "antenna_bars.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f7.svg",
+  "to": "camera.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f8.svg",
+  "to": "camera_with_flash.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4f9.svg",
+  "to": "video_camera.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4fa.svg",
+  "to": "television.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4fb.svg",
+  "to": "radio.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4fc.svg",
+  "to": "videocassette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4fd.svg",
+  "to": "film_projector.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f4ff.svg",
+  "to": "prayer_beads.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f500.svg",
+  "to": "shuffle_tracks_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f501.svg",
+  "to": "repeat_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f502.svg",
+  "to": "repeat_single_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f503.svg",
+  "to": "clockwise_vertical_arrows.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f504.svg",
+  "to": "counterclockwise_arrows_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f505.svg",
+  "to": "dim_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f506.svg",
+  "to": "bright_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f507.svg",
+  "to": "muted_speaker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f508.svg",
+  "to": "speaker_low_volume.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f509.svg",
+  "to": "speaker_medium_volume.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50a.svg",
+  "to": "speaker_high_volume.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50b.svg",
+  "to": "battery.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50c.svg",
+  "to": "electric_plug.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50d.svg",
+  "to": "magnifying_glass_tilted_left.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50e.svg",
+  "to": "magnifying_glass_tilted_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f50f.svg",
+  "to": "locked_with_pen.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f510.svg",
+  "to": "locked_with_key.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f511.svg",
+  "to": "key.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f512.svg",
+  "to": "locked.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f513.svg",
+  "to": "unlocked.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f514.svg",
+  "to": "bell.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f515.svg",
+  "to": "bell_with_slash.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f516.svg",
+  "to": "bookmark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f517.svg",
+  "to": "link.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f518.svg",
+  "to": "radio_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f519.svg",
+  "to": "back_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51a.svg",
+  "to": "end_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51b.svg",
+  "to": "on_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51c.svg",
+  "to": "soon_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51d.svg",
+  "to": "top_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51e.svg",
+  "to": "no_one_under_eighteen.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f51f.svg",
+  "to": "keycap_10.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f520.svg",
+  "to": "input_latin_uppercase.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f521.svg",
+  "to": "input_latin_lowercase.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f522.svg",
+  "to": "input_numbers.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f523.svg",
+  "to": "input_symbols.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f524.svg",
+  "to": "input_latin_letters.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f525.svg",
+  "to": "fire.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f526.svg",
+  "to": "flashlight.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f527.svg",
+  "to": "wrench.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f528.svg",
+  "to": "hammer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f529.svg",
+  "to": "nut_and_bolt.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52a.svg",
+  "to": "kitchen_knife.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52b.svg",
+  "to": "pistol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52c.svg",
+  "to": "microscope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52d.svg",
+  "to": "telescope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52e.svg",
+  "to": "crystal_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f52f.svg",
+  "to": "dotted_six_pointed_star.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f530.svg",
+  "to": "japanese_symbol_for_beginner.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f531.svg",
+  "to": "trident_emblem.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f532.svg",
+  "to": "black_square_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f533.svg",
+  "to": "white_square_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f534.svg",
+  "to": "red_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f535.svg",
+  "to": "blue_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f536.svg",
+  "to": "large_orange_diamond.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f537.svg",
+  "to": "large_blue_diamond.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f538.svg",
+  "to": "small_orange_diamond.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f539.svg",
+  "to": "small_blue_diamond.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f53a.svg",
+  "to": "red_triangle_pointed_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f53b.svg",
+  "to": "red_triangle_pointed_down.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f53c.svg",
+  "to": "upwards_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f53d.svg",
+  "to": "downwards_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f549.svg",
+  "to": "om.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f54a.svg",
+  "to": "dove.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f54b.svg",
+  "to": "kaaba.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f54c.svg",
+  "to": "mosque.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f54d.svg",
+  "to": "synagogue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f54e.svg",
+  "to": "menorah.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f550.svg",
+  "to": "one_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f551.svg",
+  "to": "two_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f552.svg",
+  "to": "three_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f553.svg",
+  "to": "four_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f554.svg",
+  "to": "five_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f555.svg",
+  "to": "six_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f556.svg",
+  "to": "seven_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f557.svg",
+  "to": "eight_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f558.svg",
+  "to": "nine_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f559.svg",
+  "to": "ten_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55a.svg",
+  "to": "eleven_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55b.svg",
+  "to": "twelve_o_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55c.svg",
+  "to": "one_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55d.svg",
+  "to": "two_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55e.svg",
+  "to": "three_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f55f.svg",
+  "to": "four_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f560.svg",
+  "to": "five_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f561.svg",
+  "to": "six_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f562.svg",
+  "to": "seven_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f563.svg",
+  "to": "eight_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f564.svg",
+  "to": "nine_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f565.svg",
+  "to": "ten_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f566.svg",
+  "to": "eleven_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f567.svg",
+  "to": "twelve_thirty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f56f.svg",
+  "to": "candle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f570.svg",
+  "to": "mantelpiece_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f573.svg",
+  "to": "hole.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f574.svg",
+  "to": "person_in_suit_levitating.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f575.svg",
+  "to": "detective.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f575_200d_2640.svg",
+  "to": "woman_detective.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f575_200d_2642.svg",
+  "to": "man_detective.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f576.svg",
+  "to": "sunglasses.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f577.svg",
+  "to": "spider.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f578.svg",
+  "to": "spider_web.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f579.svg",
+  "to": "joystick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f57a.svg",
+  "to": "man_dancing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f587.svg",
+  "to": "linked_paperclips.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f58a.svg",
+  "to": "pen.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f58b.svg",
+  "to": "fountain_pen.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f58c.svg",
+  "to": "paintbrush.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f58d.svg",
+  "to": "crayon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f590.svg",
+  "to": "hand_with_fingers_splayed.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f595.svg",
+  "to": "middle_finger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f596.svg",
+  "to": "vulcan_salute.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5a4.svg",
+  "to": "black_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5a5.svg",
+  "to": "desktop_computer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5a8.svg",
+  "to": "printer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5b1.svg",
+  "to": "computer_mouse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5b2.svg",
+  "to": "trackball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5bc.svg",
+  "to": "framed_picture.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5c2.svg",
+  "to": "card_index_dividers.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5c3.svg",
+  "to": "card_file_box.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5c4.svg",
+  "to": "file_cabinet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5d1.svg",
+  "to": "wastebasket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5d2.svg",
+  "to": "spiral_notepad.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5d3.svg",
+  "to": "spiral_calendar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5dc.svg",
+  "to": "clamp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5dd.svg",
+  "to": "old_key.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5de.svg",
+  "to": "rolled_up_newspaper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5e1.svg",
+  "to": "dagger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5e3.svg",
+  "to": "speaking_head.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5e8.svg",
+  "to": "left_speech_bubble.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5ef.svg",
+  "to": "right_anger_bubble.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5f3.svg",
+  "to": "ballot_box_with_ballot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5fa.svg",
+  "to": "world_map.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5fb.svg",
+  "to": "mount_fuji.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5fc.svg",
+  "to": "tokyo_tower.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5fd.svg",
+  "to": "statue_of_liberty.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5fe.svg",
+  "to": "map_of_japan.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f5ff.svg",
+  "to": "moai.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f600.svg",
+  "to": "grinning_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f601.svg",
+  "to": "beaming_face_with_smiling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f602.svg",
+  "to": "face_with_tears_of_joy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f603.svg",
+  "to": "grinning_face_with_big_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f604.svg",
+  "to": "grinning_face_with_smiling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f605.svg",
+  "to": "grinning_face_with_sweat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f606.svg",
+  "to": "grinning_squinting_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f607.svg",
+  "to": "smiling_face_with_halo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f608.svg",
+  "to": "smiling_face_with_horns.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f609.svg",
+  "to": "winking_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60a.svg",
+  "to": "smiling_face_with_smiling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60b.svg",
+  "to": "face_savoring_food.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60c.svg",
+  "to": "relieved_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60d.svg",
+  "to": "smiling_face_with_heart_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60e.svg",
+  "to": "smiling_face_with_sunglasses.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f60f.svg",
+  "to": "smirking_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f610.svg",
+  "to": "neutral_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f611.svg",
+  "to": "expressionless_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f612.svg",
+  "to": "unamused_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f613.svg",
+  "to": "downcast_face_with_sweat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f614.svg",
+  "to": "pensive_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f615.svg",
+  "to": "confused_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f616.svg",
+  "to": "confounded_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f617.svg",
+  "to": "kissing_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f618.svg",
+  "to": "face_blowing_a_kiss.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f619.svg",
+  "to": "kissing_face_with_smiling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61a.svg",
+  "to": "kissing_face_with_closed_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61b.svg",
+  "to": "face_with_tongue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61c.svg",
+  "to": "winking_face_with_tongue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61d.svg",
+  "to": "squinting_face_with_tongue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61e.svg",
+  "to": "disappointed_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f61f.svg",
+  "to": "worried_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f620.svg",
+  "to": "angry_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f621.svg",
+  "to": "enraged_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f622.svg",
+  "to": "crying_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f623.svg",
+  "to": "persevering_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f624.svg",
+  "to": "face_with_steam_from_nose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f625.svg",
+  "to": "sad_but_relieved_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f626.svg",
+  "to": "frowning_face_with_open_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f627.svg",
+  "to": "anguished_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f628.svg",
+  "to": "fearful_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f629.svg",
+  "to": "weary_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62a.svg",
+  "to": "sleepy_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62b.svg",
+  "to": "tired_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62c.svg",
+  "to": "grimacing_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62d.svg",
+  "to": "loudly_crying_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62e.svg",
+  "to": "face_with_open_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62e_200d_1f4a8.svg",
+  "to": "face_exhaling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f62f.svg",
+  "to": "hushed_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f630.svg",
+  "to": "anxious_face_with_sweat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f631.svg",
+  "to": "face_screaming_in_fear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f632.svg",
+  "to": "astonished_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f633.svg",
+  "to": "flushed_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f634.svg",
+  "to": "sleeping_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f635.svg",
+  "to": "face_with_crossed_out_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f635_200d_1f4ab.svg",
+  "to": "face_with_spiral_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f636.svg",
+  "to": "face_without_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f636_200d_1f32b.svg",
+  "to": "face_in_clouds.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f637.svg",
+  "to": "face_with_medical_mask.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f638.svg",
+  "to": "grinning_cat_with_smiling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f639.svg",
+  "to": "cat_with_tears_of_joy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63a.svg",
+  "to": "grinning_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63b.svg",
+  "to": "smiling_cat_with_heart_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63c.svg",
+  "to": "cat_with_wry_smile.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63d.svg",
+  "to": "kissing_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63e.svg",
+  "to": "pouting_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f63f.svg",
+  "to": "crying_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f640.svg",
+  "to": "weary_cat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f641.svg",
+  "to": "slightly_frowning_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f642.svg",
+  "to": "slightly_smiling_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f642_200d_2194.svg",
+  "to": "head_shaking_horizontally.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f642_200d_2195.svg",
+  "to": "head_shaking_vertically.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f643.svg",
+  "to": "upside_down_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f644.svg",
+  "to": "face_with_rolling_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f645.svg",
+  "to": "person_gesturing_no.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f645_200d_2640.svg",
+  "to": "woman_gesturing_no.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f645_200d_2642.svg",
+  "to": "man_gesturing_no.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f646.svg",
+  "to": "person_gesturing_ok.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f646_200d_2640.svg",
+  "to": "woman_gesturing_ok.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f646_200d_2642.svg",
+  "to": "man_gesturing_ok.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f647.svg",
+  "to": "person_bowing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f647_200d_2640.svg",
+  "to": "woman_bowing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f647_200d_2642.svg",
+  "to": "man_bowing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f648.svg",
+  "to": "see_no_evil_monkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f649.svg",
+  "to": "hear_no_evil_monkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64a.svg",
+  "to": "speak_no_evil_monkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64b.svg",
+  "to": "person_raising_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64b_200d_2640.svg",
+  "to": "woman_raising_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64b_200d_2642.svg",
+  "to": "man_raising_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64c.svg",
+  "to": "raising_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64d.svg",
+  "to": "person_frowning.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64d_200d_2640.svg",
+  "to": "woman_frowning.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64d_200d_2642.svg",
+  "to": "man_frowning.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64e.svg",
+  "to": "person_pouting.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64e_200d_2640.svg",
+  "to": "woman_pouting.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64e_200d_2642.svg",
+  "to": "man_pouting.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f64f.svg",
+  "to": "folded_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f680.svg",
+  "to": "rocket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f681.svg",
+  "to": "helicopter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f682.svg",
+  "to": "locomotive.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f683.svg",
+  "to": "railway_car.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f684.svg",
+  "to": "high_speed_train.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f685.svg",
+  "to": "bullet_train.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f686.svg",
+  "to": "train.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f687.svg",
+  "to": "metro.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f688.svg",
+  "to": "light_rail.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f689.svg",
+  "to": "station.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68a.svg",
+  "to": "tram.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68b.svg",
+  "to": "tram_car.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68c.svg",
+  "to": "bus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68d.svg",
+  "to": "oncoming_bus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68e.svg",
+  "to": "trolleybus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f68f.svg",
+  "to": "bus_stop.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f690.svg",
+  "to": "minibus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f691.svg",
+  "to": "ambulance.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f692.svg",
+  "to": "fire_engine.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f693.svg",
+  "to": "police_car.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f694.svg",
+  "to": "oncoming_police_car.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f695.svg",
+  "to": "taxi.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f696.svg",
+  "to": "oncoming_taxi.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f697.svg",
+  "to": "automobile.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f698.svg",
+  "to": "oncoming_automobile.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f699.svg",
+  "to": "sport_utility_vehicle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69a.svg",
+  "to": "delivery_truck.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69b.svg",
+  "to": "articulated_lorry.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69c.svg",
+  "to": "tractor.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69d.svg",
+  "to": "monorail.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69e.svg",
+  "to": "mountain_railway.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f69f.svg",
+  "to": "suspension_railway.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a0.svg",
+  "to": "mountain_cableway.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a1.svg",
+  "to": "aerial_tramway.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a2.svg",
+  "to": "ship.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a3.svg",
+  "to": "person_rowing_boat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a3_200d_2640.svg",
+  "to": "woman_rowing_boat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a3_200d_2642.svg",
+  "to": "man_rowing_boat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a4.svg",
+  "to": "speedboat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a5.svg",
+  "to": "horizontal_traffic_light.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a6.svg",
+  "to": "vertical_traffic_light.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a7.svg",
+  "to": "construction.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a8.svg",
+  "to": "police_car_light.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6a9.svg",
+  "to": "triangular_flag.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6aa.svg",
+  "to": "door.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ab.svg",
+  "to": "prohibited.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ac.svg",
+  "to": "cigarette.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ad.svg",
+  "to": "no_smoking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ae.svg",
+  "to": "litter_in_bin_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6af.svg",
+  "to": "no_littering.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b0.svg",
+  "to": "potable_water.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b1.svg",
+  "to": "non_potable_water.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b2.svg",
+  "to": "bicycle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b3.svg",
+  "to": "no_bicycles.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b4.svg",
+  "to": "person_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b4_200d_2640.svg",
+  "to": "woman_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b4_200d_2642.svg",
+  "to": "man_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b5.svg",
+  "to": "person_mountain_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b5_200d_2640.svg",
+  "to": "woman_mountain_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b5_200d_2642.svg",
+  "to": "man_mountain_biking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6.svg",
+  "to": "person_walking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6_200d_2640.svg",
+  "to": "woman_walking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6_200d_2640_200d_27a1.svg",
+  "to": "woman_walking_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6_200d_2642.svg",
+  "to": "man_walking.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6_200d_2642_200d_27a1.svg",
+  "to": "man_walking_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b6_200d_27a1.svg",
+  "to": "person_walking_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b7.svg",
+  "to": "no_pedestrians.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b8.svg",
+  "to": "children_crossing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6b9.svg",
+  "to": "men_s_room.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ba.svg",
+  "to": "women_s_room.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6bb.svg",
+  "to": "restroom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6bc.svg",
+  "to": "baby_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6bd.svg",
+  "to": "toilet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6be.svg",
+  "to": "water_closet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6bf.svg",
+  "to": "shower.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c0.svg",
+  "to": "person_taking_bath.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c1.svg",
+  "to": "bathtub.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c2.svg",
+  "to": "passport_control.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c3.svg",
+  "to": "customs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c4.svg",
+  "to": "baggage_claim.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6c5.svg",
+  "to": "left_luggage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6cb.svg",
+  "to": "couch_and_lamp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6cc.svg",
+  "to": "person_in_bed.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6cd.svg",
+  "to": "shopping_bags.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ce.svg",
+  "to": "bellhop_bell.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6cf.svg",
+  "to": "bed.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d0.svg",
+  "to": "place_of_worship.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d1.svg",
+  "to": "stop_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d2.svg",
+  "to": "shopping_cart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d5.svg",
+  "to": "hindu_temple.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d6.svg",
+  "to": "hut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d7.svg",
+  "to": "elevator.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6d8.svg",
+  "to": "landslide.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6dc.svg",
+  "to": "wireless.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6dd.svg",
+  "to": "playground_slide.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6de.svg",
+  "to": "wheel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6df.svg",
+  "to": "ring_buoy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e0.svg",
+  "to": "hammer_and_wrench.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e1.svg",
+  "to": "shield.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e2.svg",
+  "to": "oil_drum.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e3.svg",
+  "to": "motorway.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e4.svg",
+  "to": "railway_track.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e5.svg",
+  "to": "motor_boat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6e9.svg",
+  "to": "small_airplane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6eb.svg",
+  "to": "airplane_departure.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6ec.svg",
+  "to": "airplane_arrival.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f0.svg",
+  "to": "satellite.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f3.svg",
+  "to": "passenger_ship.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f4.svg",
+  "to": "kick_scooter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f5.svg",
+  "to": "motor_scooter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f6.svg",
+  "to": "canoe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f7.svg",
+  "to": "sled.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f8.svg",
+  "to": "flying_saucer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6f9.svg",
+  "to": "skateboard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6fa.svg",
+  "to": "auto_rickshaw.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6fb.svg",
+  "to": "pickup_truck.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f6fc.svg",
+  "to": "roller_skate.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e0.svg",
+  "to": "orange_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e1.svg",
+  "to": "yellow_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e2.svg",
+  "to": "green_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e3.svg",
+  "to": "purple_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e4.svg",
+  "to": "brown_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e5.svg",
+  "to": "red_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e6.svg",
+  "to": "blue_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e7.svg",
+  "to": "orange_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e8.svg",
+  "to": "yellow_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7e9.svg",
+  "to": "green_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7ea.svg",
+  "to": "purple_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7eb.svg",
+  "to": "brown_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f7f0.svg",
+  "to": "heavy_equals_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f90c.svg",
+  "to": "pinched_fingers.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f90d.svg",
+  "to": "white_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f90e.svg",
+  "to": "brown_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f90f.svg",
+  "to": "pinching_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f910.svg",
+  "to": "zipper_mouth_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f911.svg",
+  "to": "money_mouth_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f912.svg",
+  "to": "face_with_thermometer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f913.svg",
+  "to": "nerd_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f914.svg",
+  "to": "thinking_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f915.svg",
+  "to": "face_with_head_bandage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f916.svg",
+  "to": "robot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f917.svg",
+  "to": "smiling_face_with_open_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f918.svg",
+  "to": "sign_of_the_horns.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f919.svg",
+  "to": "call_me_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91a.svg",
+  "to": "raised_back_of_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91b.svg",
+  "to": "left_facing_fist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91c.svg",
+  "to": "right_facing_fist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91d.svg",
+  "to": "handshake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91e.svg",
+  "to": "crossed_fingers.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f91f.svg",
+  "to": "love_you_gesture.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f920.svg",
+  "to": "cowboy_hat_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f921.svg",
+  "to": "clown_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f922.svg",
+  "to": "nauseated_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f923.svg",
+  "to": "rolling_on_the_floor_laughing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f924.svg",
+  "to": "drooling_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f925.svg",
+  "to": "lying_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f926.svg",
+  "to": "person_facepalming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f926_200d_2640.svg",
+  "to": "woman_facepalming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f926_200d_2642.svg",
+  "to": "man_facepalming.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f927.svg",
+  "to": "sneezing_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f928.svg",
+  "to": "face_with_raised_eyebrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f929.svg",
+  "to": "star_struck.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92a.svg",
+  "to": "zany_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92b.svg",
+  "to": "shushing_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92c.svg",
+  "to": "face_with_symbols_on_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92d.svg",
+  "to": "face_with_hand_over_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92e.svg",
+  "to": "face_vomiting.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f92f.svg",
+  "to": "exploding_head.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f930.svg",
+  "to": "pregnant_woman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f931.svg",
+  "to": "breast_feeding.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f932.svg",
+  "to": "palms_up_together.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f933.svg",
+  "to": "selfie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f934.svg",
+  "to": "prince.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f935.svg",
+  "to": "person_in_tuxedo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f935_200d_2640.svg",
+  "to": "woman_in_tuxedo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f935_200d_2642.svg",
+  "to": "man_in_tuxedo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f936.svg",
+  "to": "mrs_claus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f937.svg",
+  "to": "person_shrugging.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f937_200d_2640.svg",
+  "to": "woman_shrugging.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f937_200d_2642.svg",
+  "to": "man_shrugging.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f938.svg",
+  "to": "person_cartwheeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f938_200d_2640.svg",
+  "to": "woman_cartwheeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f938_200d_2642.svg",
+  "to": "man_cartwheeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f939.svg",
+  "to": "person_juggling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f939_200d_2640.svg",
+  "to": "woman_juggling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f939_200d_2642.svg",
+  "to": "man_juggling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93a.svg",
+  "to": "person_fencing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93c.svg",
+  "to": "people_wrestling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93c_200d_2640.svg",
+  "to": "women_wrestling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93c_200d_2642.svg",
+  "to": "men_wrestling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93d.svg",
+  "to": "person_playing_water_polo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93d_200d_2640.svg",
+  "to": "woman_playing_water_polo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93d_200d_2642.svg",
+  "to": "man_playing_water_polo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93e.svg",
+  "to": "person_playing_handball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93e_200d_2640.svg",
+  "to": "woman_playing_handball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93e_200d_2642.svg",
+  "to": "man_playing_handball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f93f.svg",
+  "to": "diving_mask.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f940.svg",
+  "to": "wilted_flower.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f941.svg",
+  "to": "drum.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f942.svg",
+  "to": "clinking_glasses.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f943.svg",
+  "to": "tumbler_glass.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f944.svg",
+  "to": "spoon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f945.svg",
+  "to": "goal_net.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f947.svg",
+  "to": "1st_place_medal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f948.svg",
+  "to": "2nd_place_medal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f949.svg",
+  "to": "3rd_place_medal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94a.svg",
+  "to": "boxing_glove.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94b.svg",
+  "to": "martial_arts_uniform.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94c.svg",
+  "to": "curling_stone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94d.svg",
+  "to": "lacrosse.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94e.svg",
+  "to": "softball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f94f.svg",
+  "to": "flying_disc.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f950.svg",
+  "to": "croissant.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f951.svg",
+  "to": "avocado.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f952.svg",
+  "to": "cucumber.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f953.svg",
+  "to": "bacon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f954.svg",
+  "to": "potato.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f955.svg",
+  "to": "carrot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f956.svg",
+  "to": "baguette_bread.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f957.svg",
+  "to": "green_salad.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f958.svg",
+  "to": "shallow_pan_of_food.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f959.svg",
+  "to": "stuffed_flatbread.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95a.svg",
+  "to": "egg.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95b.svg",
+  "to": "glass_of_milk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95c.svg",
+  "to": "peanuts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95d.svg",
+  "to": "kiwi_fruit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95e.svg",
+  "to": "pancakes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f95f.svg",
+  "to": "dumpling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f960.svg",
+  "to": "fortune_cookie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f961.svg",
+  "to": "takeout_box.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f962.svg",
+  "to": "chopsticks.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f963.svg",
+  "to": "bowl_with_spoon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f964.svg",
+  "to": "cup_with_straw.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f965.svg",
+  "to": "coconut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f966.svg",
+  "to": "broccoli.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f967.svg",
+  "to": "pie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f968.svg",
+  "to": "pretzel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f969.svg",
+  "to": "cut_of_meat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96a.svg",
+  "to": "sandwich.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96b.svg",
+  "to": "canned_food.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96c.svg",
+  "to": "leafy_green.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96d.svg",
+  "to": "mango.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96e.svg",
+  "to": "moon_cake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f96f.svg",
+  "to": "bagel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f970.svg",
+  "to": "smiling_face_with_hearts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f971.svg",
+  "to": "yawning_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f972.svg",
+  "to": "smiling_face_with_tear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f973.svg",
+  "to": "partying_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f974.svg",
+  "to": "woozy_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f975.svg",
+  "to": "hot_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f976.svg",
+  "to": "cold_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f977.svg",
+  "to": "ninja.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f978.svg",
+  "to": "disguised_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f979.svg",
+  "to": "face_holding_back_tears.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97a.svg",
+  "to": "pleading_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97b.svg",
+  "to": "sari.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97c.svg",
+  "to": "lab_coat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97d.svg",
+  "to": "goggles.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97e.svg",
+  "to": "hiking_boot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f97f.svg",
+  "to": "flat_shoe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f980.svg",
+  "to": "crab.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f981.svg",
+  "to": "lion.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f982.svg",
+  "to": "scorpion.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f983.svg",
+  "to": "turkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f984.svg",
+  "to": "unicorn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f985.svg",
+  "to": "eagle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f986.svg",
+  "to": "duck.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f987.svg",
+  "to": "bat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f988.svg",
+  "to": "shark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f989.svg",
+  "to": "owl.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98a.svg",
+  "to": "fox.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98b.svg",
+  "to": "butterfly.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98c.svg",
+  "to": "deer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98d.svg",
+  "to": "gorilla.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98e.svg",
+  "to": "lizard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f98f.svg",
+  "to": "rhinoceros.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f990.svg",
+  "to": "shrimp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f991.svg",
+  "to": "squid.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f992.svg",
+  "to": "giraffe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f993.svg",
+  "to": "zebra.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f994.svg",
+  "to": "hedgehog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f995.svg",
+  "to": "sauropod.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f996.svg",
+  "to": "t_rex.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f997.svg",
+  "to": "cricket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f998.svg",
+  "to": "kangaroo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f999.svg",
+  "to": "llama.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99a.svg",
+  "to": "peacock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99b.svg",
+  "to": "hippopotamus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99c.svg",
+  "to": "parrot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99d.svg",
+  "to": "raccoon.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99e.svg",
+  "to": "lobster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f99f.svg",
+  "to": "mosquito.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a0.svg",
+  "to": "microbe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a1.svg",
+  "to": "badger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a2.svg",
+  "to": "swan.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a3.svg",
+  "to": "mammoth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a4.svg",
+  "to": "dodo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a5.svg",
+  "to": "sloth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a6.svg",
+  "to": "otter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a7.svg",
+  "to": "orangutan.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a8.svg",
+  "to": "skunk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9a9.svg",
+  "to": "flamingo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9aa.svg",
+  "to": "oyster.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ab.svg",
+  "to": "beaver.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ac.svg",
+  "to": "bison.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ad.svg",
+  "to": "seal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ae.svg",
+  "to": "guide_dog.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9af.svg",
+  "to": "white_cane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b4.svg",
+  "to": "bone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b5.svg",
+  "to": "leg.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b6.svg",
+  "to": "foot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b7.svg",
+  "to": "tooth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b8.svg",
+  "to": "superhero.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b8_200d_2640.svg",
+  "to": "woman_superhero.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b8_200d_2642.svg",
+  "to": "man_superhero.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b9.svg",
+  "to": "supervillain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b9_200d_2640.svg",
+  "to": "woman_supervillain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9b9_200d_2642.svg",
+  "to": "man_supervillain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ba.svg",
+  "to": "safety_vest.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9bb.svg",
+  "to": "ear_with_hearing_aid.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9bc.svg",
+  "to": "motorized_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9bd.svg",
+  "to": "manual_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9be.svg",
+  "to": "mechanical_arm.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9bf.svg",
+  "to": "mechanical_leg.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c0.svg",
+  "to": "cheese_wedge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c1.svg",
+  "to": "cupcake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c2.svg",
+  "to": "salt.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c3.svg",
+  "to": "beverage_box.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c4.svg",
+  "to": "garlic.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c5.svg",
+  "to": "onion.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c6.svg",
+  "to": "falafel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c7.svg",
+  "to": "waffle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c8.svg",
+  "to": "butter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9c9.svg",
+  "to": "mate.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ca.svg",
+  "to": "ice.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cb.svg",
+  "to": "bubble_tea.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cc.svg",
+  "to": "troll.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cd.svg",
+  "to": "person_standing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cd_200d_2640.svg",
+  "to": "woman_standing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cd_200d_2642.svg",
+  "to": "man_standing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce.svg",
+  "to": "person_kneeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce_200d_2640.svg",
+  "to": "woman_kneeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce_200d_2640_200d_27a1.svg",
+  "to": "woman_kneeling_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce_200d_2642.svg",
+  "to": "man_kneeling.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce_200d_2642_200d_27a1.svg",
+  "to": "man_kneeling_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ce_200d_27a1.svg",
+  "to": "person_kneeling_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cf.svg",
+  "to": "deaf_person.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cf_200d_2640.svg",
+  "to": "deaf_woman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9cf_200d_2642.svg",
+  "to": "deaf_man.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d0.svg",
+  "to": "face_with_monocle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1.svg",
+  "to": "person.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f33e.svg",
+  "to": "farmer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f373.svg",
+  "to": "cook.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f37c.svg",
+  "to": "person_feeding_baby.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f384.svg",
+  "to": "mx_claus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f393.svg",
+  "to": "student.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f3a4.svg",
+  "to": "singer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f3a8.svg",
+  "to": "artist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f3eb.svg",
+  "to": "teacher.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f3ed.svg",
+  "to": "factory_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f4bb.svg",
+  "to": "technologist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f4bc.svg",
+  "to": "office_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f527.svg",
+  "to": "mechanic.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f52c.svg",
+  "to": "scientist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f680.svg",
+  "to": "astronaut.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f692.svg",
+  "to": "firefighter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f91d_200d_1f9d1.svg",
+  "to": "people_holding_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9af.svg",
+  "to": "person_with_white_cane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9af_200d_27a1.svg",
+  "to": "person_with_white_cane_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9b0.svg",
+  "to": "person_red_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9b1.svg",
+  "to": "person_curly_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9b2.svg",
+  "to": "person_bald.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9b3.svg",
+  "to": "person_white_hair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9bc.svg",
+  "to": "person_in_motorized_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9bc_200d_27a1.svg",
+  "to": "person_in_motorized_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9bd.svg",
+  "to": "person_in_manual_wheelchair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1f9bd_200d_27a1.svg",
+  "to": "person_in_manual_wheelchair_facing_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_1fa70.svg",
+  "to": "ballet_dancer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_2695.svg",
+  "to": "health_worker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_2696.svg",
+  "to": "judge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d1_200d_2708.svg",
+  "to": "pilot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d2.svg",
+  "to": "child.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d3.svg",
+  "to": "older_person.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d4.svg",
+  "to": "person_beard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d4_200d_2640.svg",
+  "to": "woman_beard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d4_200d_2642.svg",
+  "to": "man_beard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d5.svg",
+  "to": "woman_with_headscarf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d6.svg",
+  "to": "person_in_steamy_room.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d6_200d_2640.svg",
+  "to": "woman_in_steamy_room.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d6_200d_2642.svg",
+  "to": "man_in_steamy_room.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d7.svg",
+  "to": "person_climbing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d7_200d_2640.svg",
+  "to": "woman_climbing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d7_200d_2642.svg",
+  "to": "man_climbing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d8.svg",
+  "to": "person_in_lotus_position.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d8_200d_2640.svg",
+  "to": "woman_in_lotus_position.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d8_200d_2642.svg",
+  "to": "man_in_lotus_position.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d9.svg",
+  "to": "mage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d9_200d_2640.svg",
+  "to": "woman_mage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9d9_200d_2642.svg",
+  "to": "man_mage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9da.svg",
+  "to": "fairy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9da_200d_2640.svg",
+  "to": "woman_fairy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9da_200d_2642.svg",
+  "to": "man_fairy.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9db.svg",
+  "to": "vampire.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9db_200d_2640.svg",
+  "to": "woman_vampire.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9db_200d_2642.svg",
+  "to": "man_vampire.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dc.svg",
+  "to": "merperson.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dc_200d_2640.svg",
+  "to": "mermaid.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dc_200d_2642.svg",
+  "to": "merman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dd.svg",
+  "to": "elf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dd_200d_2640.svg",
+  "to": "woman_elf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9dd_200d_2642.svg",
+  "to": "man_elf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9de.svg",
+  "to": "genie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9de_200d_2640.svg",
+  "to": "woman_genie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9de_200d_2642.svg",
+  "to": "man_genie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9df.svg",
+  "to": "zombie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9df_200d_2640.svg",
+  "to": "woman_zombie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9df_200d_2642.svg",
+  "to": "man_zombie.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e0.svg",
+  "to": "brain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e1.svg",
+  "to": "orange_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e2.svg",
+  "to": "billed_cap.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e3.svg",
+  "to": "scarf.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e4.svg",
+  "to": "gloves.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e5.svg",
+  "to": "coat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e6.svg",
+  "to": "socks.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e7.svg",
+  "to": "red_envelope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e8.svg",
+  "to": "firecracker.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9e9.svg",
+  "to": "puzzle_piece.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ea.svg",
+  "to": "test_tube.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9eb.svg",
+  "to": "petri_dish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ec.svg",
+  "to": "dna.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ed.svg",
+  "to": "compass.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ee.svg",
+  "to": "abacus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ef.svg",
+  "to": "fire_extinguisher.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f0.svg",
+  "to": "toolbox.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f1.svg",
+  "to": "brick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f2.svg",
+  "to": "magnet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f3.svg",
+  "to": "luggage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f4.svg",
+  "to": "lotion_bottle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f5.svg",
+  "to": "thread.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f6.svg",
+  "to": "yarn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f7.svg",
+  "to": "safety_pin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f8.svg",
+  "to": "teddy_bear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9f9.svg",
+  "to": "broom.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9fa.svg",
+  "to": "basket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9fb.svg",
+  "to": "roll_of_paper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9fc.svg",
+  "to": "soap.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9fd.svg",
+  "to": "sponge.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9fe.svg",
+  "to": "receipt.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1f9ff.svg",
+  "to": "nazar_amulet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa70.svg",
+  "to": "ballet_shoes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa71.svg",
+  "to": "one_piece_swimsuit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa72.svg",
+  "to": "briefs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa73.svg",
+  "to": "shorts.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa74.svg",
+  "to": "thong_sandal.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa75.svg",
+  "to": "light_blue_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa76.svg",
+  "to": "grey_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa77.svg",
+  "to": "pink_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa78.svg",
+  "to": "drop_of_blood.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa79.svg",
+  "to": "adhesive_bandage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa7a.svg",
+  "to": "stethoscope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa7b.svg",
+  "to": "x_ray.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa7c.svg",
+  "to": "crutch.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa80.svg",
+  "to": "yo_yo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa81.svg",
+  "to": "kite.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa82.svg",
+  "to": "parachute.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa83.svg",
+  "to": "boomerang.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa84.svg",
+  "to": "magic_wand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa85.svg",
+  "to": "pinata.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa86.svg",
+  "to": "nesting_dolls.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa87.svg",
+  "to": "maracas.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa88.svg",
+  "to": "flute.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa89.svg",
+  "to": "harp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa8a.svg",
+  "to": "trombone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa8e.svg",
+  "to": "treasure_chest.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa8f.svg",
+  "to": "shovel.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa90.svg",
+  "to": "ringed_planet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa91.svg",
+  "to": "chair.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa92.svg",
+  "to": "razor.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa93.svg",
+  "to": "axe.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa94.svg",
+  "to": "diya_lamp.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa95.svg",
+  "to": "banjo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa96.svg",
+  "to": "military_helmet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa97.svg",
+  "to": "accordion.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa98.svg",
+  "to": "long_drum.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa99.svg",
+  "to": "coin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9a.svg",
+  "to": "carpentry_saw.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9b.svg",
+  "to": "screwdriver.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9c.svg",
+  "to": "ladder.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9d.svg",
+  "to": "hook.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9e.svg",
+  "to": "mirror.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fa9f.svg",
+  "to": "window.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa0.svg",
+  "to": "plunger.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa1.svg",
+  "to": "sewing_needle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa2.svg",
+  "to": "knot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa3.svg",
+  "to": "bucket.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa4.svg",
+  "to": "mouse_trap.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa5.svg",
+  "to": "toothbrush.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa6.svg",
+  "to": "headstone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa7.svg",
+  "to": "placard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa8.svg",
+  "to": "rock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faa9.svg",
+  "to": "mirror_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faaa.svg",
+  "to": "identification_card.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faab.svg",
+  "to": "low_battery.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faac.svg",
+  "to": "hamsa.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faad.svg",
+  "to": "folding_hand_fan.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faae.svg",
+  "to": "hair_pick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faaf.svg",
+  "to": "khanda.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab0.svg",
+  "to": "fly.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab1.svg",
+  "to": "worm.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab2.svg",
+  "to": "beetle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab3.svg",
+  "to": "cockroach.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab4.svg",
+  "to": "potted_plant.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab5.svg",
+  "to": "wood.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab6.svg",
+  "to": "feather.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab7.svg",
+  "to": "lotus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab8.svg",
+  "to": "coral.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fab9.svg",
+  "to": "empty_nest.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faba.svg",
+  "to": "nest_with_eggs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fabb.svg",
+  "to": "hyacinth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fabc.svg",
+  "to": "jellyfish.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fabd.svg",
+  "to": "wing.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fabe.svg",
+  "to": "leafless_tree.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fabf.svg",
+  "to": "goose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac0.svg",
+  "to": "anatomical_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac1.svg",
+  "to": "lungs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac2.svg",
+  "to": "people_hugging.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac3.svg",
+  "to": "pregnant_man.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac4.svg",
+  "to": "pregnant_person.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac5.svg",
+  "to": "person_with_crown.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac6.svg",
+  "to": "fingerprint.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fac8.svg",
+  "to": "hairy_creature.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1facd.svg",
+  "to": "orca.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1face.svg",
+  "to": "moose.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1facf.svg",
+  "to": "donkey.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad0.svg",
+  "to": "blueberries.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad1.svg",
+  "to": "bell_pepper.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad2.svg",
+  "to": "olive.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad3.svg",
+  "to": "flatbread.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad4.svg",
+  "to": "tamale.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad5.svg",
+  "to": "fondue.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad6.svg",
+  "to": "teapot.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad7.svg",
+  "to": "pouring_liquid.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad8.svg",
+  "to": "beans.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fad9.svg",
+  "to": "jar.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fada.svg",
+  "to": "ginger_root.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fadb.svg",
+  "to": "pea_pod.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fadc.svg",
+  "to": "root_vegetable.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fadf.svg",
+  "to": "splatter.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae0.svg",
+  "to": "melting_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae1.svg",
+  "to": "saluting_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae2.svg",
+  "to": "face_with_open_eyes_and_hand_over_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae3.svg",
+  "to": "face_with_peeking_eye.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae4.svg",
+  "to": "face_with_diagonal_mouth.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae5.svg",
+  "to": "dotted_line_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae6.svg",
+  "to": "biting_lip.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae7.svg",
+  "to": "bubbles.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae8.svg",
+  "to": "shaking_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1fae9.svg",
+  "to": "face_with_bags_under_eyes.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faea.svg",
+  "to": "distorted_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faef.svg",
+  "to": "fight_cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf0.svg",
+  "to": "hand_with_index_finger_and_thumb_crossed.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf1.svg",
+  "to": "rightwards_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf2.svg",
+  "to": "leftwards_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf3.svg",
+  "to": "palm_down_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf4.svg",
+  "to": "palm_up_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf5.svg",
+  "to": "index_pointing_at_the_viewer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf6.svg",
+  "to": "heart_hands.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf7.svg",
+  "to": "leftwards_pushing_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u1faf8.svg",
+  "to": "rightwards_pushing_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u203c.svg",
+  "to": "double_exclamation_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2049.svg",
+  "to": "exclamation_question_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2122.svg",
+  "to": "trade_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2139.svg",
+  "to": "information.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2194.svg",
+  "to": "left_right_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2195.svg",
+  "to": "up_down_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2196.svg",
+  "to": "up_left_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2197.svg",
+  "to": "up_right_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2198.svg",
+  "to": "down_right_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2199.svg",
+  "to": "down_left_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u21a9.svg",
+  "to": "right_arrow_curving_left.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u21aa.svg",
+  "to": "left_arrow_curving_right.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u231a.svg",
+  "to": "watch.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u231b.svg",
+  "to": "hourglass_done.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2328.svg",
+  "to": "keyboard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23cf.svg",
+  "to": "eject_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23e9.svg",
+  "to": "fast_forward_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23ea.svg",
+  "to": "fast_reverse_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23eb.svg",
+  "to": "fast_up_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23ec.svg",
+  "to": "fast_down_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23ed.svg",
+  "to": "next_track_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23ee.svg",
+  "to": "last_track_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23ef.svg",
+  "to": "play_or_pause_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f0.svg",
+  "to": "alarm_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f1.svg",
+  "to": "stopwatch.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f2.svg",
+  "to": "timer_clock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f3.svg",
+  "to": "hourglass_not_done.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f8.svg",
+  "to": "pause_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23f9.svg",
+  "to": "stop_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u23fa.svg",
+  "to": "record_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u24c2.svg",
+  "to": "circled_m.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25aa.svg",
+  "to": "black_small_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25ab.svg",
+  "to": "white_small_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25b6.svg",
+  "to": "play_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25c0.svg",
+  "to": "reverse_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25fb.svg",
+  "to": "white_medium_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25fc.svg",
+  "to": "black_medium_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25fd.svg",
+  "to": "white_medium_small_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u25fe.svg",
+  "to": "black_medium_small_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2600.svg",
+  "to": "sun.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2601.svg",
+  "to": "cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2602.svg",
+  "to": "umbrella.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2603.svg",
+  "to": "snowman.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2604.svg",
+  "to": "comet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u260e.svg",
+  "to": "telephone.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2611.svg",
+  "to": "check_box_with_check.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2614.svg",
+  "to": "umbrella_with_rain_drops.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2615.svg",
+  "to": "hot_beverage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2618.svg",
+  "to": "shamrock.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u261d.svg",
+  "to": "index_pointing_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2620.svg",
+  "to": "skull_and_crossbones.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2622.svg",
+  "to": "radioactive.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2623.svg",
+  "to": "biohazard.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2626.svg",
+  "to": "orthodox_cross.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u262a.svg",
+  "to": "star_and_crescent.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u262e.svg",
+  "to": "peace_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u262f.svg",
+  "to": "yin_yang.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2638.svg",
+  "to": "wheel_of_dharma.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2639.svg",
+  "to": "frowning_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u263a.svg",
+  "to": "smiling_face.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2640.svg",
+  "to": "female_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2642.svg",
+  "to": "male_sign.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2648.svg",
+  "to": "aries.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2649.svg",
+  "to": "taurus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264a.svg",
+  "to": "gemini.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264b.svg",
+  "to": "cancer.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264c.svg",
+  "to": "leo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264d.svg",
+  "to": "virgo.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264e.svg",
+  "to": "libra.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u264f.svg",
+  "to": "scorpio.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2650.svg",
+  "to": "sagittarius.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2651.svg",
+  "to": "capricorn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2652.svg",
+  "to": "aquarius.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2653.svg",
+  "to": "pisces.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u265f.svg",
+  "to": "chess_pawn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2660.svg",
+  "to": "spade_suit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2663.svg",
+  "to": "club_suit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2665.svg",
+  "to": "heart_suit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2666.svg",
+  "to": "diamond_suit.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2668.svg",
+  "to": "hot_springs.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u267b.svg",
+  "to": "recycling_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u267e.svg",
+  "to": "infinity.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u267f.svg",
+  "to": "wheelchair_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2692.svg",
+  "to": "hammer_and_pick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2693.svg",
+  "to": "anchor.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2694.svg",
+  "to": "crossed_swords.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2695.svg",
+  "to": "medical_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2696.svg",
+  "to": "balance_scale.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2697.svg",
+  "to": "alembic.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2699.svg",
+  "to": "gear.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u269b.svg",
+  "to": "atom_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u269c.svg",
+  "to": "fleur_de_lis.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26a0.svg",
+  "to": "warning.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26a1.svg",
+  "to": "high_voltage.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26a7.svg",
+  "to": "transgender_symbol.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26aa.svg",
+  "to": "white_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26ab.svg",
+  "to": "black_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26b0.svg",
+  "to": "coffin.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26b1.svg",
+  "to": "funeral_urn.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26bd.svg",
+  "to": "soccer_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26be.svg",
+  "to": "baseball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26c4.svg",
+  "to": "snowman_without_snow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26c5.svg",
+  "to": "sun_behind_cloud.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26c8.svg",
+  "to": "cloud_with_lightning_and_rain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26ce.svg",
+  "to": "ophiuchus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26cf.svg",
+  "to": "pick.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26d1.svg",
+  "to": "rescue_worker_s_helmet.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26d3.svg",
+  "to": "chains.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26d3_200d_1f4a5.svg",
+  "to": "broken_chain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26d4.svg",
+  "to": "no_entry.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26e9.svg",
+  "to": "shinto_shrine.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26ea.svg",
+  "to": "church.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f0.svg",
+  "to": "mountain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f1.svg",
+  "to": "umbrella_on_ground.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f2.svg",
+  "to": "fountain.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f3.svg",
+  "to": "flag_in_hole.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f4.svg",
+  "to": "ferry.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f5.svg",
+  "to": "sailboat.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f7.svg",
+  "to": "skier.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f8.svg",
+  "to": "ice_skate.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f9.svg",
+  "to": "person_bouncing_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f9_200d_2640.svg",
+  "to": "woman_bouncing_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26f9_200d_2642.svg",
+  "to": "man_bouncing_ball.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26fa.svg",
+  "to": "tent.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u26fd.svg",
+  "to": "fuel_pump.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2702.svg",
+  "to": "scissors.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2705.svg",
+  "to": "check_mark_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2708.svg",
+  "to": "airplane.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2709.svg",
+  "to": "envelope.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u270a.svg",
+  "to": "raised_fist.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u270b.svg",
+  "to": "raised_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u270c.svg",
+  "to": "victory_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u270d.svg",
+  "to": "writing_hand.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u270f.svg",
+  "to": "pencil.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2712.svg",
+  "to": "black_nib.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2714.svg",
+  "to": "check_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2716.svg",
+  "to": "multiply.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u271d.svg",
+  "to": "latin_cross.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2721.svg",
+  "to": "star_of_david.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2728.svg",
+  "to": "sparkles.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2733.svg",
+  "to": "eight_spoked_asterisk.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2734.svg",
+  "to": "eight_pointed_star.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2744.svg",
+  "to": "snowflake.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2747.svg",
+  "to": "sparkle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u274c.svg",
+  "to": "cross_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u274e.svg",
+  "to": "cross_mark_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2753.svg",
+  "to": "red_question_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2754.svg",
+  "to": "white_question_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2755.svg",
+  "to": "white_exclamation_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2757.svg",
+  "to": "red_exclamation_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2763.svg",
+  "to": "heart_exclamation.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2764.svg",
+  "to": "red_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2764_200d_1f525.svg",
+  "to": "heart_on_fire.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2764_200d_1fa79.svg",
+  "to": "mending_heart.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2795.svg",
+  "to": "plus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2796.svg",
+  "to": "minus.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2797.svg",
+  "to": "divide.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u27a1.svg",
+  "to": "right_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u27b0.svg",
+  "to": "curly_loop.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u27bf.svg",
+  "to": "double_curly_loop.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2934.svg",
+  "to": "right_arrow_curving_up.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2935.svg",
+  "to": "right_arrow_curving_down.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b05.svg",
+  "to": "left_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b06.svg",
+  "to": "up_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b07.svg",
+  "to": "down_arrow.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b1b.svg",
+  "to": "black_large_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b1c.svg",
+  "to": "white_large_square.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b50.svg",
+  "to": "star.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u2b55.svg",
+  "to": "hollow_red_circle.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u3030.svg",
+  "to": "wavy_dash.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u303d.svg",
+  "to": "part_alternation_mark.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u3297.svg",
+  "to": "japanese_congratulations_button.svg",
+  "copy": false
+ },
+ {
+  "from": "emoji_u3299.svg",
+  "to": "japanese_secret_button.svg",
+  "copy": false
+ }
+]

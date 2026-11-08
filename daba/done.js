@@ -1,19 +1,21 @@
-function applyOpts(d, opts = {}) {
-  const aliases = {
-    classes: 'className',
-    inner: 'innerHTML',
-    html: 'innerHTML',
-    w: 'width',
-    h: 'height',
-  };
-  for (const opt in opts) {
-    let name = valf(aliases[opt], opt);
-    let val = opts[opt];
-    if (name == 'recClick') { d.onclick = async (ev) => { recUserEvent(); await val(ev); } }
-    else if (['id', 'style', 'tag', 'innerHTML', 'className', 'checked', 'value'].includes(name) || name.startsWith('on')) d[name] = val;
-    else d.setAttribute(name, val);
-  }
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function createBgaLayout(dParent) {
   dParent.innerHTML = '';
 
@@ -122,6 +124,15 @@ function createBgaLayout(dParent) {
     historyLog
   };
 }
+function emoGetKeys(group='animals_nature',cond=null) {
+  let res = [];
+
+  for (const k in M.emogroup[group]) {
+		if (cond && !cond(k)) continue;
+    res = res.concat(M.emogroup[group][k]);
+  }
+  return res;
+}
 function findDuplicateValuesInDict(dict) {
   const seen = new Set();
   const duplicates = new Set();
@@ -152,14 +163,29 @@ function getDA(key) {
   return DA[key];
 }
 async function loadAssets() {
-  M = await loadYaml('y/m.yaml');
+  if (M.config) return;
+	let t = Date.now();
+  M = await loadJson('y/m.json');
   M.config = await loadYaml('y/config.yaml');
-  M.emo = await loadYaml('y/diemo.yaml');
+  M.images = await loadYaml('y/all_image_files.yaml');
+  // M.emo = await loadYaml('y/diemo.yaml');
+  M.emo = await loadJson('y/diemo.json');
   M.emogroup = await loadYaml('y/digroup.yaml');
   M.emokeys = Object.keys(M.emo).sort();
   M.fa = await loadYaml('y/fadi.yaml');
   M.fakeys = Object.keys(M.fa).sort();
+	t = Date.now() - t; 
+  // console.log('old assets',t);
+	t = Date.now();
+  M.shapes = await loadJson('y/eshapes.json');
+	t = Date.now() - t; 
+  // console.log('assets:shapes',t);
+  t = Date.now();
+	M.shapeKeys = Object.keys(M.shapes).sort();
+
   Object.freeze(M);
+	t = Date.now() - t; 
+  // console.log('sort keys',t);
 }
 async function loadJson(path) {
   let res = await fetch(getDA('staticUrl') + path);
@@ -180,60 +206,72 @@ async function loadText(path) {
   if (!res.ok) throw new Error(`fetchText: ${res.status} ${path}`);
   return await res.text();
 }
+async function loadYamlTimed(url) {
+  let t = performance.now();
+  const text = await (await fetch(getDA('staticUrl') + url)).text();
+  const tFetch = performance.now() - t;
+  t = performance.now();
+  const obj = YAML.parse(text);                       // or whatever parser loadYaml uses
+  console.log(url, `${(text.length / 1024).toFixed(0)} KB`, `fetch ${tFetch.toFixed(0)} ms`, `parse ${(performance.now() - t).toFixed(0)} ms`);
+  return obj;
+}
 async function loadYaml(path) {
   let txt = await loadText(path);
   return YAML.parse(txt);
 }
-function mAppend(d, child) { toElem(d).appendChild(child); return child; }
-function mDom(dParent, styles = {}, opts = {}) {
-  let tag = valf(opts.tag, 'div');
-  let d = document.createElement(tag);
-  if (tag == 'textarea') styles.wrap = 'hard';
-  mStyle(d, styles);
-  applyOpts(d, opts);
-  if (isdef(dParent)) mAppend(dParent, d);
-  return d;
-}
-function mStyle(elem, styles = {}) {
-	elem = toElem(elem);
-	const target = elem.style || elem;
+function logBoardObjectClicks(board, svg) {
+  analyzeBoard(board);
 
-	for (let key in styles) {
-		let val = styles[key];
-		let prop = STYLES[key] || key;
-		if (typeof prop === 'function') {
-			const res = prop(val);
-			// Handles functional generators that return flat style objects (e.g., bfg, center)
-			if (res && typeof res === 'object' && !Array.isArray(res)) {
-				mStyle(elem, res);
-				continue;
-			}
-			if (Array.isArray(res)) [prop, val] = res;
-		}
+  const getNeighbors = (item, kind) => {
+    const neighbors = item.adj?.[kind] || [];
+    return neighbors
+      .map(({ id }) => board[kind].find(obj => obj.id === id))
+      .filter(Boolean);
+  };
 
-		// If val is null or undefined, delete/remove the property or attribute
-		if (val == null) {
-			if (prop in target) {
-				target[prop] = ''; // Clears inline CSS rule
-			} else if (elem.nodeType) {
-				elem.removeAttribute(prop); // Removes DOM attribute
-			}
-			continue;
-		}
+  // Faces are rendered in the same order as board.cells.
+  svg.querySelectorAll(".cell, .tess-face").forEach((element, index) => {
+    const item = board.cells[index];
+    if (!item) return;
 
-		// Auto-append 'px' for numeric values
-		if (typeof val === 'number' && !NO_UNIT.has(prop)) val += 'px';
+    element.addEventListener("click", () => {
+      console.log("cell", item);
+      console.log("neighbor cells", getNeighbors(item, "cells"));
+    });
+  });
 
-		if (prop in target) target[prop] = val;
-		else if (elem.nodeType) elem.setAttribute(prop, val);
-	}
+  svg.querySelectorAll(".street").forEach(element => {
+    const item = board.streets.find(
+      street => street.id === element.dataset.street
+    );
+    if (!item) return;
 
-	return elem;
+    element.addEventListener("click", () => {
+      console.log("street", item);
+      console.log("neighbor streets", getNeighbors(item, "streets"));
+    });
+  });
+
+  svg.querySelectorAll(".city").forEach(element => {
+    const item =
+      board.cities.find(city => city.id === element.dataset.city) ||
+      isolatedCities(board).find(city => city.id === element.dataset.city);
+
+    if (!item) return;
+
+    element.addEventListener("click", () => {
+      console.log("city", item);
+      console.log(
+        "neighbor cities",
+        item.isolated ? [] : getNeighbors(item, "cells")
+      );
+    });
+  });
 }
 function reverseDict(dict) {
   return Object.fromEntries(Object.entries(dict).map(([key, value]) => [value, key]));
 }
-function showPalette(d, colors, approximate = false) {
+function showPalette(d, colors, labels = false, approximate = false) {
   let i = 0;
   for (var c of colors) {
     c = clrHex(c);
@@ -242,28 +280,8 @@ function showPalette(d, colors, approximate = false) {
     // let fg=clrText(c); console.log(fg);
     // let fw=fg=='#000000'?'700':'400';
     // let dmini = mDom(d, { fw, bg, fg, wmin: 40, hmin: 40, padding: 2 }, { html: name + ' ' + c + ` (${i++})` });
-    let dmini = mDom(d, { bf: c, wmin: 40, hmin: 40, padding: 2 }, { html: name + ' ' + c + ` (${i++})` });
+    let dmini = mDom(d, { bf: c, wmin: 40, hmin: 40, padding: 2 }, { html: labels ? (name + ' ' + c + ` (${i++})`) : '' });
   }
-}
-function showSvgAsImage(div, path) {
-  // 1. as image: the browser loads the file, so no fetch is needed
-  let img = document.createElement('img');
-  img.src = path;
-  div.appendChild(img);
-  return img;
-}
-async function showSvgAsText(div, path) {
-  // 2. as text: the svg markup is inserted into the DOM as an inline <svg>
-  let text = await loadText(path);
-  div.innerHTML = text;
-  return div.firstElementChild; // the <svg> element
-}
-function showSvgTextAsImage(text, div, styles = {}) {
-  let img = mDom(div, styles, { tag: 'img', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text) });
-  // let img = document.createElement('img');
-  // img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text);
-  // div.appendChild(img);
-  return img;
 }
 function sortColorsAsGradient(colors) {
   const toOklab = hex => clrRgbToOklab(...clrHexToRgb(hex));

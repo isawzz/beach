@@ -93,7 +93,7 @@ people_body:
     person_resting: [man_in_lotus_position, person_in_bed, person_in_lotus_position, person_taking_bath, woman_in_lotus_position]
     hand_prop: [nail_polish, selfie, writing_hand]
 animals_nature:
-    animal_bug: [ant, bee, beetle, bug, butterfly, cockroach, cricket, fly, honeybee, ladybug, microbe, mosquito, scorpion, snail, spider, spider_web, worm]
+    animal_bug: [ant, bee, beetle, bug, butterfly, cockroach, cricket, fly, ladybug, microbe, mosquito, scorpion, snail, spider, spider_web, worm]
     animal_bird: [baby_chick, bird, black_bird, chicken, dodo, dove, duck, eagle, feather, flamingo, front_facing_baby_chick, goose, hatching_chick, owl, parrot, peacock, penguin, phoenix, rooster, swan, turkey, wing]
     animal_mammal: [badger, bat, bear, beaver, bison, black_cat, boar, buffalo, camel, cat, cat_face, chipmunk, cow, cow_face, deer, dog, dog_face, donkey, elephant, ewe, fox, giraffe, goat, gorilla, guide_dog, hamster, hedgehog, hippopotamus, horse, horse_face, kangaroo, koala, leopard, lion, llama, mammoth, monkey, monkey_face, moose, mouse, mouse_face, orangutan, otter, ox, panda, paws, pig, pig_face, pig_nose, polar_bear, poodle, rabbit, rabbit_face, raccoon, ram, rat, rhinoceros, service_dog, sheep, skunk, sloth, tiger, tiger_face, two_hump_camel, unicorn, water_buffalo, wolf, zebra]
     plant_flower: [blossom, bouquet, cherry_blossom, hibiscus, hyacinth, lotus, rose, rosette, sunflower, tulip, white_flower, wilted_flower]

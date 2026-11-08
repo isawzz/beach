@@ -6726,7 +6726,6 @@ class DissectedTriangleBoard extends Tessagon {
 }
 
 
-//#region new code
 class SimpleBoundaryTile extends Tile {
 	constructor(tessagon, options = {}) {
 		super(tessagon, options);
@@ -7233,6 +7232,56 @@ class VoronoiTessagon extends Tessagon {
 		return polys;
 	}
 }
+
+//#region new code
+const TessagonTypes = {
+	// Every tessagon type provided by alibs/tess.js.
+	BigHexTriTessagon,
+	CloverdaleTessagon,
+	DissectedHexQuadTessagon,
+	DissectedHexTriTessagon,
+	DissectedSquareTessagon,
+	DissectedTriangleTessagon,
+	DissectedTriangleBoard,
+	DodecaTessagon,
+	DodecaTriTessagon,
+	FloretTessagon,
+	HexBigTriTessagon,
+	HexSquareTriTessagon,
+	HexTriTessagon,
+	IslamicHexStarsTessagon,
+	IslamicStarsCrossesTessagon,
+	OctoTessagon,
+	PentaTessagon,
+	Penta2Tessagon,
+	PythagoreanTessagon,
+	RhombusTessagon,
+	SquareTessagon,
+	SquareTriTessagon,
+	SquareTri2Tessagon,
+	StanleyParkTessagon,
+	TriTessagon,
+	ValemountTessagon,
+	WeaveTessagon,
+	ZigZagTessagon,
+	HexTessagon,
+	HexBoardTessagon,
+	BigHexTriBoardTessagon,
+	DodecaBoardTessagon,
+	FloretBoardTessagon,
+	FloretCompleteBoardTessagon,
+	DissectedCrossStarBoardTessagon,
+	CrossStarBoard2,
+	BrickTessagon,
+	BrickWallTessagon,
+	Simple2Tessagon,
+	SquareStarTessagon,
+	VoronoiTessagon
+	// SimpleBoundaryTessagon,
+	// Simple1Tessagon,
+};
+
+
 
 function centroid(poly) {
 	// Area-weighted centroid of a polygon, returned as [x, y].
@@ -7796,7 +7845,7 @@ function labelVertices(mesh, svg) {
 		svg.appendChild(text);
 	});
 }
-function drawEdges(mesh, svgId) {
+function _drawEdges(mesh, svgId) {
 	const svg = document.getElementById(svgId);
 	if (!svg) return;
 
@@ -8051,53 +8100,6 @@ function defaultPlane(h, v) {
 	return [h, 1 - v, 0];
 }
 
-const TessagonTypes = {
-	// Every tessagon type provided by alibs/tess.js.
-	BigHexTriTessagon,
-	CloverdaleTessagon,
-	DissectedHexQuadTessagon,
-	DissectedHexTriTessagon,
-	DissectedSquareTessagon,
-	DissectedTriangleTessagon,
-	DissectedTriangleBoard, 
-	DodecaTessagon,
-	DodecaTriTessagon,
-	FloretTessagon,
-	HexBigTriTessagon,
-	HexSquareTriTessagon,
-	HexTriTessagon,
-	IslamicHexStarsTessagon,
-	IslamicStarsCrossesTessagon,
-	OctoTessagon,
-	PentaTessagon,
-	Penta2Tessagon,
-	PythagoreanTessagon,
-	RhombusTessagon,
-	SquareTessagon,
-	SquareTriTessagon,
-	SquareTri2Tessagon,
-	StanleyParkTessagon,
-	TriTessagon,
-	ValemountTessagon,
-	WeaveTessagon,
-	ZigZagTessagon,
-	HexTessagon,
-	HexBoardTessagon,
-	BigHexTriBoardTessagon,
-	DodecaBoardTessagon,
-	FloretBoardTessagon,
-	FloretCompleteBoardTessagon,
-	DissectedCrossStarBoardTessagon,
-	CrossStarBoard2,
-	BrickTessagon,
-	BrickWallTessagon,
-	SimpleBoundaryTessagon,
-	Simple2Tessagon,
-	Simple1Tessagon,
-	SquareStarTessagon,
-	VoronoiTessagon
-};
-
 function buildHexBoard(size, options = {}) {
 	// Build a hexagonal board of side length `size` from a HexTessagon.
 	//
@@ -8245,6 +8247,8 @@ function renderHexBoard(board, container, options = {}) {
 		poly.setAttribute('stroke-width', strokeWidth);
 		poly.setAttribute('stroke-linejoin', 'round');
 		poly.setAttribute('class', 'cell');
+		poly.dataset.boardId = board.cells[idx].id;
+		poly.dataset.boardKind = "cell";
 		if (options.onCellClick) {
 			poly.addEventListener('click', () => options.onCellClick(idx, board));
 		}
@@ -8284,6 +8288,8 @@ function addStreets(board, svg, options = {}) {
 		line.setAttribute('stroke-linecap', 'round');
 		line.setAttribute('class', 'street');
 		line.dataset.street = street.id;
+		line.dataset.boardId = street.id;
+		line.dataset.boardKind = "street";
 		line.dataset.cells = street.cells.join(',');
 
 		street.line = line;
@@ -8352,7 +8358,8 @@ function addCities(board, svg, options = {}) {
 			city: city.id,
 			vertex: city.v
 		});
-
+		circle.dataset.boardId = city.id;
+		circle.dataset.boardKind = "city";
 		city.circle = circle;
 		if (options.onCityClick) {
 			circle.addEventListener('click', () => options.onCityClick(city, board));
@@ -8573,10 +8580,9 @@ function analyzeBoard(board) {
 	//
 	// Idempotent: calling it again on a board that already has board.adj does
 	// nothing.
-	detectDuplicates(board);
-	if (board.adj) {
-		return board;
-	}
+	if (board.adj) { return board; }
+	removeDuplicates(board);
+	//detectDuplicates(board);
 	const faces = board.faces;
 	const verts = board.verts;
 
@@ -9150,3 +9156,164 @@ function generateAllTessellationVariants(cols = 10, rows = 10) {
 
 
 //#endregion
+
+//#region newer
+function removeIsolatedCities(board, svg = null) {
+	const isolated = isolatedCities(board);
+
+	if (svg) {
+		svg.querySelectorAll(".city-isolated, .label-isolated")
+			.forEach(element => element.remove());
+	}
+
+	if (!isolated.length) {
+		board.isolatedCities = [];
+		return 0;
+	}
+
+	const removedVertices = new Set(isolated.map(city => city.v));
+	const remap = new Map();
+	const verts = [];
+
+	board.verts.forEach((vertex, oldIndex) => {
+		if (!removedVertices.has(oldIndex)) {
+			remap.set(oldIndex, verts.length);
+			verts.push(vertex);
+		}
+	});
+
+	board.faces = board.faces.map(face => face.map(oldIndex => remap.get(oldIndex)));
+	board.verts = verts;
+
+	// Clear derived data so analyzeBoard rebuilds it with the updated vertices.
+	for (const key of ["adj", "cells", "cities", "streets", "duplicates"]) {
+		delete board[key];
+	}
+
+	board.isolatedCities = [];
+	analyzeBoard(board);
+
+	return isolated.length;
+}
+function getSvgElementForBoardId(svg, id) {
+	return [...svg.querySelectorAll("[data-board-id]")]
+		.find(element => element.dataset.boardId === String(id)) ?? null;
+}
+
+function getBoardObjectFromElement(board, element) {
+	console.log(element.dataset);
+	const { boardId, boardKind } = element.dataset;
+	if (!boardId || !boardKind) return null;
+
+	const collections = {
+		cell: board.cells,
+		street: board.streets,
+		city: board.cities
+	};
+
+	const found = collections[boardKind]?.find(item => item.id === boardId);
+	if (found) return found;
+
+	// Isolated city objects are calculated separately from board.cities.
+	if (boardKind === "city") {
+		return isolatedCities(board).find(item => item.id === boardId) ?? null;
+	}
+
+	return null;
+}
+
+function removeDuplicates(board) {
+	const { vertGroups, faceGroups } =
+		findDuplicateGroups(board.verts, board.faces);
+
+	// Map each duplicate vertex to the first vertex in its group.
+	const canonical = new Map();
+	const duplicateVerts = new Set();
+
+	for (const group of vertGroups) {
+		const keep = group[0];
+		for (const index of group.slice(1)) {
+			canonical.set(index, keep);
+			duplicateVerts.add(index);
+		}
+	}
+
+	// Remove duplicate vertices and build old-index -> new-index mapping.
+	const newVerts = [];
+	const newIndex = new Map();
+
+	board.verts.forEach((vert, oldIndex) => {
+		if (!duplicateVerts.has(oldIndex)) {
+			newIndex.set(oldIndex, newVerts.length);
+			newVerts.push(vert);
+		}
+	});
+
+	// Remap faces, discard degenerate faces, and keep the first duplicate face.
+	const seenFaces = new Set();
+	let removedFaces = 0;
+
+	const newFaces = [];
+
+	for (const face of board.faces) {
+		const remapped = face.map(oldIndex => {
+			const keepIndex = canonical.get(oldIndex) ?? oldIndex;
+			return newIndex.get(keepIndex);
+		});
+
+		// Remove consecutive duplicate vertices and a repeated closing vertex.
+		const clean = remapped.filter(
+			(index, i) => i === 0 || index !== remapped[i - 1]
+		);
+		if (clean.length > 1 && clean[0] === clean[clean.length - 1]) {
+			clean.pop();
+		}
+
+		if (new Set(clean).size < 3) {
+			removedFaces++;
+			continue;
+		}
+
+		const key = clean.slice().sort((a, b) => a - b).join(",");
+		if (seenFaces.has(key)) {
+			removedFaces++;
+			continue;
+		}
+
+		seenFaces.add(key);
+		newFaces.push(clean);
+	}
+
+	board.verts = newVerts;
+	board.faces = newFaces;
+
+	// Keep the tessagon's adaptor in sync when this board came from one.
+	const adaptor = board.tess?.mesh_adaptor;
+	if (adaptor) {
+		adaptor.vert_list = board.verts;
+		adaptor.face_list = board.faces;
+	}
+
+	// Discard derived data so analyzeBoard can rebuild it.
+	for (const key of [
+		"adj", "cells", "cities", "streets", "duplicates", "isolatedCities"
+	]) {
+		delete board[key];
+	}
+
+	return {
+		removedVertices: duplicateVerts.size,
+		removedFaces
+	};
+}
+
+
+
+
+
+
+
+
+
+
+

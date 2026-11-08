@@ -1,4 +1,8703 @@
 
+function mSvg(dParent, opts = {}) {
+  let { x, y, w, h, path, pathlist, points, pad = 0, ...rest } = opts;
+
+  let vbX = x, vbY = y, vbW = w, vbH = h;
+  const pathsToDraw = [];
+  let pointsToDraw = null;
+
+  if (path) pathsToDraw.push(path);
+  if (Array.isArray(pathlist)) pathsToDraw.push(...pathlist);
+
+  let ptMinX = Infinity, ptMaxX = -Infinity, ptMinY = Infinity, ptMaxY = -Infinity;
+  if (points) {
+    let ptArray = [];
+    if (typeof points === 'string') {
+      const nums = points.trim().split(/[\s,]+/).map(Number);
+      for (let i = 0; i < nums.length; i += 2) {
+        if (!isNaN(nums[i]) && !isNaN(nums[i + 1])) {
+          ptArray.push([nums[i], nums[i + 1]]);
+        }
+      }
+      pointsToDraw = points;
+    } else if (Array.isArray(points)) {
+      ptArray = points.map(pt => Array.isArray(pt) ? pt : [pt.x, pt.y]);
+      pointsToDraw = ptArray.map(pt => `${pt[0]},${pt[1]}`).join(' ');
+    }
+
+    ptArray.forEach(([px, py]) => {
+      if (px < ptMinX) ptMinX = px;
+      if (px > ptMaxX) ptMaxX = px;
+      if (py < ptMinY) ptMinY = py;
+      if (py > ptMaxY) ptMaxY = py;
+    });
+  }
+
+  if ((vbW == null || vbH == null) && pathsToDraw.length > 0) {
+    let pMinX = Infinity, pMaxX = -Infinity, pMinY = Infinity, pMaxY = -Infinity;
+
+    pathsToDraw.forEach(dStr => {
+      const matches = dStr.match(/[-+]?(?:\d*\.\d+|\d+)/g);
+      if (matches) {
+        for (let i = 0; i < matches.length; i += 2) {
+          const px = parseFloat(matches[i]);
+          const py = parseFloat(matches[i + 1]);
+          if (!isNaN(px) && !isNaN(py)) {
+            if (px < pMinX) pMinX = px;
+            if (px > pMaxX) pMaxX = px;
+            if (py < pMinY) pMinY = py;
+            if (py > pMaxY) pMaxY = py;
+          }
+        }
+      }
+    });
+
+    if (pMinX !== Infinity) {
+      ptMinX = Math.min(ptMinX, pMinX);
+      ptMaxX = Math.max(ptMaxX, pMaxX);
+      ptMinY = Math.min(ptMinY, pMinY);
+      ptMaxY = Math.max(ptMaxY, pMaxY);
+    }
+  }
+
+  if (vbW == null || vbH == null) {
+    if (ptMinX !== Infinity) {
+      vbX = ptMinX - pad;
+      vbY = ptMinY - pad;
+      vbW = (ptMaxX - ptMinX) + (pad * 2);
+      vbH = (ptMaxY - ptMinY) + (pad * 2);
+    } else {
+      vbX = 0; vbY = 0; vbW = 100; vbH = 100;
+    }
+  } else {
+    vbX = vbX ?? 0;
+    vbY = vbY ?? 0;
+  }
+
+  const svg = mDom(dParent, {
+    tag: 'svg',
+    w100: true,
+    h100: true,
+    viewBox: `${vbX} ${vbY} ${vbW} ${vbH}`,
+    ...rest
+  });
+
+  if (pointsToDraw) {
+    mDom(svg, {
+      tag: 'polygon',
+      points: pointsToDraw,
+      fill: rest.fill,
+      stroke: rest.stroke,
+      thickness: rest.thickness
+    });
+  }
+
+  pathsToDraw.forEach(dStr => {
+    mDom(svg, {
+      tag: 'path',
+      d: dStr,
+      fill: rest.fill,
+      stroke: rest.stroke,
+      thickness: rest.thickness
+    });
+  });
+
+  return svg;
+}
+
+function mSvg(svgCode, opts = {}) {
+  const svg = svgFromCode(svgCode);
+  for (const [key, value] of Object.entries(opts)) {
+    svg.setAttribute(key, value);
+  }
+  return svg;
+}
+
+
+function msShape(key, dParent, opts = {}, outer = {}) {
+  // t = Date.now();
+  addKeys({ w: '100%', h: '100%' }, opts);
+  let d = mDom(dParent, opts);
+  let res;
+  if (key == 'circle' || key == 'ellipse') {
+    mStyle(d, { rounding: '50%' });
+  } else if (PolyClips[key]) {
+    mStyle(d, { clipPath: PolyClips[key] });
+  } else {
+    let sh = key.data ? key : M.shapes[key];
+    let { g, text } = createStageX(d);
+    res = drawClaudeX(g, sh, opts.label || '', text, opts); //{ textFill, depth: opts.depth||20, color, blend: 'multiply' });   // draws the shape once
+  }
+  return d;
+}
+
+
+async function loadAssets() {
+  if (M.config) return;
+  let t = Date.now();
+  M = await loadJson('y/m.json');
+  M.config = await loadYaml('y/config.yaml');
+  M.images = await loadYaml('y/all_image_files.yaml');
+  // M.emo = await loadYaml('y/diemo.yaml');
+  M.emo = await loadJson('y/diemo.json');
+  M.emogroup = await loadYaml('y/digroup.yaml');
+  M.emokeys = Object.keys(M.emo).sort();
+  M.fa = await loadYaml('y/fadi.yaml');
+  M.fakeys = Object.keys(M.fa).sort();
+  t = Date.now() - t;
+  // console.log('old assets',t);
+  t = Date.now();
+  M.shapes = await loadJson('y/eshapes.json');
+  t = Date.now() - t;
+  // console.log('assets:shapes',t);
+
+  // M.shapes = await loadJson('y/emoshapes.json');
+  // // kind: 'circle' | 'points' | 'element'
+  // t = Date.now();
+  // let shapes = {
+  // 	circle: { kind: 'circle', data: { r: 180, cx: 200, cy: 200 } },
+  // 	triangle: { kind: 'points', data: [[200, 20], [385, 375], [15, 375]] },
+  // 	star4: { kind: 'points', data: geoStar(4) },
+  // 	star5: { kind: 'points', data: geoStar(5) },
+  // 	star6: { kind: 'points', data: geoStar(6) },
+  // 	star7: { kind: 'points', data: geoStar(7) },
+  // 	star8: { kind: 'points', data: geoStar(8) },
+  // 	star9: { kind: 'points', data: geoStar(9) },
+  // 	heart: {
+  // 		kind: 'element', tag: 'path',
+  // 		attrs: { d: 'M200 360 C60 260 20 180 20 125 C20 65 65 30 115 30 C155 30 185 50 200 85 C215 50 245 30 285 30 C335 30 380 65 380 125 C380 180 340 260 200 360 Z' }
+  // 	},
+  // 	ellipse: { kind: 'element', tag: 'ellipse', attrs: { cx: 200, cy: 200, rx: 185, ry: 120 } },
+  // 	hourglass: { kind: 'element', tag: 'polygon', attrs: { points: '30,20 370,20 230,200 370,380 30,380 170,200' } },
+  // };
+  // for (const [name, css] of Object.entries(PolyClips)) {
+  // 	const def = clipToShape(css);
+  // 	if (!def) { console.warn(`PolyClips.${name} is not valid CSS, skipped:`, css); continue; }
+  // 	def.sig = css;                       // identical clip strings share one dropdown entry
+  // 	shapes[name] = def;
+  // }
+  // for(const k in shapes) {
+  //   M.shapes[k] = shapes[k];
+  // }
+  // t = Date.now() - t; console.log('polyclips',t);
+
+  // t = Date.now();
+  // let sh = await emojiSvgToShape(svgGetMeepleText());
+  // M.shapes.meeple = sh;
+  // t = Date.now() - t; console.log('emoToShape meeple',t);
+
+  t = Date.now();
+  M.shapeKeys = Object.keys(M.shapes).sort();
+
+  Object.freeze(M);
+  t = Date.now() - t;
+  // console.log('sort keys',t);
+}
+
+function mKey_orig(imgKey, d, styles = {}, opts = {}) {
+  if (nundef(opts.prefer)) { opts.prefer = 'emoji'; }
+  styles = jsCopy(styles);
+  if (!isString(imgKey)) { imgKey = imgKey.toString(); opts.prefer = 'plain'; }
+  let o = opts.prefer == 'emoji' ? M.emo[imgKey] : imgKey.includes('.') ? { src: imgKey } : opts.prefer == 'plain' ? { plain: imgKey } : lookup(M.superdi, [imgKey]);
+  let type = opts.prefer;
+  let types = ['src', 'img', 'photo', 'uni', 'emo', 'fa6', 'fa', 'ga', 'plain'];
+  if (nundef(type) && nundef(o[type])) type = types.find(x => isdef(o[x]));
+  let d0 = mDom(d, styles, opts);
+  let [w, h] = mSizeSuccession(styles, 100);
+  if (type.startsWith('ani')) {
+    o = M.emo[imgKey];
+    if (!isdef(o.ani)) type = 'emoji';
+    else {
+      let astyles = { display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+      mStyle(d0, astyles);
+      let img = mDom(d0, { h, fit: 'contain', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }, { tag: 'img' });
+      if (type == 'anihover') {
+        let path = img.src = stringBefore(o.ani, '.webp') + '.png';
+        img.onmouseenter = () => img.src = o.ani;
+        img.onmouseleave = () => img.src = path;
+      } else {
+        img.src = o.ani;
+      }
+      if (isdef(opts.label)) {
+        let x = mDom(d0, { w: '80%', maleft: '10%', matop: 4 })
+        mDom(x, { fz: 18, family: 'opensans', align: 'center' }, { className: 'ellipsis', html: opts.label });
+      }
+      return d0;
+    }
+  }
+  if (type == 'emoji') {
+    let family = styles.family || 'emoNoto';
+    let fz = styles.fz || 50;
+    let cursor = styles.cursor || 'default';
+    let astyles = { html: o.html, hline: 1, cursor, fz, family, display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+    mStyle(d0, astyles);
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    let szi = isdef(opts.szImage) ? opts.szImage : styles.sz;
+    let w1, h1;
+    if (szi != h) { w1 = szi; h1 = szi; mFlex(d0, true, 'center'); } else { w1 = w; h1 = h; }
+    let astyle = { w: w1, h: h1, fit: styles.fit ? styles.fit : o && o.cats.includes('card') ? 'contain' : 'cover', 'object-position': 'center center' };
+    mDom(d0, astyle, { ...opts, tag: 'img', src: o[type], alt: imgKey });
+  } else if (type == 'plain') {
+    let [family, fz] = [valf(styles.family, 'opensans'), valf(styles.fz, 12)]; //console.log('fz', fz)
+    mStyle(d0, { family, fz }, { html: o[type] });
+    let x = mDom(d0, { family, fz }, { ...opts, html: o[type] }); //console.log(x)
+  } else {
+    let family = Families[type] || 'inherit';
+    let text = ['fa6', 'fa', 'ga'].includes(type) ? `&#x${o[type]};` : o[type];
+    let fz = styles.fz;
+    let astyles = { fz, family, display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+    mStyle(d0, astyles, { html: text });
+  }
+  if (isdef(opts.label)) {
+    let x = mDom(d0, { w: '80%', matop: 4 })
+    mDom(x, { fz: 18, family: 'opensans', align: 'center' }, { className: 'ellipsis', html: opts.label });
+  }
+  return d0;
+}
+
+//mist
+function _mKey(value, d, opts = {}) {
+  const {
+    prefer,
+    label,
+    szImage,
+    color,
+    ...styles
+  } = opts;
+
+  const root = mDom(d, { ...styles });
+
+  let content = value;
+  let type = prefer;
+  if (type == 'shape') {
+    content = M.shapes[content];
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.alignItems = 'center';
+    drawShape(content, root, { label: '', w: '80%', h: '80%', depth: 0, texture: null, color });
+    addLabel(root, label);
+    return root;
+  }
+  if (type == 'meeple') {
+    content = M.shapes[content];
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.alignItems = 'center';
+    drawShape(content, root, { label: '', w: '80%', h: '80%', depth: 20, color });
+    addLabel(root, label);
+    return root;
+  }
+
+  // An object with a requested field displays that field.
+  // Other objects and lists are shown as YAML.
+  else if (value !== null && typeof value === 'object') {
+    if (prefer && !Array.isArray(value) && prefer in value) {
+      content = value[prefer];
+      type = prefer;
+    } else {
+      root.style.overflow = 'auto';
+      const pre = mDom(root, { tag: 'pre', margin: 0, whiteSpace: 'pre-wrap' });
+      pre.textContent = YAML.stringify(value);
+      return root;
+    }
+  }
+
+  if (typeof content !== 'string') { content = String(content); }
+
+  // Choose a display type automatically when none was requested.
+  if (!type) {
+    if (M.emo?.[content]) {
+      type = 'emoji';
+    } else if (
+      M.images?.includes(content) ||
+      /^(https?:|data:|\/|\.\/|\.\.\/)/i.test(content) ||
+      /\.(svg|png|jpe?g|gif|webp|avif)(?:[?#].*)?$/i.test(content)
+    ) {
+      type = 'img';
+    } else {
+      type = 'plain';
+    }
+  }
+
+  if (type.startsWith('ani')) {
+    const emoji = M.emo?.[content];
+
+    if (emoji?.ani) {
+      root.style.display = 'flex';
+      root.style.flexDirection = 'column';
+      root.style.alignItems = 'center';
+
+      const img = mDom(root, {
+        tag: 'img',
+        w: '100%',
+        h: label ? 'calc(100% - 22px)' : '100%',
+        fit: 'contain',
+        flex: '1 1 auto',
+        minHeight: 0,
+        cursor: 'pointer'
+      });
+
+      const still = emoji.ani.replace(/\.webp([?#].*)?$/i, '.png$1');
+      img.src = type === 'anihover' ? still : emoji.ani;
+
+      if (type === 'anihover') {
+        img.onmouseenter = () => { img.src = emoji.ani; };
+        img.onmouseleave = () => { img.src = still; };
+      }
+    } else {
+      type = 'emoji';
+    }
+  }
+
+  if (type === 'emoji') {
+    const emoji = M.emo?.[content];
+    mStyle(root, {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fz: styles.fz || 50,
+      family: styles.family || 'emoNoto',
+      html: emoji?.html || content
+    });
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.alignItems = 'center';
+
+    const img = mDom(root, {
+      tag: 'img',
+      w: '100%',
+      h: label ? 'calc(100% - 22px)' : '100%',
+      fit: styles.fit || 'contain',
+      flex: '1 1 auto',
+      minHeight: 0,
+      alt: content
+    });
+
+    // Set the property directly so mDom/mStyle cannot treat src as CSS.
+    img.src = content;
+  } else {
+    const span = mDom(root, { tag: 'span' });
+    span.textContent = content;
+  }
+
+  if (label) {
+    const caption = mDom(root, {
+      tag: 'div',
+      h: 22,
+      flex: '0 0 22px',
+      align: 'center',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap'
+    });
+    caption.textContent = label;
+  }
+
+  // addLabel(root, label);	
+  return root;
+}
+function addLabel(parent, text = label) {
+  if (!text) return;
+
+  const caption = mDom(parent, {
+    tag: 'div',
+    w: '100%',
+    h: 22,
+    flex: '0 0 22px',
+    align: 'center',
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    minWidth: 0
+  });
+
+  caption.textContent = text;
+
+  requestAnimationFrame(() => {
+    if (caption.scrollWidth > caption.clientWidth) {
+      caption.title = text;
+    }
+  });
+}
+function _mKey(value, d, opts = {}) {
+  const {
+    prefer,
+    label,
+    ...styles
+  } = opts;
+
+  const root = mDom(d, styles);
+
+  function addLabel(parent, text = label) {
+    if (!text) return;
+
+    const caption = mDom(parent, {
+      tag: 'div',
+      w: '100%',
+      h: 22,
+      flex: '0 0 22px',
+      align: 'center',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      textOverflow: 'ellipsis',
+      minWidth: 0
+    });
+
+    caption.textContent = text;
+
+    requestAnimationFrame(() => {
+      if (caption.scrollWidth > caption.clientWidth) {
+        caption.title = text;
+      }
+    });
+  }
+  function renderShape(shape, key, mode) {
+    if (mode === 'meeple') {
+      const { g, text } = createStageX(root);
+      const color = opts.color || rColor();
+
+      drawClaudeX(
+        g,
+        shape,
+        label || (typeof key === 'string' ? key : ''),
+        text,
+        {
+          textFill: clrText(color),
+          depth: 20,
+          color,
+          blend: 'multiply'
+        }
+      );
+      return;
+    }
+
+    const points = shape.data.map(point =>
+      Array.isArray(point)
+        ? [Number(point[0]), Number(point[1])]
+        : [Number(point.x), Number(point.y)]
+    );
+
+    if (points.length < 3) {
+      throw new Error('Shape needs at least three points.');
+    }
+
+    const xs = points.map(point => point[0]);
+    const ys = points.map(point => point[1]);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const width = Math.max(maxX - minX, 0.01);
+    const height = Math.max(maxY - minY, 0.01);
+
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.alignItems = 'center';
+
+    const svg = mDom(root, {
+      tag: 'svg',
+      w: '100%',
+      h: label ? 'calc(100% - 22px)' : '100%',
+      viewBox: `${minX} ${minY} ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
+      flex: '1 1 auto',
+      minHeight: 0
+    });
+
+    const polygon = mDom(svg, {
+      tag: 'polygon',
+      points: points.map(([x, y]) => `${x},${y}`).join(' ')
+    });
+    polygon.setAttribute('fill', opts.color || '#333');
+
+    addLabel(root);
+  }
+
+  function loadShape(key, mode) {
+    const existing = M.shapes?.[key];
+
+    if (existing?.data) {
+      renderShape(existing, key, mode);
+      return root;
+    }
+
+    return loadText(`assets/svg/${key}.svg`)
+      .then(svgText => emojiSvgToShape(svgText))
+      .then(shape => {
+        M.shapes ??= {};
+        M.shapes[key] = shape;
+        renderShape(shape, key, mode);
+        return root;
+      });
+  }
+
+  let content = value;
+  let type = prefer;
+
+  // A shape object can be passed directly.
+  if (value && typeof value === 'object' && !Array.isArray(value) && value.data) {
+    renderShape(value, value.key, prefer === 'meeple' ? 'meeple' : 'shape');
+    return root;
+  }
+
+  // An object may select a field with opts.prefer.
+  if (value !== null && typeof value === 'object') {
+    if (prefer && !Array.isArray(value) && prefer in value) {
+      content = value[prefer];
+    } else {
+      root.style.overflow = 'auto';
+      const pre = mDom(root, {
+        tag: 'pre',
+        margin: 0,
+        whiteSpace: 'pre-wrap'
+      });
+      pre.textContent = jsyaml.dump(value);
+      return root;
+    }
+  }
+
+  if (typeof content !== 'string') {
+    content = String(content);
+  }
+
+  // Shape modes look for a cached shape, then load and convert its SVG.
+  if (type === 'shape' || type === 'meeple') {
+    return loadShape(content, type);
+  }
+
+  // Choose a display type automatically when none was requested.
+  if (!type) {
+    if (M.emo?.[content]) {
+      type = 'emoji';
+    } else if (
+      M.images?.includes(content) ||
+      /^(https?:|data:|\/|\.\/|\.\.\/)/i.test(content) ||
+      /\.(svg|png|jpe?g|gif|webp|avif)(?:[?#].*)?$/i.test(content)
+    ) {
+      type = 'img';
+    } else {
+      type = 'plain';
+    }
+  }
+
+  if (type.startsWith('ani')) {
+    const emoji = M.emo?.[content];
+
+    if (emoji?.ani) {
+      root.style.display = 'flex';
+      root.style.flexDirection = 'column';
+      root.style.alignItems = 'center';
+
+      const img = mDom(root, {
+        tag: 'img',
+        w: '100%',
+        h: label ? 'calc(100% - 22px)' : '100%',
+        fit: 'contain',
+        flex: '1 1 auto',
+        minHeight: 0,
+        cursor: 'pointer'
+      });
+
+      const still = emoji.ani.replace(/\.webp([?#].*)?$/i, '.png$1');
+      img.src = type === 'anihover' ? still : emoji.ani;
+
+      if (type === 'anihover') {
+        img.onmouseenter = () => { img.src = emoji.ani; };
+        img.onmouseleave = () => { img.src = still; };
+      }
+    } else {
+      type = 'emoji';
+    }
+  } else if (type === 'emoji') {
+    const emoji = M.emo?.[content];
+    mStyle(root, {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fz: styles.fz || 50,
+      family: styles.family || 'emoNoto',
+      html: emoji?.html || content
+    });
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    root.style.display = 'flex';
+    root.style.flexDirection = 'column';
+    root.style.alignItems = 'center';
+
+    const img = mDom(root, {
+      tag: 'img',
+      w: '100%',
+      h: label ? 'calc(100% - 22px)' : '100%',
+      fit: styles.fit || 'contain',
+      flex: '1 1 auto',
+      minHeight: 0,
+      alt: content
+    });
+    img.src = content;
+  } else {
+    const span = mDom(root, { tag: 'span' });
+    span.textContent = content;
+  }
+
+  addLabel(root);
+  return root;
+}
+
+
+function drawShape(dParent, key, sh, { w = 200, h = 200, bg = 'blue' } = {}) {
+  t = Date.now();
+  let ds1 = mDom(dParent, { w, h, bg });
+  let o1 = createStageX(ds1);
+  o1 = drawClaudeX(o1.g, sh, key, o1.text, { textFill: 'red', depth: 20, color: 'red' });   // draws the shape once
+  console.log('drawn shape in', Date.now() - t, 'ms');
+
+}
+
+function _mKey(value, d, opts = {}) {
+  const { prefer, label, ...styles } = opts;
+  const root = mDom(d, styles);
+
+  let type = prefer;
+  let content = value;
+
+  if (value && typeof value === 'object') {
+    // For example: mKey({ img: 'animals/elephant.png' }, d, { prefer: 'img' })
+    if (prefer && !Array.isArray(value) && prefer in value) {
+      content = value[prefer];
+      type = prefer;
+    } else {
+      const pre = mDom(root, {
+        tag: 'pre',
+        margin: 0,
+        whiteSpace: 'pre-wrap'
+      });
+      pre.textContent = jsyaml.dump(value);
+      return root;
+    }
+  }
+
+  if (typeof content === 'string' && !type) {
+    if (M.emo?.[content]) {
+      type = 'emoji';
+    } else if (
+      M.images?.includes(content) ||
+      /^(https?:|data:|\/|\.\/|\.\.\/)/i.test(content) ||
+      /\.(svg|png|jpe?g|gif|webp|avif)(?:[?#].*)?$/i.test(content)
+    ) {
+      type = 'img';
+    } else {
+      type = 'plain';
+    }
+  }
+
+  if (type?.startsWith('ani')) {
+    const emoji = M.emo?.[content];
+
+    if (emoji?.ani) {
+      const img = mDom(root, {
+        tag: 'img',
+        h: '100%',
+        fit: 'contain',
+        cursor: 'pointer'
+      });
+
+      const still = emoji.ani.replace(/\.webp([?#].*)?$/i, '.png$1');
+      img.src = type === 'anihover' ? still : emoji.ani;
+
+      if (type === 'anihover') {
+        img.onmouseenter = () => { img.src = emoji.ani; };
+        img.onmouseleave = () => { img.src = still; };
+      }
+    } else {
+      type = 'emoji';
+    }
+  }
+
+  if (type === 'emoji') {
+    const emoji = M.emo?.[content];
+    mStyle(root, {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fz: styles.fz || 50,
+      family: styles.family || 'emoNoto',
+      html: emoji?.html || content
+    });
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    mDom(root, {
+      tag: 'img',
+      src: content,
+      alt: String(value),
+      w: '100%',
+      h: '100%',
+      fit: styles.fit || 'contain'
+    });
+  } else {
+    const text = type === 'plain' ? content : String(content);
+    const span = mDom(root, { tag: 'span' });
+    span.textContent = text;
+  }
+
+  if (label) {
+    const caption = mDom(root, { tag: 'div', align: 'center' });
+    caption.textContent = label;
+  }
+
+  return root;
+}
+
+
+function mKey(imgKey, d, styles = {}, opts = {}) {
+  if (nundef(opts.prefer)) opts.prefer = 'emoji';
+
+  styles = jsCopy(styles);
+
+  if (!isString(imgKey)) {
+    imgKey = imgKey.toString();
+    opts.prefer = 'plain';
+  }
+
+  let o = opts.prefer == 'emoji'
+    ? M.emo[imgKey]
+    : imgKey.includes('.')
+      ? { src: imgKey }
+      : opts.prefer == 'plain'
+        ? { plain: imgKey }
+        : lookup(M.superdi, [imgKey]);
+
+  let type = opts.prefer;
+  let types = ['src', 'img', 'photo', 'uni', 'emo', 'fa6', 'fa', 'ga', 'plain'];
+
+  if (nundef(type) && nundef(o[type])) {
+    type = types.find(x => isdef(o[x]));
+  }
+
+  let d0 = mDom(d, { ...styles, ...opts });
+  let [w, h] = mSizeSuccession(styles, 100);
+
+  if (type.startsWith('ani')) {
+    o = M.emo[imgKey];
+
+    if (!o.ani) {
+      type = 'emoji';
+    } else {
+      let astyles = {
+        display: 'flex',
+        dir: 'column',
+        justifyContent: 'center',
+        alignItems: 'center'
+      };
+
+      mStyle(d0, astyles);
+
+      let img = mDom(d0, {
+        h,
+        fit: 'contain',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease-in-out',
+        tag: 'img'
+      });
+
+      if (type == 'anihover') {
+        let path = img.src = stringBefore(o.ani, '.webp') + '.png';
+        img.onmouseenter = () => img.src = o.ani;
+        img.onmouseleave = () => img.src = path;
+      } else {
+        img.src = o.ani;
+      }
+
+      if (isdef(opts.label)) {
+        let x = mDom(d0, { w: '80%', maleft: '10%', matop: 4 });
+        mDom(x, {
+          fz: 18,
+          family: 'opensans',
+          align: 'center',
+          className: 'ellipsis',
+          html: opts.label
+        });
+      }
+
+      return d0;
+    }
+  }
+
+  if (type == 'emoji') {
+    let family = styles.family || 'emoNoto';
+    let fz = styles.fz || 50;
+    let cursor = styles.cursor || 'default';
+    let astyles = {
+      hline: 1,
+      cursor,
+      fz,
+      family,
+      display: 'flex',
+      dir: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    };
+
+    mStyle(d0, astyles, { html: o.html });
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    let szi = isdef(opts.szImage) ? opts.szImage : styles.sz;
+    let w1, h1;
+
+    if (szi != h) {
+      w1 = szi;
+      h1 = szi;
+      mFlex(d0, true, 'center');
+    } else {
+      w1 = w;
+      h1 = h;
+    }
+
+    let astyle = {
+      w: w1,
+      h: h1,
+      fit: styles.fit
+        ? styles.fit
+        : o && o.cats.includes('card')
+          ? 'contain'
+          : 'cover',
+      'object-position': 'center center',
+      ...opts,
+      tag: 'img',
+      src: o[type],
+      alt: imgKey
+    };
+
+    mDom(d0, astyle);
+  } else if (type == 'plain') {
+    let [family, fz] = [
+      valf(styles.family, 'opensans'),
+      valf(styles.fz, 12)
+    ];
+
+    mStyle(d0, { family, fz }, { html: o.plain });
+    mDom(d0, { family, fz, ...opts, html: o.plain });
+  } else {
+    let family = Families[type] || 'inherit';
+    let text = ['fa6', 'fa', 'ga'].includes(type)
+      ? `&#x${o[type]};`
+      : o[type];
+    let fz = styles.fz;
+    let astyles = {
+      fz,
+      family,
+      display: 'flex',
+      dir: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    };
+
+    mStyle(d0, astyles, { html: text });
+  }
+
+  if (isdef(opts.label)) {
+    let x = mDom(d0, { w: '80%', matop: 4 });
+    mDom(x, {
+      fz: 18,
+      family: 'opensans',
+      align: 'center',
+      className: 'ellipsis',
+      html: opts.label
+    });
+  }
+
+  return d0;
+}
+function mKey(imgKey, d, styles = {}, opts = {}) {
+  if (nundef(opts.prefer)) { opts.prefer = 'emoji'; }
+  styles = jsCopy(styles);
+  if (!isString(imgKey)) { imgKey = imgKey.toString(); opts.prefer = 'plain'; }
+  let o = opts.prefer == 'emoji' ? M.emo[imgKey] : imgKey.includes('.') ? { src: imgKey } : opts.prefer == 'plain' ? { plain: imgKey } : lookup(M.superdi, [imgKey]);
+  let type = opts.prefer;
+  let types = ['src', 'img', 'photo', 'uni', 'emo', 'fa6', 'fa', 'ga', 'plain'];
+  if (nundef(type) && nundef(o[type])) type = types.find(x => isdef(o[x]));
+  let d0 = mDom(d, styles, opts);
+  let [w, h] = mSizeSuccession(styles, 100);
+  if (type.startsWith('ani')) {
+    o = M.emo[imgKey];
+    if (!isdef(o.ani)) type = 'emoji';
+    else {
+      let astyles = { display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+      mStyle(d0, astyles);
+      let img = mDom(d0, { h, fit: 'contain', cursor: 'pointer', transition: 'all 0.2s ease-in-out' }, { tag: 'img' });
+      if (type == 'anihover') {
+        let path = img.src = stringBefore(o.ani, '.webp') + '.png';
+        img.onmouseenter = () => img.src = o.ani;
+        img.onmouseleave = () => img.src = path;
+      } else {
+        img.src = o.ani;
+      }
+      if (isdef(opts.label)) {
+        let x = mDom(d0, { w: '80%', maleft: '10%', matop: 4 })
+        mDom(x, { fz: 18, family: 'opensans', align: 'center' }, { className: 'ellipsis', html: opts.label });
+      }
+      return d0;
+    }
+  }
+  if (type == 'emoji') {
+    let family = styles.family || 'emoNoto';
+    let fz = styles.fz || 50;
+    let cursor = styles.cursor || 'default';
+    let astyles = { hline: 1, cursor, fz, family, display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+    mStyle(d0, astyles, { html: o.html });
+  } else if (['img', 'src', 'photo'].includes(type)) {
+    let szi = isdef(opts.szImage) ? opts.szImage : styles.sz;
+    let w1, h1;
+    if (szi != h) { w1 = szi; h1 = szi; mFlex(d0, true, 'center'); } else { w1 = w; h1 = h; }
+    let astyle = { w: w1, h: h1, fit: styles.fit ? styles.fit : o && o.cats.includes('card') ? 'contain' : 'cover', 'object-position': 'center center' };
+    mDom(d0, astyle, { ...opts, tag: 'img', src: o[type], alt: imgKey });
+  } else if (type == 'plain') {
+    let [family, fz] = [valf(styles.family, 'opensans'), valf(styles.fz, 12)]; //console.log('fz', fz)
+    mStyle(d0, { family, fz }, { html: o[type] });
+    let x = mDom(d0, { family, fz }, { ...opts, html: o[type] }); //console.log(x)
+  } else {
+    let family = Families[type] || 'inherit';
+    let text = ['fa6', 'fa', 'ga'].includes(type) ? `&#x${o[type]};` : o[type];
+    let fz = styles.fz;
+    let astyles = { fz, family, display: 'flex', dir: 'column', justifyContent: 'center', alignItems: 'center' };
+    mStyle(d0, astyles, { html: text });
+  }
+  if (isdef(opts.label)) {
+    let x = mDom(d0, { w: '80%', matop: 4 })
+    mDom(x, { fz: 18, family: 'opensans', align: 'center' }, { className: 'ellipsis', html: opts.label });
+  }
+  return d0;
+}
+
+
+function mExtractShapes(svgCode) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgCode, 'image/svg+xml');
+  const source = doc.documentElement;
+
+  if (source.localName !== 'svg' || doc.querySelector('parsererror')) {
+    throw new Error('mExtractShapes expects valid SVG markup.');
+  }
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const measureSvg = document.createElementNS(ns, 'svg');
+  measureSvg.setAttribute('xmlns', ns);
+
+  // Keep it measurable while preventing it from appearing in the page.
+  Object.assign(measureSvg.style, {
+    position: 'fixed',
+    left: '-100000px',
+    top: '0',
+    visibility: 'hidden',
+    overflow: 'visible'
+  });
+
+  measureSvg.append(...Array.from(source.childNodes, node =>
+    document.importNode(node, true)
+  ));
+  document.body.appendChild(measureSvg);
+
+  try {
+    const box = measureSvg.getBBox();
+
+    if (!box.width || !box.height) {
+      throw new Error('The SVG has no measurable visible shapes.');
+    }
+
+    const result = document.createElementNS(ns, 'svg');
+    result.setAttribute('width', '100%');
+    result.setAttribute('height', '100%');
+    result.setAttribute(
+      'viewBox',
+      `${box.x} ${box.y} ${box.width} ${box.height}`
+    );
+    result.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+    for (const attr of source.attributes) {
+      if (!['width', 'height', 'viewBox', 'preserveAspectRatio', 'xmlns'].includes(attr.name)) {
+        result.setAttribute(attr.name, attr.value);
+      }
+    }
+
+    result.append(...Array.from(source.childNodes, node =>
+      document.importNode(node, true)
+    ));
+
+    return result;
+  } finally {
+    measureSvg.remove();
+  }
+}
+
+
+function mSvgFromText(dParent, opts = {}) {
+  const { text, pad = 0, ...rest } = opts;
+  if (!text) return { viewBox: '0 0 100 100', items: [], svg: null };
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const shapeElements = [...doc.querySelectorAll('path, rect, circle, polygon, polyline, ellipse, line')];
+
+  const items = [];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+  const round2 = (num) => parseFloat(Number(num).toFixed(2));
+
+  const trackBounds = (x, y) => {
+    if (!isNaN(x) && !isNaN(y)) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  };
+
+  // Helper to copy all presentation attributes (fill, stroke, opacity, style, etc.)
+  const extractAttributes = (elem) => {
+    const attrOpts = {};
+    for (const attr of elem.attributes) {
+      let key = attr.name;
+      if (key === 'stroke-width') key = 'thickness'; // maps to mStyle thickness shortcut
+      attrOpts[key] = attr.value;
+    }
+    return attrOpts;
+  };
+
+  shapeElements.forEach(elem => {
+    const tagName = elem.tagName.toLowerCase();
+    const itemOpts = extractAttributes(elem);
+    itemOpts.tag = tagName;
+
+    if (tagName === 'path') {
+      const rawD = elem.getAttribute('d');
+      if (!rawD) return;
+
+      // Match path command letters (M, L, C, S, Q, T, A, Z) or numeric values
+      let isX = true;
+      itemOpts.d = rawD.replace(/([a-zA-Z])|([-+]?(?:\d*\.\d+|\d+))/g, (match, cmd, num) => {
+        if (cmd) {
+          if (/[MLCSQTA]/.test(cmd)) isX = true;
+          return cmd;
+        }
+
+        const val = round2(num);
+
+        if (isX) {
+          trackBounds(val, minY);
+        } else {
+          trackBounds(minX, val);
+        }
+        isX = !isX;
+
+        return val;
+      });
+    }
+    else if (tagName === 'polygon' || tagName === 'polyline') {
+      const pts = (elem.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+      const roundedPts = [];
+      for (let i = 0; i < pts.length; i += 2) {
+        if (!isNaN(pts[i]) && !isNaN(pts[i + 1])) {
+          const rx = round2(pts[i]);
+          const ry = round2(pts[i + 1]);
+          trackBounds(rx, ry);
+          roundedPts.push(`${rx},${ry}`);
+        }
+      }
+      itemOpts.points = roundedPts.join(' ');
+    }
+    else if (tagName === 'rect') {
+      const x = round2(elem.getAttribute('x') || 0);
+      const y = round2(elem.getAttribute('y') || 0);
+      const w = round2(elem.getAttribute('width') || 0);
+      const h = round2(elem.getAttribute('height') || 0);
+      trackBounds(x, y);
+      trackBounds(x + w, y + h);
+      itemOpts.x = x; itemOpts.y = y; itemOpts.w = w; itemOpts.h = h;
+    }
+    else if (tagName === 'circle') {
+      const cx = round2(elem.getAttribute('cx') || 0);
+      const cy = round2(elem.getAttribute('cy') || 0);
+      const r = round2(elem.getAttribute('r') || 0);
+      trackBounds(cx - r, cy - r);
+      trackBounds(cx + r, cy + r);
+      itemOpts.cx = cx; itemOpts.cy = cy; itemOpts.r = r;
+    }
+
+    items.push(itemOpts);
+  });
+
+  // Calculate final viewBox
+  let viewBox = '0 0 100 100';
+  if (minX !== Infinity) {
+    const vbX = round2(minX - pad);
+    const vbY = round2(minY - pad);
+    const vbW = round2((maxX - minX) + (pad * 2));
+    const vbH = round2((maxY - minY) + (pad * 2));
+    viewBox = `${vbX} ${vbY} ${vbW} ${vbH}`;
+  }
+
+  // Render to DOM via mDom if dParent is supplied
+  let svgNode = null;
+  if (isdef(dParent)) {
+    svgNode = mDom(dParent, {
+      tag: 'svg',
+      w100: true,
+      h100: true,
+      viewBox: viewBox,
+      ...rest
+    });
+
+    items.forEach(item => {
+      mDom(svgNode, item);
+    });
+  }
+
+  return { viewBox, items, svg: svgNode };
+}
+
+/**
+ * Processes SVG text: preserves shape tags, commands, and attributes,
+ * formats numeric coordinates to fixed 2-decimal numbers, computes the tight viewBox,
+ * and appends to dParent.
+ */
+
+function mSvgFromText(dParent, opts = {}) {
+  /**
+   * Processes SVG text/string: extracts paths, rounds numbers, downsamples long paths (>50 pts),
+   * and returns calculated viewBox and simplified pathlist (or appends to dParent).
+   * 
+   * @param {HTMLElement|string|null} dParent - Parent element or null for pure data output.
+   * @param {Object} opts - Options object.
+   * @param {string} opts.text - Raw SVG XML text.
+   * @param {number} [opts.maxPoints=50] - Maximum point threshold before downsampling.
+   * @param {number} [opts.decimals=2] - Decimal places for rounding path coordinates.
+   * @param {number} [opts.pad=0] - Padding around the viewBox.
+   * @returns {{ viewBox: string, paths: string[], svg: SVGSVGElement|null }}
+   */
+  const { text, maxPoints = 50, decimals = 2, pad = 0, ...rest } = opts;
+  if (!text) return { viewBox: '0 0 100 100', paths: [], svg: null };
+
+  // 1. Parse SVG XML String
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const pathElements = [...doc.querySelectorAll('path')];
+
+  const round = (num) => Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  const simplifiedPaths = [];
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+  pathElements.forEach(pathEl => {
+    const rawD = pathEl.getAttribute('d');
+    if (!rawD) return;
+
+    // 2. Tokenize Path Commands & Coordinates
+    // Matches command letters (M, L, C, Z, etc.) or individual numeric values
+    const tokens = rawD.match(/([a-zA-Z])|([-+]?(?:\d*\.\d+|\d+))/g);
+    if (!tokens) return;
+
+    let commands = [];
+    let currentCmd = null;
+
+    tokens.forEach(token => {
+      if (/^[a-zA-Z]$/.test(token)) {
+        currentCmd = { cmd: token, args: [] };
+        commands.push(currentCmd);
+      } else if (currentCmd) {
+        currentCmd.args.push(parseFloat(token));
+      }
+    });
+
+    // 3. Round Numbers & Track Bounding Box
+    commands.forEach(c => {
+      c.args = c.args.map((val, idx) => {
+        const roundedVal = round(val);
+        // Track X coordinates (even indices) and Y coordinates (odd indices)
+        if (idx % 2 === 0) {
+          if (roundedVal < minX) minX = roundedVal;
+          if (roundedVal > maxX) maxX = roundedVal;
+        } else {
+          if (roundedVal < minY) minY = roundedVal;
+          if (roundedVal > maxY) maxY = roundedVal;
+        }
+        return roundedVal;
+      });
+    });
+
+    // 4. Downsample Dense Points if Coordinate Count Exceeds maxPoints
+    const totalPoints = commands.reduce((acc, c) => acc + Math.floor(c.args.length / 2), 0);
+
+    if (totalPoints > maxPoints) {
+      const step = Math.ceil(totalPoints / maxPoints);
+      let pointCount = 0;
+
+      commands = commands.filter((c, idx) => {
+        // Always preserve start/end commands (M, Z, z)
+        if (idx === 0 || c.cmd.toUpperCase() === 'Z' || c.cmd.toUpperCase() === 'M') return true;
+
+        pointCount++;
+        return pointCount % step === 0;
+      });
+    }
+
+    // 5. Reconstruct Simplified Path String
+    const simplifiedD = commands.map(c => `${c.cmd}${c.args.join(',')}`).join(' ');
+    simplifiedPaths.push(simplifiedD);
+  });
+
+  // 6. Compute Final ViewBox
+  let viewBox = '0 0 100 100';
+  if (minX !== Infinity) {
+    const vbX = minX - pad;
+    const vbY = minY - pad;
+    const vbW = (maxX - minX) + (pad * 2);
+    const vbH = (maxY - minY) + (pad * 2);
+    viewBox = `${round(vbX)} ${round(vbY)} ${round(vbW)} ${round(vbH)}`;
+  }
+
+  // 7. Render SVG via mSvg if dParent is Provided
+  let svgNode = null;
+  if (isdef(dParent)) {
+    svgNode = mSvg(dParent, {
+      viewBox: viewBox,
+      pathlist: simplifiedPaths,
+      ...rest
+    });
+  }
+
+  return { viewBox, paths: simplifiedPaths, svg: svgNode };
+}
+/**
+ * Processes SVG text: extracts shapes/paths with their attributes (fill, stroke, etc.),
+ * rounds path numbers, downsamples long paths (>maxPoints), calculates tight viewBox,
+ * and appends to dParent or returns pure data.
+ * 
+ * @param {HTMLElement|string|null} dParent - Parent element or null for data output.
+ * @param {Object} opts - Options object.
+ * @param {string} opts.text - Raw SVG XML text string.
+ * @param {number} [opts.maxPoints=50] - Maximum coordinate count before downsampling.
+ * @param {number} [opts.decimals=2] - Decimal places for rounding numbers.
+ * @param {number} [opts.pad=0] - Padding around the computed viewBox.
+ * @returns {{ viewBox: string, items: Array<{tag: string, opts: Object}>, svg: SVGSVGElement|null }}
+ */
+function mSvgFromText(dParent, opts = {}) {
+  const { text, maxPoints = 50, decimals = 2, pad = 0, ...rest } = opts;
+  if (!text) return { viewBox: '0 0 100 100', items: [], svg: null };
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const shapeElements = [...doc.querySelectorAll('path, rect, circle, polygon, polyline, ellipse')];
+
+  const round = (num) => Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+  const items = [];
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+  const trackBounds = (x, y) => {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  };
+
+  // Helper to extract all existing attributes from a DOM node into a clean opts object
+  const extractAttributes = (elem) => {
+    const attrOpts = {};
+    for (const attr of elem.attributes) {
+      // Map standard attributes; handle camelCase aliases as needed
+      let key = attr.name;
+      if (key === 'stroke-width') key = 'thickness'; // maps to mStyle thickness shortcut
+      attrOpts[key] = attr.value;
+    }
+    return attrOpts;
+  };
+
+  shapeElements.forEach(elem => {
+    const tagName = elem.tagName.toLowerCase();
+    const itemOpts = extractAttributes(elem);
+
+    if (tagName === 'path') {
+      const rawD = elem.getAttribute('d');
+      if (!rawD) return;
+
+      // Tokenize Path Commands & Coordinates
+      const tokens = rawD.match(/([a-zA-Z])|([-+]?(?:\d*\.\d+|\d+))/g);
+      if (!tokens) return;
+
+      let commands = [];
+      let currentCmd = null;
+
+      tokens.forEach(token => {
+        if (/^[a-zA-Z]$/.test(token)) {
+          currentCmd = { cmd: token, args: [] };
+          commands.push(currentCmd);
+        } else if (currentCmd) {
+          currentCmd.args.push(parseFloat(token));
+        }
+      });
+
+      // Round numbers & calculate bounding box
+      commands.forEach(c => {
+        c.args = c.args.map((val, idx) => {
+          const roundedVal = round(val);
+          if (idx % 2 === 0) trackBounds(roundedVal, minY); // temporary check
+          return roundedVal;
+        });
+      });
+
+      // Track precise X/Y pairs
+      commands.forEach(c => {
+        for (let i = 0; i < c.args.length; i += 2) {
+          if (i + 1 < c.args.length) {
+            trackBounds(c.args[i], c.args[i + 1]);
+          }
+        }
+      });
+
+      // Downsample dense points if coordinates exceed maxPoints
+      const totalPoints = commands.reduce((acc, c) => acc + Math.floor(c.args.length / 2), 0);
+      if (totalPoints > maxPoints) {
+        const step = Math.ceil(totalPoints / maxPoints);
+        let pointCount = 0;
+        commands = commands.filter((c, idx) => {
+          if (idx === 0 || c.cmd.toUpperCase() === 'Z' || c.cmd.toUpperCase() === 'M') return true;
+          pointCount++;
+          return pointCount % step === 0;
+        });
+      }
+
+      itemOpts.tag = 'path';
+      itemOpts.d = commands.map(c => `${c.cmd}${c.args.join(',')}`).join(' ');
+    }
+    else if (tagName === 'polygon' || tagName === 'polyline') {
+      itemOpts.tag = tagName;
+      const pts = (elem.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+      const roundedPts = [];
+      for (let i = 0; i < pts.length; i += 2) {
+        if (!isNaN(pts[i]) && !isNaN(pts[i + 1])) {
+          const rx = round(pts[i]);
+          const ry = round(pts[i + 1]);
+          trackBounds(rx, ry);
+          roundedPts.push(`${rx},${ry}`);
+        }
+      }
+      itemOpts.points = roundedPts.join(' ');
+    }
+    else if (tagName === 'rect') {
+      itemOpts.tag = 'rect';
+      const x = round(parseFloat(elem.getAttribute('x') || 0));
+      const y = round(parseFloat(elem.getAttribute('y') || 0));
+      const w = round(parseFloat(elem.getAttribute('width') || 0));
+      const h = round(parseFloat(elem.getAttribute('height') || 0));
+      trackBounds(x, y);
+      trackBounds(x + w, y + h);
+      itemOpts.x = x; itemOpts.y = y; itemOpts.w = w; itemOpts.h = h;
+    }
+    else if (tagName === 'circle') {
+      itemOpts.tag = 'circle';
+      const cx = round(parseFloat(elem.getAttribute('cx') || 0));
+      const cy = round(parseFloat(elem.getAttribute('cy') || 0));
+      const r = round(parseFloat(elem.getAttribute('r') || 0));
+      trackBounds(cx - r, cy - r);
+      trackBounds(cx + r, cy + r);
+      itemOpts.cx = cx; itemOpts.cy = cy; itemOpts.r = r;
+    }
+
+    items.push(itemOpts);
+  });
+
+  // Compute final ViewBox
+  let viewBox = '0 0 100 100';
+  if (minX !== Infinity) {
+    const vbX = minX - pad;
+    const vbY = minY - pad;
+    const vbW = (maxX - minX) + (pad * 2);
+    const vbH = (maxY - minY) + (pad * 2);
+    viewBox = `${round(vbX)} ${round(vbY)} ${round(vbW)} ${round(vbH)}`;
+  }
+
+  // Render SVG via unified mDom if dParent is provided
+  let svgNode = null;
+  if (isdef(dParent)) {
+    svgNode = mDom(dParent, {
+      tag: 'svg',
+      w100: true,
+      h100: true,
+      viewBox: viewBox,
+      ...rest
+    });
+
+    items.forEach(item => {
+      // Create each shape child, passing along all original fill/stroke attributes
+      mDom(svgNode, item);
+    });
+  }
+
+  return { viewBox, items, svg: svgNode };
+}
+
+/**
+ * Processes SVG text: preserves ALL original shape tags, commands, and attributes (fill, stroke, etc.),
+ * rounds all numeric coordinates to integers, calculates the exact viewBox,
+ * and appends to dParent or returns pure data.
+ * 
+ * @param {HTMLElement|string|null} dParent - Parent DOM element or null for data output.
+ * @param {Object} opts - Options object.
+ * @param {string} opts.text - Raw SVG XML text string.
+ * @param {number} [opts.pad=0] - Optional padding added around the computed viewBox.
+ * @returns {{ viewBox: string, items: Array<{tag: string, opts: Object}>, svg: SVGSVGElement|null }}
+ */
+function mSvgFromText(dParent, opts = {}) {
+  const { text, pad = 0, ...rest } = opts;
+  if (!text) return { viewBox: '0 0 100 100', items: [], svg: null };
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const shapeElements = [...doc.querySelectorAll('path, rect, circle, polygon, polyline, ellipse, line')];
+
+  const items = [];
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+  const trackBounds = (x, y) => {
+    if (!isNaN(x) && !isNaN(y)) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  };
+
+  // Helper to copy all presentation attributes (fill, stroke, opacity, style, etc.)
+  const extractAttributes = (elem) => {
+    const attrOpts = {};
+    for (const attr of elem.attributes) {
+      let key = attr.name;
+      if (key === 'stroke-width') key = 'thickness'; // maps to mStyle thickness shortcut
+      attrOpts[key] = attr.value;
+    }
+    return attrOpts;
+  };
+
+  shapeElements.forEach(elem => {
+    const tagName = elem.tagName.toLowerCase();
+    const itemOpts = extractAttributes(elem);
+    itemOpts.tag = tagName;
+
+    if (tagName === 'path') {
+      const rawD = elem.getAttribute('d');
+      if (!rawD) return;
+
+      // Match path command letters (M, L, C, S, Q, T, A, Z) or numeric values
+      let isX = true;
+      itemOpts.d = rawD.replace(/([a-zA-Z])|([-+]?(?:\d*\.\d+|\d+))/g, (match, cmd, num) => {
+        if (cmd) {
+          // Reset coordinate pairing state on new absolute commands
+          if (/[MLCSQTA]/.test(cmd)) isX = true;
+          return cmd;
+        }
+
+        const intVal = Math.round(parseFloat(num));
+
+        // Track integer coordinates for the bounding box
+        if (isX) {
+          trackBounds(intVal, minY);
+        } else {
+          trackBounds(minX, intVal);
+        }
+        isX = !isX;
+
+        return intVal;
+      });
+    }
+    else if (tagName === 'polygon' || tagName === 'polyline') {
+      const pts = (elem.getAttribute('points') || '').trim().split(/[\s,]+/).map(Number);
+      const roundedPts = [];
+      for (let i = 0; i < pts.length; i += 2) {
+        if (!isNaN(pts[i]) && !isNaN(pts[i + 1])) {
+          const rx = Math.round(pts[i]);
+          const ry = Math.round(pts[i + 1]);
+          trackBounds(rx, ry);
+          roundedPts.push(`${rx},${ry}`);
+        }
+      }
+      itemOpts.points = roundedPts.join(' ');
+    }
+    else if (tagName === 'rect') {
+      const x = Math.round(parseFloat(elem.getAttribute('x') || 0));
+      const y = Math.round(parseFloat(elem.getAttribute('y') || 0));
+      const w = Math.round(parseFloat(elem.getAttribute('width') || 0));
+      const h = Math.round(parseFloat(elem.getAttribute('height') || 0));
+      trackBounds(x, y);
+      trackBounds(x + w, y + h);
+      itemOpts.x = x; itemOpts.y = y; itemOpts.w = w; itemOpts.h = h;
+    }
+    else if (tagName === 'circle') {
+      const cx = Math.round(parseFloat(elem.getAttribute('cx') || 0));
+      const cy = Math.round(parseFloat(elem.getAttribute('cy') || 0));
+      const r = Math.round(parseFloat(elem.getAttribute('r') || 0));
+      trackBounds(cx - r, cy - r);
+      trackBounds(cx + r, cy + r);
+      itemOpts.cx = cx; itemOpts.cy = cy; itemOpts.r = r;
+    }
+
+    items.push(itemOpts);
+  });
+
+  // Calculate final viewBox
+  let viewBox = '0 0 100 100';
+  if (minX !== Infinity) {
+    const vbX = minX - pad;
+    const vbY = minY - pad;
+    const vbW = (maxX - minX) + (pad * 2);
+    const vbH = (maxY - minY) + (pad * 2);
+    viewBox = `${vbX} ${vbY} ${vbW} ${vbH}`;
+  }
+
+  // Render to DOM via mDom if dParent is supplied
+  let svgNode = null;
+  if (isdef(dParent)) {
+    svgNode = mDom(dParent, {
+      tag: 'svg',
+      w100: true,
+      h100: true,
+      viewBox: viewBox,
+      ...rest
+    });
+
+    items.forEach(item => {
+      mDom(svgNode, item);
+    });
+  }
+
+  return { viewBox, items, svg: svgNode };
+}
+/**
+ * Processes SVG text: preserves ALL original shape tags, commands, and attributes (fill, stroke, etc.),
+ * formats all numeric coordinates to fixed 2-decimal numbers, calculates the exact viewBox,
+ * and appends to dParent or returns pure data.
+ * 
+ * @param {HTMLElement|string|null} dParent - Parent DOM element or null for data output.
+ * @param {Object} opts - Options object.
+ * @param {string} opts.text - Raw SVG XML text string.
+ * @param {number} [opts.pad=0] - Optional padding added around the computed viewBox.
+ * @returns {{ viewBox: string, items: Array<{tag: string, opts: Object}>, svg: SVGSVGElement|null }}
+ */
+
+
+//before eliminating mSvg
+function mDom(dParent, opts = {}) {
+  let tag = opts.tag || 'div';
+  let d = document.createElement(tag);
+  if (tag === 'textarea' && !opts.wrap) opts.wrap = 'hard';
+
+  mStyle(d, opts);
+
+  if (isdef(dParent)) mAppend(dParent, d);
+  return d;
+}
+
+function mSvg(dParent, opts = {}) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const tag = opts.tag || 'svg';
+  const svg = document.createElementNS(ns, tag);
+
+  mStyle(svg, opts);
+
+  if (isdef(dParent)) mAppend(dParent, svg);
+  return svg;
+}
+
+
+
+//before styles param (everything is not just opts)
+function mDom(dParent, styles = {}, opts = {}) {
+  let tag = opts.tag || 'div';
+  let d = document.createElement(tag);
+  if (tag === 'textarea' && !styles.wrap) styles.wrap = 'hard';
+
+  mStyle(d, styles);
+  mStyle(d, opts);
+
+  if (isdef(dParent)) mAppend(dParent, d);
+  return d;
+}
+
+function mSvg(dParent, styles = {}, opts = {}) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const tag = opts.tag || 'svg';
+  const svg = document.createElementNS(ns, tag);
+
+  mStyle(svg, styles);
+  mStyle(svg, opts);
+
+  if (isdef(dParent)) mAppend(dParent, svg);
+  return svg;
+}
+
+//#region m.js GOOD old version
+
+const NO_UNIT = new Set(['opacity', 'zIndex', 'flex', 'flexGrow', 'order', 'lineHeight']);
+
+const STYLES = Object.freeze({
+  w: 'width',
+  h: 'height',
+  wmin: 'minWidth',
+  hmin: 'minHeight',
+  w100: (v) => ['width', '100%'],
+  h100: (v) => ['height', '100%'],
+  wv: (v) => ['width', '100vw'],
+  hv: (v) => ['height', '100vh'],
+  fw: 'fontWeight',
+  fz: 'fontFamily',
+  bg: (v) => ['backgroundColor', clrX(v)],
+  fg: (v) => ['color', clrX(v)],
+  bf: (v) => {
+    let c = clrX(v);
+    let ct = clrText(v);
+    let ff = 'opensans', fw = '400', fs = '100%';
+    if (ct == '#000000') {
+      ff = 'roboto'; //'Bahnschrift';
+      fw = '550';
+      fs = '75%';
+      return { backgroundColor: c, color: ct, fontFamily: ff, fontWeight: fw, fontStretch: fs };
+    }
+    // let fontStretch = ct == '#000000' ? '86%' : '100%';
+    // let fontFamily = ct == '#000000' ? 'Bahnschrift' : 'opensans';
+    // let fontWeight = ct == '#000000' ? '550' : '400';
+    return { backgroundColor: c, color: ct };
+  },
+  bfg: (v) => ({
+    backgroundColor: clrX(v),
+    color: clrText(v)
+  }),
+  bgAttach: 'background-attachment',
+  bgBlend: 'background-blend-mode',
+  bgImage: 'background-image',
+  bgRepeat: 'background-repeat',
+  bgSize: 'background-size',
+  bgSrc: v => ['background-image', `url(${v})`],
+  border: v => {
+    let parts = v.split(' ');
+    if (parts.length == 1) return `1px solid ${clrX(v)}`;
+    else if (parts.length == 2) {
+      let n = parts.find(x => isNumber(x[0]));
+      let i = parts.indexOf(n);
+      let color = i == 0 ? parts[1] : parts[0];
+      n = n.includes('px') || n.includes('%') ? n : `${n}px`;
+      return `${n} solid ${clrX(color)}`;
+    } else return v;
+  },
+  fill: (v) => ['fill', clrX(v)],
+  stroke: (v) => ['stroke', clrX(v)],
+  thickness: (v) => ['stroke-width', v],
+  m: 'margin',
+  mtop: 'marginTop',
+  mright: 'marginRight',
+  mbottom: 'marginBottom',
+  mleft: 'marginLeft',
+  mh: v => ['margin', `0px ${v}px`],
+  mv: v => ['margin', `${v}px 0px`],
+  p: 'padding',
+  ptop: 'paddingTop',
+  pright: 'paddingRight',
+  pbottom: 'paddingBottom',
+  pleft: 'paddingLeft',
+  ph: v => ['padding', `0px ${v}px`],
+  pv: v => ['padding', `${v}px 0px`],
+
+  op: 'opacity',
+  r: 'borderRadius',
+  rounding: 'borderRadius',
+  wrap: (v) => v == 'hard' ? ['wrap', 'hard'] : ['flexWrap', 'wrap'],
+  z: 'zIndex',
+
+  // --- Flexbox & Alignment Shortcuts ---
+  dir: 'flexDirection',
+  align: 'textAlign',
+  justify: 'justifyContent',
+  gap: 'gap',
+
+  // pos: (v) => {
+  // 	// Allows passing array [top, right, bottom, left] or single offset value
+  // 	if (Array.isArray(v)) {
+  // 		return { position: 'absolute', top: v[0], right: v[1], bottom: v[2], left: v[3] };
+  // 	}
+  // 	return { position: 'absolute', top: v, left: v };
+  // },
+
+  // --- Dynamic Transformers (Returns [propertyName, computedValue]) ---
+  sz: (v) => {
+    // If array [w, h], mStyle can recurse or accept object; if scalar, sets both width and height
+    return typeof v === 'object'
+      ? { width: Array.isArray(v) ? v[0] : v.w, height: Array.isArray(v) ? v[1] : v.h }
+      : { width: v, height: v };
+  },
+  //start end center stretch baseline space-around space-between
+  //place-items: center stretch;  /* center vertically, stretch horizontally */
+  //justifyItems: hor;
+  //alignItems: vert;
+  grid: (v) => {
+    let [rows, cols, gap, hor, vert] = v.split(' ');
+    console.log(rows, cols, gap, hor, vert);
+    return { display: 'grid', gridTemplateRows: `repeat(${rows},1fr)`, gridTemplateColumns: `repeat(${cols},1fr)`, gap: Number(gap), justifyItems: hor, alignItems: vert };
+  },
+  flexbox: (v) => {
+    let [hor, vert, gap, dir, wrap] = v.split(' ');
+    //console.log(hor, vert, gap, dir, wrap);
+    return { display: 'flex', justifyContent: hor, alignItems: vert, gap: Number(gap), flexDirection: dir, flexWrap: wrap };
+  },
+
+  center: () => ({ display: 'flex', justifyContent: 'center', alignItems: 'center' }),
+  _flexCol: () => ({ display: 'flex', flexDirection: 'column' }),
+  _flexRow: () => ({ display: 'flex', flexDirection: 'row' }),
+
+  // Standard Row (Items side-by-side, vertically centered)
+  flexRow: (v) => ({
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: v ?? 8
+  }),
+
+  // Standard Column (Items stacked vertically)
+  flexCol: (v) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    gap: v ?? 8
+  }),
+
+  // Perfect Dead-Center (Horizontal & Vertical)
+  center: () => ({
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }),
+
+  // Navigation / Header Row (Items spaced out to ends, vertically centered)
+  flexBetween: (v) => ({
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: v ?? 8
+  }),
+
+  // Wrapping Card/Tile Row (Items wrap naturally to next line)
+  flexRowWrap: (v) => ({
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: v ?? 8
+  }),
+
+  // Pin/Align Content to Right/Bottom
+  flexEnd: (dir = 'row') => ({
+    display: 'flex',
+    flexDirection: dir === 'col' ? 'column' : 'row',
+    justifyContent: 'flex-end',
+    alignItems: dir === 'col' ? 'flex-end' : 'center'
+  }),
+
+  // Fixed N-Column Grid (e.g., gridCols: 3 creates 3 equal columns)
+  gridCols: v => {
+    let [cols, gap] = Array.isArray(v) ? v : [v, 8];
+    return {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${cols}, 1fr)`,
+      gap: gap
+    };
+  },
+
+  // Responsive Auto-Fit Cards (Columns auto-fill based on min width in px)
+  // Usage: { gridCards: 200 } -> Cards never shrink below 200px
+  gridCards: (minWidth = 150, gap = 8) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}px, 1fr))`,
+    gap: gap
+  }),
+
+  // Board Game Cell Center (Centers content inside a grid cell)
+  gridCenter: () => ({
+    display: 'grid',
+    placeItems: 'center'
+  }),
+
+  // Sidebar + Main Area (e.g., gridSidebar: [250, '1fr'] or gridSidebar: ['200px', 'auto'])
+  gridSidebar: (v = [250, '1fr'], gap = 12) => {
+    const left = typeof v[0] === 'number' ? `${v[0]}px` : v[0];
+    const right = typeof v[1] === 'number' ? `${v[1]}px` : v[1];
+    return {
+      display: 'grid',
+      gridTemplateColumns: `${left} ${right}`,
+      gap: gap
+    };
+  },
+
+  // Forces all items in a grid to stretch fully across both axes of their cell
+  gridStretch: (cols = 2, gap = 8) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    alignItems: 'stretch',
+    justifyItems: 'stretch',
+    gap: gap
+  }),
+
+  // Responsive grid cards where every item stretches vertically & horizontally to fill its cell
+  gridCardsStretch: (minWidth = 150, gap = 8) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}px, 1fr))`,
+    alignItems: 'stretch',
+    justifyItems: 'stretch',
+    gap: gap
+  }),
+
+  // Target an individual grid item to span the full width/height of its cell
+  selfStretch: () => ({
+    justifySelf: 'stretch',
+    alignSelf: 'stretch',
+    w: '100%',
+    h: '100%'
+  }),
+
+  // Flex row where children match each other's height across the full row
+  flexRowStretch: (v) => ({
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: v ?? 8
+  }),
+
+  // Flex column where children fill the full width of the container
+  flexColStretch: (v) => ({
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: v ?? 8
+  }),
+
+  gridAuto: (minWidth = 120, gap = 8) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(auto-fit, minmax(${minWidth}px, 1fr))`,
+    alignItems: 'stretch',
+    justifyItems: 'stretch',
+    gap: gap
+  }),
+
+  // 2. Fixed Total Item Count (Auto-Calculated Equal Grid):
+  // Given N total items, calculates columns/rows to form a square/uniform layout.
+  gridUniform: (itemCount = 1, gap = 8) => {
+    const cols = Math.ceil(Math.sqrt(itemCount)) || 1;
+    return {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${cols}, 1fr)`,
+      alignItems: 'stretch',
+      justifyItems: 'stretch',
+      gap: gap
+    };
+  }
+});
+
+function applyOpts(d, opts = {}) {
+  const aliases = {
+    classes: 'class',
+    className: 'class',
+    inner: 'innerHTML',
+    html: 'innerHTML',
+    w: 'width',
+    h: 'height',
+  };
+  for (const opt in opts) {
+    let name = aliases[opt] || opt;
+    let val = opts[opt];
+    if (name == 'recClick') { d.onclick = async (ev) => { recUserEvent(); await val(ev); } }
+    else if (['id', 'style', 'tag', 'innerHTML', 'class', 'checked', 'value'].includes(name) || name.startsWith('on')) d[name] = val;
+    else d.setAttribute(name, val);
+  }
+}
+function mDom(dParent, styles = {}, opts = {}) {
+  let tag = valf(opts.tag, 'div');
+  let d = document.createElement(tag);
+  if (tag == 'textarea') styles.wrap = 'hard';
+  mStyle(d, styles);
+  applyOpts(d, opts);
+  if (isdef(dParent)) mAppend(dParent, d);
+  return d;
+}
+function mStyle(elem, styles = {}) {
+  elem = toElem(elem);
+  const target = elem.style || elem;
+
+  for (let key in styles) {
+    let val = styles[key];
+    let prop = STYLES[key] || key;
+    if (typeof prop === 'function') {
+      const res = prop(val);
+      // Handles functional generators that return flat style objects (e.g., bfg, center)
+      if (res && typeof res === 'object' && !Array.isArray(res)) {
+        mStyle(elem, res);
+        continue;
+      }
+      if (Array.isArray(res)) [prop, val] = res;
+    }
+
+    // If val is null or undefined, delete/remove the property or attribute
+    if (val == null) {
+      if (prop in target) {
+        target[prop] = ''; // Clears inline CSS rule
+      } else if (elem.nodeType) {
+        elem.removeAttribute(prop); // Removes DOM attribute
+      }
+      continue;
+    }
+
+    // Auto-append 'px' for numeric values
+    if (typeof val === 'number' && !NO_UNIT.has(prop)) val += 'px';
+
+    if (prop in target) target[prop] = val;
+    else if (elem.nodeType) elem.setAttribute(prop, val);
+  }
+
+  return elem;
+}
+function mSvg(dParent, styles = {}, opts = {}) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, opts.tag || "svg");
+  mStyle(svg, styles);
+  applyOpts(svg, opts);
+  if (isdef(dParent)) mAppend(dParent, svg);
+  return svg;
+}
+
+//#endregion
+
+const star = Array.from({ length: 10 }, (_, i) => {
+  const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 90 : 190;
+  return [200 + r * Math.cos(a), 205 + r * Math.sin(a)];
+});
+
+//#region claude
+function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
+  const {
+    depth = 0,
+    angle = 45,
+    scale = 1,
+    texture = '../assets/texwall/wood.png',
+    tile = 80 } = opts;
+  layer.replaceChildren();
+
+  // 1. build the base element as before
+  let shape, el;
+  if (def.kind === 'circle') {
+    el = document.createElementNS(NS, 'circle');
+    el.setAttribute('cx', def.data.cx); el.setAttribute('cy', def.data.cy); el.setAttribute('r', def.data.r);
+    shape = def.data;
+  } else if (def.kind === 'points' || nundef(def.kind)) {
+    el = document.createElementNS(NS, 'polygon');
+    el.setAttribute('points', def.data.map(p => p.join(',')).join(' '));
+    shape = def.data;
+  } else {
+    el = document.createElementNS(NS, def.tag);
+    for (const [k, v] of Object.entries(def.attrs)) el.setAttribute(k, v);
+    shape = el;
+  }
+  layer.appendChild(el);            // attach first (needed for sampling and textures)
+
+  let front = el;                   // the element that gets the texture
+  let fitShape = shape;             // the geometry the text is fitted into
+  let ext = null;
+
+  // 2. optional 3D
+  if (depth > 0) {
+    // keep the whole figure (front + back) inside the stage's viewBox, with a 5% margin
+    const vb = layer.ownerSVGElement.viewBox.baseVal;
+    const box = vb && vb.width
+      ? { x: vb.x + vb.width * 0.05, y: vb.y + vb.height * 0.05, w: vb.width * 0.9, h: vb.height * 0.9 }
+      : { x: 20, y: 20, w: 360, h: 360 };
+
+    const g = extrude(shape, depth, { angle, scale, box });
+    el.remove();                    // the flat element is replaced by the 3D group
+    ext = renderExtrusion(layer, g, { fill: 'red', stroke: 'none' }); //clrX('middle_yellow_red'), strokeWidth: 1.5 });
+    front = ext.front;
+    fitShape = g.front;             // text goes on the front face
+  } else {
+    // el.setAttribute('stroke', 'white');
+    // el.setAttribute('stroke-width', '1.5');
+  }
+
+  // 3. texture (front first, then copy the paint to the walls and back face)
+  setTextureFill(front, texture, { tile });
+  if (ext) ext.setFill(front.getAttribute('fill'));
+
+  // 4. fit the text
+  const t0 = performance.now();
+  const r = fitTextInShape(text, fitShape, {
+    allowWordBreak: false,
+    fontFamily: 'Arial',
+    lineHeight: 1,
+    padding: 12,
+    align: 'center',
+    curveSamples: 100,
+  });
+  const ms = performance.now() - t0;
+
+  out.setAttribute('fill', 'yellow');
+  applyFitToSvgText(out, r);
+  return {
+    message: (r.fits
+      ? `font size ${r.fontSize.toFixed(1)}px, ${r.lines.length} lines, ${ms.toFixed(0)} ms`
+      : 'Text does not fit even at the minimum font size.'), layer, front, fitShape, ext
+  };
+}
+function setTextureFill(el, imageUrl, { tile = 64, repeat = true } = {}) {
+  const svg = el.ownerSVGElement;
+  let defs = svg.querySelector('defs');
+  if (!defs) { defs = document.createElementNS(NS, 'defs'); svg.prepend(defs); }
+
+  const id = getUID('tex'); //`tex${++patternCount}`;
+  const pattern = document.createElementNS(NS, 'pattern');
+  pattern.setAttribute('id', id);
+
+  const image = document.createElementNS(NS, 'image');
+  image.setAttribute('href', imageUrl);
+
+  if (repeat) {
+    // like background-repeat: repeat; tile is the tile size in user units
+    pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+    pattern.setAttribute('width', tile);
+    pattern.setAttribute('height', tile);
+    image.setAttribute('width', tile);
+    image.setAttribute('height', tile);
+    image.setAttribute('preserveAspectRatio', 'none');
+  } else {
+    // like background-size: cover; background-repeat: no-repeat
+    // the pattern is sized relative to the shape's bounding box
+    pattern.setAttribute('patternUnits', 'objectBoundingBox');
+    pattern.setAttribute('patternContentUnits', 'objectBoundingBox');
+    pattern.setAttribute('width', 1);
+    pattern.setAttribute('height', 1);
+    image.setAttribute('width', 1);
+    image.setAttribute('height', 1);
+    image.setAttribute('preserveAspectRatio', 'xMidYMid slice'); // 'meet' = contain
+  }
+
+  pattern.appendChild(image);
+  defs.appendChild(pattern);
+  el.setAttribute('fill', `url(#${id})`);
+  return pattern;
+}
+function __mMeeple(gParent, x, y, sz, clr, styles = {}) {
+  /**
+   * Appends a classic meeple path to an SVG container (<svg> or <g>).
+   * 
+   * @param {SVGElement|string} gParent - Target SVG container element or ID.
+   * @param {number} x - Center X position.
+   * @param {number} y - Center Y position.
+   * @param {number} sz - Width/height size box.
+   * @param {string} clr - Fill color.
+   * @param {Object} [styles={}] - Additional custom styles/attributes.
+   * @returns {SVGPathElement}
+   */
+  const parent = typeof gParent === 'string' ? document.getElementById(gParent) : gParent;
+  const half = sz / 2;
+  const scale = sz / 100;
+
+  // Normalized 100x100 path centered at (0,0)
+  const d = `
+    M 0 ${-40 * scale} 
+    C ${6 * scale} ${-40 * scale} ${11 * scale} ${-35 * scale} ${11 * scale} ${-29 * scale} 
+    C ${11 * scale} ${-25 * scale} ${9 * scale} ${-22 * scale} ${6 * scale} ${-20 * scale} 
+    C ${16 * scale} ${-17 * scale} ${28 * scale} ${-10 * scale} ${35 * scale} ${-2 * scale} 
+    C ${38 * scale} ${1 * scale} ${36 * scale} ${6 * scale} ${31 * scale} ${6 * scale} 
+    C ${26 * scale} ${6 * scale} ${22 * scale} ${-1 * scale} ${17 * scale} ${-4 * scale} 
+    L ${17 * scale} ${12 * scale} 
+    L ${30 * scale} ${38 * scale} 
+    C ${32 * scale} ${42 * scale} ${28 * scale} ${46 * scale} ${24 * scale} ${46 * scale} 
+    L ${9 * scale} ${46 * scale} 
+    L 0 ${28 * scale} 
+    L ${-9 * scale} ${46 * scale} 
+    L ${-24 * scale} ${46 * scale} 
+    C ${-28 * scale} ${46 * scale} ${-32 * scale} ${42 * scale} ${-30 * scale} ${38 * scale} 
+    L ${-17 * scale} ${12 * scale} 
+    L ${-17 * scale} ${-4 * scale} 
+    C ${-22 * scale} ${-1 * scale} ${-26 * scale} ${6 * scale} ${-31 * scale} ${6 * scale} 
+    C ${-36 * scale} ${6 * scale} ${-38 * scale} ${1 * scale} ${-35 * scale} ${-2 * scale} 
+    C ${-28 * scale} ${-10 * scale} ${-16 * scale} ${-17 * scale} ${-6 * scale} ${-20 * scale} 
+    C ${-9 * scale} ${-22 * scale} ${-11 * scale} ${-25 * scale} ${-11 * scale} ${-29 * scale} 
+    C ${-11 * scale} ${-35 * scale} ${-6 * scale} ${-40 * scale} 0 ${-40 * scale} Z
+  `;
+
+  return mDom(parent, {
+    d: d,
+    transform: `translate(${x}, ${y})`,
+    fill: typeof clrHex === 'function' ? clrHex(clr) : clr,
+    ...styles
+  }, {
+    tag: 'path'
+  });
+}
+
+async function claudeDetectEyes(svg, options = {}) {
+  const {
+    resolution = 256, alphaThreshold = 16, colorTolerance = 40,
+    minContrast = 0.12, maxEyeLum = 0.5, minArea = 0.0008, maxArea = 0.05,
+    maxAxisRatio = 2.4, minFit = 0.75, maxYRel = 0.7, symmetryTolerance = 0.2,
+    pairThreshold = 0.3, singleThreshold = 0.5, debug = false,
+  } = options;
+
+  const { data, W, H } = await rasterize(svg, resolution);
+  console.log('data', data, W, H);
+
+  let res = findDarkestColorPosition(data, W);
+  console.log('darkest position', res);
+  return;
+
+  const N = W * H;
+
+  // ---- figure = largest connected opaque blob ------------------------------
+  const opaque = new Uint8Array(N);
+  for (let i = 0; i < N; i++) opaque[i] = data[i * 4 + 3] > alphaThreshold ? 1 : 0;
+  const sil = largestBlob(opaque, W, H);
+  if (!sil.area) return { eyes: [], silhouette: { x: 0, y: 0, w: W, h: H }, size: { W, H } };
+  const silBox = { x: sil.x0, y: sil.y0, w: sil.x1 - sil.x0 + 1, h: sil.y1 - sil.y0 + 1 };
+  const inSil = sil.mask;
+
+  // ---- flat colour regions (seed-based flood fill) ---------------------------
+  const lum = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    lum[i] = (0.2126 * data[i * 4] + 0.7152 * data[i * 4 + 1] + 0.0722 * data[i * 4 + 2]) / 255;
+  }
+  const label = new Int32Array(N);
+  const stack = new Int32Array(N);
+  const tol2 = colorTolerance * colorTolerance;
+  const regions = [];
+  for (let p = 0; p < N; p++) {
+    if (!inSil[p] || label[p]) continue;
+    const id = regions.length + 1;
+    const sr = data[p * 4], sg = data[p * 4 + 1], sb = data[p * 4 + 2];
+    const R = { id, area: 0, sx: 0, sy: 0, sxx: 0, syy: 0, sxy: 0, lum: 0, edge: 0 };
+    let sp = 0;
+    stack[sp++] = p; label[p] = id;
+    while (sp) {
+      const q = stack[--sp];
+      const x = q % W, y = (q - x) / W;
+      R.area++; R.sx += x; R.sy += y; R.sxx += x * x; R.syy += y * y; R.sxy += x * y; R.lum += lum[q];
+      const nb = [x > 0 ? q - 1 : -1, x < W - 1 ? q + 1 : -1, y > 0 ? q - W : -1, y < H - 1 ? q + W : -1];
+      for (const n of nb) {
+        if (n < 0 || !inSil[n]) { R.edge++; continue; }       // touches background
+        if (label[n]) continue;
+        const dr = data[n * 4] - sr, dg = data[n * 4 + 1] - sg, db = data[n * 4 + 2] - sb;
+        if (dr * dr + dg * dg + db * db <= tol2) { label[n] = id; stack[sp++] = n; }
+      }
+    }
+    regions.push(R);
+  }
+
+  // ---- candidates ----------------------------------------------------------
+  const cands = [];
+  const silCx = silBox.x + silBox.w / 2;
+  for (const R of regions) {
+    const frac = R.area / sil.area;
+    if (frac < minArea || frac > maxArea || R.area < 10) continue;
+    if (R.edge > 0.15 * Math.sqrt(R.area) * 4) continue;       // touches the outside
+    const mx = R.sx / R.area, my = R.sy / R.area;
+    const cxx = R.sxx / R.area - mx * mx, cyy = R.syy / R.area - my * my, cxy = R.sxy / R.area - mx * my;
+    const t = Math.sqrt(((cxx - cyy) / 2) ** 2 + cxy * cxy);
+    const l1 = (cxx + cyy) / 2 + t, l2 = (cxx + cyy) / 2 - t;
+    if (l2 <= 1e-6) continue;
+    const ratio = Math.sqrt(l1 / l2);
+    if (ratio > maxAxisRatio) continue;
+    const ellArea = 4 * Math.PI * Math.sqrt(l1 * l2);
+    const fit = Math.min(R.area / ellArea, ellArea / R.area);
+    if (fit < minFit) continue;
+
+    const eyeLum = R.lum / R.area;
+    if (eyeLum > maxEyeLum) continue;
+
+    const rEq = Math.sqrt(R.area / Math.PI);
+    const yRel = (my - silBox.y) / silBox.h;
+    if (yRel > maxYRel) continue;
+
+    // brightness of the surroundings: sample a ring around the blob
+    const off = 3 + 0.4 * rEq, ring = [];
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * 2 * Math.PI, dx = Math.cos(a), dy = Math.sin(a);
+      let d = 0;                                               // walk to the blob's edge
+      while (d < rEq * 3) {
+        const xx = Math.round(mx + dx * d), yy = Math.round(my + dy * d);
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H || label[yy * W + xx] !== R.id) break;
+        d += 0.5;
+      }
+      const xx = Math.round(mx + dx * (d + off)), yy = Math.round(my + dy * (d + off));
+      if (xx >= 0 && yy >= 0 && xx < W && yy < H && inSil[yy * W + xx]) ring.push(lum[yy * W + xx]);
+    }
+    if (ring.length < 10) continue;                            // mostly outside the figure
+    ring.sort((a, b) => a - b);
+    const around = ring[ring.length >> 1];
+    const contrast = around - eyeLum;
+    if (contrast < minContrast) continue;
+
+    const sDark = clamp(contrast / 0.5);
+    const sRound = clamp(1 - (ratio - 1) / (maxAxisRatio - 1));
+    const sFit = clamp((fit - minFit) / (1 - minFit));
+    const q = 0.45 * sDark + 0.3 * sRound + 0.25 * sFit;
+    cands.push({ x: mx + 0.5, y: my + 0.5, r: rEq, area: R.area, quality: q, yRel, contrast, ratio, fit });
+  }
+
+  // ---- choose a pair, else a single convincing eye ----------------------------
+  let eyes = [], bestScore = 0;
+  for (let i = 0; i < cands.length; i++) {
+    for (let j = i + 1; j < cands.length; j++) {
+      const a = cands[i], b = cands[j];
+      const sim = Math.min(a.area, b.area) / Math.max(a.area, b.area);
+      if (sim < 0.5) continue;
+      if (Math.hypot(a.x - b.x, a.y - b.y) < (a.r + b.r) * 1.2) continue;           // overlapping
+      if (Math.abs(a.y - b.y) > 0.2 * silBox.h) continue;                           // not level
+      if (Math.abs((a.x + b.x) / 2 - silCx) > symmetryTolerance * silBox.w) continue; // not symmetric
+      const pos = 1 - 0.6 * ((a.yRel + b.yRel) / 2);
+      const score = ((a.quality + b.quality) / 2) * sim * pos;
+      if (score > bestScore) { bestScore = score; eyes = [a, b]; }
+    }
+  }
+  if (bestScore < pairThreshold) {
+    eyes = [];
+    let bestSingle = 0;
+    for (const c of cands) {
+      const score = c.quality * (1 - 0.6 * c.yRel);
+      if (score > bestSingle && score >= singleThreshold) { bestSingle = score; eyes = [c]; }
+    }
+  }
+
+  const out = {
+    eyes: eyes.map(({ x, y, r }) => ({ x, y, r })),
+    silhouette: silBox,
+    size: { W, H },
+  };
+  if (debug) out.candidates = cands;
+  return out;
+}
+
+
+function findSvgPartWithColor(svgText, hexcolor) {
+  /**
+   * Searches an SVG string for elements matching a specific hex color (in fill or stroke)
+   * and returns the matching element along with its center coordinate (x, y).
+   * 
+   * @param {string} svgText - The raw SVG string or markup.
+   * @param {string} hexcolor - The target hex color string (e.g., "#ff0000", "f00", "#FF0000").
+   * @returns {{ elem: SVGElement, center: {x: number, y: number}, bbox: SVGRect }|null}
+   */
+  if (!svgText || !hexcolor) return null;
+
+  // 1. Normalize target color to lowercase 6-digit hex (#rrggbb)
+  function normalizeHex(hex) {
+    let c = String(hex).trim().toLowerCase().replace(/^#/, '');
+    if (c.length === 3) {
+      c = c.split('').map(ch => ch + ch).join('');
+    }
+    return `#${c}`;
+  }
+
+  const targetColor = normalizeHex(hexcolor);
+
+  // Helper to extract normalized color from inline styles or attributes
+  function parseColor(val) {
+    if (!val || val === 'none' || val === 'transparent') return null;
+    if (val.startsWith('#')) return normalizeHex(val);
+    if (typeof clrHex === 'function') return normalizeHex(clrHex(val));
+    return val.toLowerCase();
+  }
+
+  // 2. Parse SVG string into a temporary DOM tree
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, 'image/svg+xml');
+  const svgElem = doc.querySelector('svg');
+
+  if (!svgElem || doc.querySelector('parsererror')) return null;
+
+  // Render temporarily in an offscreen container to compute precise BBox geometries
+  const hiddenContainer = mDom(document.body, {
+    position: 'absolute',
+    left: -9999,
+    top: -9999,
+    op: 0,
+    pointerEvents: 'none'
+  });
+  hiddenContainer.appendChild(svgElem);
+
+  // 3. Find matching elements by inspecting fill, stroke, and inline styles
+  const allElements = svgElem.querySelectorAll('*');
+  let matchedElem = null;
+
+  for (const el of allElements) {
+    const styleAttr = el.getAttribute('style') || '';
+    const styleFill = styleAttr.match(/fill\s*:\s*([^;]+)/i)?.[1];
+    const styleStroke = styleAttr.match(/stroke\s*:\s*([^;]+)/i)?.[1];
+
+    const fillVal = parseColor(styleFill || el.getAttribute('fill'));
+    const strokeVal = parseColor(styleStroke || el.getAttribute('stroke'));
+
+    if (fillVal === targetColor || strokeVal === targetColor) {
+      matchedElem = el;
+      break;
+    }
+  }
+
+  if (!matchedElem) {
+    hiddenContainer.remove();
+    return null;
+  }
+
+  // 4. Calculate center coordinates (x, y) using getBBox
+  let center = { x: 0, y: 0 };
+  let bbox = null;
+
+  try {
+    bbox = matchedElem.getBBox();
+    center = {
+      x: bbox.x + bbox.width / 2,
+      y: bbox.y + bbox.height / 2
+    };
+  } catch (e) {
+    // Fallback for shapes lacking getBBox in unrendered states
+    const cx = matchedElem.getAttribute('cx') || matchedElem.getAttribute('x');
+    const cy = matchedElem.getAttribute('cy') || matchedElem.getAttribute('y');
+    if (cx && cy) {
+      center = { x: parseFloat(cx), y: parseFloat(cy) };
+    }
+  }
+
+  // Clean up temporary DOM container
+  hiddenContainer.remove();
+
+  return {
+    elem: matchedElem,
+    center: center,
+    bbox: bbox
+  };
+}
+function findDarkestColorPosition(data, width) {
+  /**
+   * Finds the (x, y) coordinates of the darkest pixel in a 2D image pixel array.
+   * 
+   * @param {Uint8ClampedArray} data - The RGBA pixel data (e.g. from canvas ctx.getImageData().data).
+   * @param {number} width - The width of the image in pixels.
+   * @returns {{x: number, y: number, brightness: number}|null} Coordinates and luminance of the darkest pixel.
+   */
+  if (!data || data.length === 0 || !width) return null;
+
+  let minLuminance = Infinity;
+  let darkestX = 0;
+  let darkestY = 0;
+
+  // Process RGBA pixels in 4-byte steps [R, G, B, A]
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const a = data[i + 3];
+
+    // Ignore fully transparent pixels
+    if (a === 0) continue;
+
+    // Perceptual luminance calculation (BT.601)
+    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    if (luminance < minLuminance) {
+      minLuminance = luminance;
+      const pixelIndex = i / 4;
+      darkestX = pixelIndex % width;
+      darkestY = Math.floor(pixelIndex / width);
+
+      // Early exit if pure black (0) is reached
+      if (minLuminance === 0) break;
+    }
+  }
+
+  return { x: darkestX, y: darkestY, brightness: minLuminance };
+}
+function findSvgPartsWithColor(svgText, hexcolor) {
+  if (!svgText || !hexcolor) return [];
+
+  const normalize = color => {
+    let c = String(color).trim().toLowerCase().replace(/^#/, '');
+    if (c.length === 3) c = [...c].map(ch => ch + ch).join('');
+    return `#${c}`;
+  };
+
+  const target = normalize(hexcolor);
+  const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+  const svg = doc.querySelector('svg');
+  if (!svg || doc.querySelector('parsererror')) return [];
+
+  const container = mDom(document.body, {
+    position: 'absolute', left: -9999, top: -9999, visibility: 'hidden'
+  });
+  container.appendChild(svg);
+
+  try {
+    return [...svg.querySelectorAll('*')]
+      .filter(el => {
+        const fill = el.style.fill || el.getAttribute('fill');
+        if (!fill) return false;
+
+        try {
+          return normalize(typeof clrHex === 'function' ? clrHex(fill) : fill) === target;
+        } catch {
+          return normalize(fill) === target;
+        }
+      })
+      .map(elem => {
+        const bbox = elem.getBBox();
+        return {
+          elem,
+          bbox,
+          center: {
+            x: bbox.x + bbox.width / 2,
+            y: bbox.y + bbox.height / 2
+          }
+        };
+      });
+  } finally {
+    container.remove();
+  }
+}
+
+function svgTextFindFill(elem, hex) {
+  // const normalize = color => color?.trim().toLowerCase().replace(/^#/, '');
+  // const target = normalize(hex);
+
+  return [elem, ...elem.querySelectorAll('*')]
+    .find(el => (el.getAttribute('fill') || el.style.fill).toLowerCase() == hex.toLowerCase()) ?? null;
+}
+
+function svgDarkestPath(paths) {
+  const luminance = color => {
+    const hex = color?.trim().replace(/^#/, '');
+    if (!hex || !/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex)) return Infinity;
+
+    const fullHex = hex.length === 3 ? [...hex].map(c => c + c).join('') : hex;
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(fullHex.slice(i, i + 2), 16) / 255);
+    const linear = c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+  };
+
+  return paths.reduce((darkest, path) =>
+    !darkest || luminance(path.getAttribute('fill')) < luminance(darkest.getAttribute('fill'))
+      ? path
+      : darkest,
+    null
+  );
+}
+
+function createStage(dParent, styles = {}) {
+  const stage = mDom(dParent, styles);
+  const svg = svgCreate(stage, {}, { id: 'svg', viewBox: '0 0 400 400' });
+  const shapeLayer = svgGroup(svg, {}, { id: 'shapeLayer' });
+  const out = svgText(svg, '', 0, 0, {}, { id: 'out' });
+  //const info = mDom(stage, {}, { classes: 'info', id: 'info' });
+
+  return { stage, svg, shapeLayer, out }; //, info };
+}
+function setText(fitShape, text, out, opts = {}) {
+  if (!text) { out.replaceChildren(); return null; }       // empty text: just clear it
+
+  const r = fitTextInShape(text, fitShape, {
+    allowWordBreak: false,
+    fontFamily: 'Arial',
+    lineHeight: 1,
+    padding: 12,
+    align: 'center',
+    curveSamples: 100,
+    verticalSteps: 12,
+    precision: 0.5,
+    ...opts,                                               // override any of the above
+  });
+  applyFitToSvgText(out, r);                               // clears the old tspans and writes the new ones
+  return r;                                                // r.fits, r.fontSize, r.lines
+}
+
+
+/**
+ * fitTextInShape(text, shape, options)
+ *
+ * Finds the largest font size at which `text` can be wrapped into lines that
+ * all lie inside `shape`, and returns the line breaks and line positions.
+ *
+ * shape (one of):
+ *   - polygon:  [[x, y], ...]  or  [{x, y}, ...]
+ *   - circle:   { r, cx = 0, cy = 0 }
+ *   - SVG element: any SVGGeometryElement (path, circle, ellipse, rect,
+ *     polygon, ...). It is sampled with getPointAtLength(), so results are in
+ *     the element's own local coordinate space (put your <text> in the same
+ *     parent with the same `transform` and it lines up).
+ *     Only the first subpath / outline is used (no holes).
+ *
+ * options:
+ *   allowWordBreak  false  break only between words (a word that cannot fit on
+ *                          any line makes that font size infeasible).
+ *                          true: break anywhere, filling each line fully.
+ *   fontFamily      'sans-serif'
+ *   fontWeight      'normal'
+ *   fontStyle       'normal'
+ *   lineHeight      1.2    multiple of font size
+ *   padding         0      approximate inset from the shape boundary
+ *   align           'center' | 'left' | 'right'
+ *   minFontSize     1
+ *   maxFontSize     Infinity (capped by shape height)
+ *   precision       0.1    font size resolution of the search
+ *   verticalSteps   40     how many vertical block offsets are tried per size
+ *   curveSamples    256    points used to approximate curves / circles
+ *   measure         (str) => width of str at font-size 1. Optional; defaults to
+ *                   canvas measureText (make sure the font is loaded first,
+ *                   e.g. `await document.fonts.ready`).
+ *
+ * returns {
+ *   fits, fontSize, lineHeight (px), fontFamily, fontWeight, fontStyle, align,
+ *   lines: [{ text, x, y, width }]   // x = anchor point, y = baseline
+ *   textAnchor: 'start' | 'middle' | 'end'
+ * }
+ */
+function fitTextInShape(text, shape, options = {}) {
+  const {
+    allowWordBreak = false,
+    fontFamily = 'sans-serif',
+    fontWeight = 'normal',
+    fontStyle = 'normal',
+    lineHeight = 1.2,
+    padding = 0,
+    align = 'center',
+    minFontSize = 1,
+    maxFontSize = Infinity,
+    precision = 0.1,
+    verticalSteps = 40,
+    curveSamples = 256,
+    measure: customMeasure,
+  } = options;
+
+  const poly = toPolygon(shape, curveSamples);
+  if (poly.length < 3) throw new Error('Shape needs at least 3 points');
+
+  // ---- geometry helpers ---------------------------------------------------
+  const ysAll = poly.map(p => p[1]);
+  const minY = Math.min(...ysAll), maxY = Math.max(...ysAll);
+  const H = maxY - minY;
+  const eps = Math.max(1e-9, H * 1e-7);
+  const vertexYs = [...new Set(ysAll)].sort((a, b) => a - b);
+  const centroidY = polygonCentroidY(poly) ?? (minY + maxY) / 2;
+
+  // Widest horizontal interval that is inside the polygon for the *whole*
+  // vertical extent [top, bottom]. Interval endpoints are piecewise linear in
+  // y with breakpoints at vertices, so sampling at the band edges and just
+  // around every vertex inside the band is exact.
+  function bandInterval(top, bottom) {
+    top -= padding; bottom += padding;
+    const ys = [top + eps, bottom - eps];
+    for (const vy of vertexYs) {
+      if (vy > top + eps && vy < bottom - eps) ys.push(vy - eps, vy + eps);
+    }
+    let cur = null;
+    for (const y of ys) {
+      const iv = crossings(poly, y);
+      cur = cur ? intersect(cur, iv) : iv;
+      if (!cur.length) return { x0: 0, x1: 0, width: 0 };
+    }
+    let best = cur[0];
+    for (const iv of cur) if (iv[1] - iv[0] > best[1] - best[0]) best = iv;
+    const x0 = best[0] + padding, x1 = best[1] - padding;
+    return { x0, x1, width: Math.max(0, x1 - x0) };
+  }
+
+  // ---- text measurement ---------------------------------------------------
+  const { M, ascent, descent } = makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily);
+
+  // ---- layout for a given font size and starting y -------------------------
+  const paragraphs = String(text).split(/\r?\n/);
+
+  function tryLayout(f, y0) {
+    const L = f * lineHeight;
+    const lines = [];
+    let b = 0;
+    const next = () => {
+      const top = y0 + b * L; b++;
+      if (top + L > maxY + eps) return null;
+      return { top, ...bandInterval(top, top + L) };
+    };
+
+    for (const para of paragraphs) {
+      const tokens = para.split(/\s+/).filter(Boolean);
+      let band = next();
+      if (!band) return null;
+      if (!tokens.length) { lines.push({ text: '', band }); continue; }
+
+      let cur = '', i = 0;
+      while (i < tokens.length) {
+        const avail = band.width / f;           // available width at font-size 1
+        const word = tokens[i];
+        const cand = cur ? cur + ' ' + word : word;
+
+        if (M(cand) <= avail) { cur = cand; i++; continue; }
+
+        if (allowWordBreak) {
+          const prefix = cur ? cur + ' ' : '';
+          let k = 0;
+          while (k < word.length && M(prefix + word.slice(0, k + 1)) <= avail) k++;
+          if (k > 0) {
+            lines.push({ text: prefix + word.slice(0, k), band });
+            tokens[i] = word.slice(k);
+            cur = '';
+            band = next();
+            if (!band) return null;
+            continue;
+          }
+        }
+        // word doesn't fit on this line: finish the line (if any), go down.
+        // If the line is empty this band is simply skipped (too narrow).
+        if (cur) { lines.push({ text: cur, band }); cur = ''; }
+        band = next();
+        if (!band) return null;
+      }
+      if (cur) lines.push({ text: cur, band });
+    }
+    return lines;
+  }
+
+  // Try several vertical offsets, prefer the block centred on the centroid.
+  function bestLayout(f) {
+    const L = f * lineHeight;
+    if (L > H) return null;
+    let best = null, bestScore = Infinity;
+    for (let s = 0; s <= verticalSteps; s++) {
+      const y0 = minY + ((H - L) * s) / verticalSteps;
+      const lines = tryLayout(f, y0);
+      if (!lines || !lines.length) continue;
+      const top = lines[0].band.top;
+      const bottom = lines[lines.length - 1].band.top + L;
+      const score = Math.abs((top + bottom) / 2 - centroidY);
+      if (score < bestScore) { bestScore = score; best = lines; }
+    }
+    return best;
+  }
+
+  // ---- search for the largest font size ------------------------------------
+  let lo = minFontSize;
+  let hi = Math.min(maxFontSize, H / lineHeight);
+  let bestF = null, bestLines = null;
+
+  const top = hi >= lo ? bestLayout(hi) : null;
+  if (top) { bestF = hi; bestLines = top; }
+  else {
+    const atLo = bestLayout(lo);
+    if (atLo) {
+      bestF = lo; bestLines = atLo;
+      while (hi - lo > precision) {
+        const mid = (lo + hi) / 2;
+        const r = bestLayout(mid);
+        if (r) { lo = mid; bestF = mid; bestLines = r; } else hi = mid;
+      }
+    }
+  }
+
+  const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
+  if (!bestLines) {
+    return {
+      fits: false, fontSize: minFontSize, lines: [], textAnchor: anchor,
+      lineHeight: minFontSize * lineHeight, fontFamily, fontWeight, fontStyle, align
+    };
+  }
+
+  const f = bestF, L = f * lineHeight;
+  return {
+    fits: true,
+    fontSize: f,
+    lineHeight: L,
+    fontFamily, fontWeight, fontStyle, align,
+    textAnchor: anchor,
+    lines: bestLines.map(({ text, band }) => ({
+      text,
+      width: M(text) * f,
+      x: align === 'left' ? band.x0 : align === 'right' ? band.x1 : (band.x0 + band.x1) / 2,
+      // baseline so that the glyph box is centred in the line box
+      y: band.top + (L - (ascent + descent) * f) / 2 + ascent * f,
+    })),
+  };
+}
+
+/**
+ * Convenience: write a fitTextInShape() result into an existing SVG <text>.
+ * Place the <text> in the same coordinate space as the shape.
+ */
+function applyFitToSvgText(textEl, result) {
+  const NS = 'http://www.w3.org/2000/svg';
+  while (textEl.firstChild) textEl.removeChild(textEl.firstChild);
+  textEl.setAttribute('font-size', result.fontSize);
+  textEl.setAttribute('font-family', result.fontFamily);
+  textEl.setAttribute('font-weight', result.fontWeight);
+  textEl.setAttribute('font-style', result.fontStyle);
+  textEl.setAttribute('text-anchor', result.textAnchor);
+  textEl.setAttribute('xml:space', 'preserve');
+  for (const ln of result.lines) {
+    const t = document.createElementNS(NS, 'tspan');
+    t.setAttribute('x', ln.x);
+    t.setAttribute('y', ln.y);
+    t.textContent = ln.text;
+    textEl.appendChild(t);
+  }
+  return textEl;
+}
+
+// ===========================================================================
+// internals
+// ===========================================================================
+
+function toPolygon(shape, samples) {
+  if (typeof SVGGeometryElement !== 'undefined' && shape instanceof SVGGeometryElement) {
+    const len = shape.getTotalLength();
+    const pts = [];
+    for (let i = 0; i < samples; i++) {
+      const p = shape.getPointAtLength((len * i) / samples);
+      pts.push([p.x, p.y]);
+    }
+    return pts;
+  }
+  if (Array.isArray(shape)) {
+    return shape.map(p => (Array.isArray(p) ? [p[0], p[1]] : [p.x, p.y]));
+  }
+  if (shape && Array.isArray(shape.points)) return toPolygon(shape.points, samples);
+  if (shape && typeof shape.r === 'number') {
+    const { r, cx = 0, cy = 0 } = shape;
+    const pts = [];
+    for (let i = 0; i < samples; i++) {
+      const a = (2 * Math.PI * i) / samples;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return pts;
+  }
+  throw new Error('Unsupported shape: use a point list, {r, cx, cy}, or an SVG geometry element');
+}
+
+// Even-odd scanline: list of [xStart, xEnd] inside the polygon at height y.
+function crossings(poly, y) {
+  const xs = [];
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y)) xs.push(xi + ((y - yi) * (xj - xi)) / (yj - yi));
+  }
+  xs.sort((a, b) => a - b);
+  const out = [];
+  for (let k = 0; k + 1 < xs.length; k += 2) out.push([xs[k], xs[k + 1]]);
+  return out;
+}
+
+function intersect(A, B) {
+  const out = [];
+  let i = 0, j = 0;
+  while (i < A.length && j < B.length) {
+    const lo = Math.max(A[i][0], B[j][0]);
+    const hi = Math.min(A[i][1], B[j][1]);
+    if (hi > lo) out.push([lo, hi]);
+    if (A[i][1] < B[j][1]) i++; else j++;
+  }
+  return out;
+}
+
+function polygonCentroidY(poly) {
+  let a = 0, cy = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    const c = xj * yi - xi * yj;
+    a += c;
+    cy += (yi + yj) * c;
+  }
+  return Math.abs(a) < 1e-12 ? null : cy / (3 * a);
+}
+
+function makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily) {
+  const cache = new Map();
+  let raw, ascent = 0.8, descent = 0.2;
+
+  if (customMeasure) {
+    raw = customMeasure;
+  } else {
+    const canvas = typeof OffscreenCanvas !== 'undefined'
+      ? new OffscreenCanvas(1, 1)
+      : document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = `${fontStyle} ${fontWeight} 100px ${fontFamily}`;
+    raw = s => ctx.measureText(s).width / 100;
+    const m = ctx.measureText('Mg');
+    if (m.fontBoundingBoxAscent != null) {
+      ascent = m.fontBoundingBoxAscent / 100;
+      descent = m.fontBoundingBoxDescent / 100;
+    }
+  }
+  const M = s => {
+    let w = cache.get(s);
+    if (w === undefined) { w = raw(s); cache.set(s, w); }
+    return w;
+  };
+  return { M, ascent, descent };
+}
+
+//example:
+import { fitTextInShape, applyFitToSvgText } from './fitTextInShape.mjs';
+
+await document.fonts.ready;
+
+const r = fitTextInShape('Some long text to fit', { r: 100, cx: 100, cy: 100 }, {
+  allowWordBreak: false,
+  fontFamily: 'Georgia',
+  lineHeight: 1.2,
+  padding: 4,
+});
+// r.fontSize, r.lines = [{ text, x, y (baseline), width }], r.textAnchor
+
+applyFitToSvgText(svgTextEl, r); // optional helper that writes tspans
+
+//#endregion
+
+//#region chatgpt
+
+
+
+
+
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror'))
+      throw new Error('svgFitContent: invalid SVG content.');
+  }
+
+  const shape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(shape, box, shapeEl)
+    : { box, shape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Math.max(0, Number(opts.padding ?? 8));
+  const minSize = Math.max(1, Math.floor(Number(opts.minFontSize ?? 10)));
+  const maxSize = Math.max(minSize, Math.floor(Number(opts.fontSize ?? 48)));
+  const lineRatio = Math.max(0.8, Number(opts.lineHeight ?? 1.15));
+  const baseY = area.box.y + area.box.height / 2 + Number(opts.textOffsetY ?? 0);
+  const ctx = document.createElement('canvas').getContext('2d');
+  const fitAlgorithm = opts.fitAlgorithm ?? opts.fitMethod ?? 'balanced';
+  const flowMode = ['flow', 'hourglass', 'original', 'greedy'].includes(fitAlgorithm);
+  let best = null;
+
+  // Largest font wins. At that size, search vertical placement and all
+  // possible whole-word line groupings, then choose the most balanced fit.
+  for (let size = maxSize; size >= minSize && !best; size--) {
+    const lineHeight = size * lineRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    if (flowMode) {
+      const flow = svgFlowLayout(text, ctx, area.box, area.shape, padding, lineHeight, size, opts.breakWords ?? true);
+      if (flow) best = { lines: flow.lines, ys: flow.ys, size, lineHeight, centerY: area.box.y + area.box.height / 2 };
+      continue;
+    }
+    const maxLines = Math.min(words.length,
+      Math.floor((area.box.height - 2 * padding) / lineHeight));
+    const maxShift = Math.max(0, (area.box.height - 2 * padding - size) / 2);
+    if (!maxLines) continue;
+
+    let atSize = null;
+    const shifts = new Set([0, -maxShift, maxShift]);
+    const step = Math.max(1, Math.min(3, lineHeight / 5));
+    for (let d = step; d < maxShift; d += step) {
+      shifts.add(-d);
+      shifts.add(d);
+    }
+
+    for (const shift of shifts) {
+      const centerY = baseY + shift;
+      for (let count = 1; count <= maxLines; count++) {
+        const half = ((count - 1) * lineHeight + size) / 2;
+        if (centerY - half < area.box.y + padding ||
+          centerY + half > area.box.y + area.box.height - padding) continue;
+
+        const wrap = fitAlgorithm === 'greedy' ? svgWrapForShapeGreedy : svgWrapForShape;
+        const lines = wrap(text, ctx, area.box, area.shape,
+          padding, lineHeight, count, centerY);
+        if (!lines) continue;
+
+        const score = lines.score + Math.abs(shift) * 0.0001;
+        if (!atSize || score < atSize.score)
+          atSize = { lines, score, size, lineHeight, centerY };
+      }
+    }
+    best = atSize;
+  }
+
+  if (!best) return;
+  const x = area.box.x + area.box.width / 2;
+  const textEl = svgElem(parent, 'text', {
+    fill: color, fontFamily: family, fontSize: best.size, fontWeight: weight,
+    textAnchor: 'middle', dominantBaseline: 'central'
+  }, {
+    x, y: best.ys ? best.ys[0] : best.centerY - ((best.lines.length - 1) * best.lineHeight) / 2
+  });
+
+  best.lines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, best.ys ? { x, y: best.ys[i] } : { x, dy: i ? best.lineHeight : 0 });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapForShape(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  if (lineCount < 1 || lineCount > words.length) return null;
+
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const widths = [];
+
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    // Use the narrowest cross-section across each line's glyph height.
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    widths.push(Math.max(0, Math.min(...samples.map(yy =>
+      svgWidthAt(shape, box, yy) - 2 * padding
+    ))));
+  }
+
+  // Dynamic programming chooses contiguous whole-word groups for each row.
+  const dp = Array.from({ length: lineCount + 1 },
+    () => Array(words.length + 1).fill(null));
+  dp[0][0] = { score: 0, lines: [] };
+
+  for (let row = 0; row < lineCount; row++) {
+    for (let start = 0; start < words.length; start++) {
+      const prev = dp[row][start];
+      if (!prev) continue;
+      let line = '';
+
+      for (let end = start; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > widths[row]) break;
+
+        const slack = widths[row] ? (widths[row] - measured) / widths[row] : 1;
+        const candidate = {
+          score: prev.score + slack * slack,
+          lines: [...prev.lines, line]
+        };
+        const next = end + 1;
+        if (!dp[row + 1][next] || candidate.score < dp[row + 1][next].score)
+          dp[row + 1][next] = candidate;
+      }
+    }
+  }
+
+  const result = dp[lineCount][words.length];
+  if (!result) return null;
+  result.lines.score = result.score;
+  return result.lines;
+}
+
+function svgCenteredWidthAt(shape, box, y, cx) {
+  if (shape.type === 'circle') {
+    const dy = y - shape.cy;
+    const half = Math.sqrt(Math.max(0, shape.r * shape.r - dy * dy));
+    const left = shape.cx - half, right = shape.cx + half;
+    return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+  }
+  if (shape.points?.length) {
+    const xs = [];
+    for (let i = 0; i < shape.points.length; i++) {
+      const [x1, y1] = shape.points[i];
+      const [x2, y2] = shape.points[(i + 1) % shape.points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      if (cx >= xs[i] && cx <= xs[i + 1])
+        return 2 * Math.min(cx - xs[i], xs[i + 1] - cx);
+    }
+    return 0;
+  }
+  const left = box.x, right = box.x + box.width;
+  return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+}
+
+
+
+function svgWrapForShapeGreedy(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || lineCount < 1) return null;
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const lines = [];
+  let wordIndex = 0, score = 0;
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    const width = Math.max(0, Math.min(...samples.map(yy =>
+      svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+    )));
+    let line = '';
+    while (wordIndex < words.length) {
+      const candidate = line ? line + ' ' + words[wordIndex] : words[wordIndex];
+      if (ctx.measureText(candidate).width > width) break;
+      line = candidate;
+      wordIndex++;
+    }
+    if (!line) return null;
+    const slack = width ? (width - ctx.measureText(line).width) / width : 1;
+    score += slack * slack;
+    lines.push(line);
+  }
+  if (wordIndex !== words.length) return null;
+  lines.score = score;
+  return lines;
+}
+
+
+function svgFlowLayoutOld(text, ctx, box, shape, padding, lineHeight, fontSize) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const firstY = box.y + padding + fontSize / 2;
+  const lastY = box.y + box.height - padding - fontSize / 2;
+  const slots = [];
+
+  for (let y = firstY; y <= lastY; y += lineHeight) {
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    const width = Math.max(0, Math.min(...samples.map(yy =>
+      svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+    )));
+    slots.push({ y, width });
+  }
+  if (!slots.length) return null;
+
+  const dp = Array.from({ length: slots.length + 1 }, () => new Map());
+  dp[0].set(0, { score: 0, lines: [], ys: [] });
+  function save(row, wordIndex, state) {
+    const old = dp[row].get(wordIndex);
+    if (!old || state.score < old.score) dp[row].set(wordIndex, state);
+  }
+
+  for (let row = 0; row < slots.length; row++) {
+    for (const [wordIndex, state] of dp[row]) {
+      save(row + 1, wordIndex, state); // Skip narrow rows around a waist.
+      if (wordIndex >= words.length) continue;
+      let line = '';
+
+      for (let end = wordIndex; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > slots[row].width) break;
+        const slack = slots[row].width
+          ? (slots[row].width - measured) / slots[row].width : 1;
+        save(row + 1, end + 1, {
+          score: state.score + slack * slack,
+          lines: [...state.lines, line],
+          ys: [...state.ys, slots[row].y]
+        });
+      }
+    }
+  }
+
+  const result = dp[slots.length].get(words.length);
+  if (!result || !result.lines.length) return null;
+  const meanY = result.ys.reduce((sum, y) => sum + y, 0) / result.ys.length;
+  result.score += Math.abs(meanY - (box.y + box.height / 2)) / box.height * 0.01;
+  return result;
+}
+
+function svgFlowLayout(text, ctx, box, shape, padding, lineHeight, fontSize, breakWords = true) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const top = box.y + padding + fontSize / 2;
+  const bottom = box.y + box.height - padding - fontSize / 2;
+  const pitch = lineHeight;
+  const searchStep = Math.max(1, pitch / 4);
+  let best = null;
+
+  for (let shift = 0; shift < pitch; shift += searchStep) {
+    let y = top + shift;
+    let wordIndex = 0;
+    let remainder = '';
+    const lines = [], ys = [];
+    let score = 0;
+
+    while (y <= bottom && wordIndex < words.length) {
+      const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+      const width = Math.max(0, Math.min(...samples.map(yy =>
+        svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+      )));
+
+      const pending = remainder || words[wordIndex];
+      const minChar = Math.min(...Array.from(pending, ch => ctx.measureText(ch).width));
+      if (width < minChar) {
+        y += pitch;
+        continue;
+      }
+
+      let line = '';
+      while (wordIndex < words.length) {
+        const word = remainder || words[wordIndex];
+        const candidate = line ? line + ' ' + word : word;
+
+        if (ctx.measureText(candidate).width <= width) {
+          line = candidate;
+          remainder = '';
+          wordIndex++;
+          continue;
+        }
+
+        if (line) break;
+        if (!breakWords) break;
+
+        let cut = word.length;
+        while (cut > 1 && ctx.measureText(word.slice(0, cut)).width > width) cut--;
+        if (ctx.measureText(word.slice(0, cut)).width > width) break;
+
+        line = word.slice(0, cut);
+        remainder = word.slice(cut);
+        if (!remainder) wordIndex++;
+        break;
+      }
+
+      if (line) {
+        const slack = (width - ctx.measureText(line).width) / Math.max(1, width);
+        score += slack * slack;
+        lines.push(line);
+        ys.push(y);
+      }
+      y += pitch;
+    }
+
+    if (wordIndex !== words.length || remainder) continue;
+    const meanY = ys.reduce((sum, value) => sum + value, 0) / ys.length;
+    score += Math.abs(meanY - (box.y + box.height / 2)) / box.height * 0.01;
+    if (!best || score < best.score) best = { lines, ys, score };
+  }
+
+  return best;
+}
+
+
+
+
+function svgInscribedCircleArea(shape, box, shapeEl) {
+  const strokeWidth = parseFloat(
+    shapeEl.getAttribute('stroke-width') ||
+    shapeEl.style.strokeWidth ||
+    0
+  ) || 0;
+
+  let circle;
+
+  if (shape.type === 'circle') {
+    circle = {
+      cx: shape.cx,
+      cy: shape.cy,
+      r: shape.r - strokeWidth / 2
+    };
+  } else if (shape.type === 'polygon' && shape.points.length >= 3) {
+    circle = svgLargestInscribedCircle(shape.points);
+    circle.r -= strokeWidth / 2;
+  } else {
+    circle = {
+      cx: box.x + box.width / 2,
+      cy: box.y + box.height / 2,
+      r: Math.min(box.width, box.height) / 2 - strokeWidth / 2
+    };
+  }
+
+  circle.r = Math.max(0, circle.r);
+
+  const diameter = circle.r * 2;
+  const circleBox = {
+    x: circle.cx - circle.r,
+    y: circle.cy - circle.r,
+    width: diameter,
+    height: diameter
+  };
+
+  const squareSize = circle.r * Math.SQRT2;
+  const svgBox = {
+    x: circle.cx - squareSize / 2,
+    y: circle.cy - squareSize / 2,
+    width: squareSize,
+    height: squareSize
+  };
+
+  return {
+    box: circleBox,
+    shape: { type: 'circle', ...circle },
+    svgBox
+  };
+}
+function svgLargestInscribedCircle(points) {
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+  function clearance(x, y) {
+    if (!svgPointInPolygon(x, y, points)) return -1;
+
+    let nearest = Infinity;
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % points.length];
+      const dx = x2 - x1, dy = y2 - y1;
+      const t = Math.max(0, Math.min(1,
+        ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy)
+      ));
+      nearest = Math.min(nearest, Math.hypot(x - x1 - t * dx, y - y1 - t * dy));
+    }
+    return nearest;
+  }
+
+  let best = { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, r: -1 };
+  const steps = 32;
+
+  for (let iy = 0; iy <= steps; iy++) {
+    for (let ix = 0; ix <= steps; ix++) {
+      const cx = minX + (maxX - minX) * ix / steps;
+      const cy = minY + (maxY - minY) * iy / steps;
+      const r = clearance(cx, cy);
+      if (r > best.r) best = { cx, cy, r };
+    }
+  }
+
+  return best;
+}
+function svgPointInPolygon(x, y, points) {
+  let inside = false;
+
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+
+    if ((yi > y) !== (yj > y) &&
+      x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
+}
+function svgGravityCenterY(shape, box, sections = 32) {
+  const sectionHeight = box.height / sections;
+  let totalArea = 0;
+  let weightedY = 0;
+
+  for (let i = 0; i < sections; i++) {
+    const y = box.y + (i + 0.5) * sectionHeight;
+    const area = svgWidthAt(shape, box, y) * sectionHeight;
+    totalArea += area;
+    weightedY += y * area;
+  }
+
+  return totalArea ? weightedY / totalArea : box.y + box.height / 2;
+}
+
+
+function svgContentIn(shapeEl, content, styles = {}, opts = {}) {
+  mStyle(shapeEl, styles);
+
+  const root = shapeEl.ownerSVGElement;
+  if (!root) throw new Error('svgContentIn expects an SVG shape element.');
+
+  const box = shapeEl.getBBox();
+  const group = svgElem(shapeEl.parentNode, 'g', {}, {
+    transform: shapeEl.getAttribute('transform') || ''
+  });
+
+  // Clip overlay content to the existing shape.
+  if (!shapeEl.id) shapeEl.id = getUID('shape');
+  const clipId = getUID('clip');
+  const clip = svgElem(null, 'clipPath', {}, {
+    id: clipId,
+    clipPathUnits: 'userSpaceOnUse'
+  });
+  const clipShape = shapeEl.cloneNode(false);
+  clipShape.removeAttribute('id');
+  clipShape.removeAttribute('transform');
+  clip.appendChild(clipShape);
+  svgAddDef(root, clip);
+  group.setAttribute('clip-path', `url(#${clipId})`);
+
+  svgFitContent(group, content, box, shapeEl, opts);
+  return group;
+}
+
+function svgShapeBox(shape, content, parent, styles = {}, opts = {}) {
+  const svg = svgCreate(parent, {
+    w: '100%',
+    h: '100%',
+    display: 'block',
+    overflow: 'visible'
+  }, {
+    viewBox: '0 0 100 100'
+  });
+
+  let shapeEl;
+  let points = Array.isArray(shape) ? shape : svgPolyClipPoints(shape);
+
+  if (shape === 'circle') {
+    shapeEl = svgCircle(svg, 50, 50, 48, styles);
+  } else if (points) {
+    //shapeEl = svgPolygon(svg, points, styles);
+    const strokeWidth = Number(styles.thickness ?? styles.strokeWidth ?? 0);
+    shapeEl = svgPolygon(svg, svgInsetPoints(points, strokeWidth), styles);
+  } else if (PolyClips[shape]) {
+    // Handles CSS shapes such as inset(...).
+    svg.style.clipPath = PolyClips[shape];
+    shapeEl = svgRect(svg, 0, 0, 100, 100, styles);
+  } else {
+    shapeEl = svgRect(svg, 2, 2, 96, 96, styles, { rx: 18, ry: 18 });
+  }
+
+  svgContentIn(shapeEl, content, {}, opts);
+  return svg;
+}
+
+function svgWidthAt(shape, box, y) {
+  if (shape.type === 'circle') {
+    const dy = y - shape.cy;
+    const half = Math.sqrt(Math.max(0, shape.r * shape.r - dy * dy));
+    return half * 2;
+  }
+
+  if (shape.points?.length) {
+    const xs = [];
+    for (let i = 0; i < shape.points.length; i++) {
+      const [x1, y1] = shape.points[i];
+      const [x2, y2] = shape.points[(i + 1) % shape.points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+      }
+    }
+    if (xs.length >= 2) return Math.max(...xs) - Math.min(...xs);
+  }
+
+  return box.width;
+}
+
+function svgTextShapeInfo(el) {
+  const tag = el.tagName.toLowerCase();
+
+  if (tag === 'circle') {
+    return {
+      type: 'circle',
+      cx: Number(el.getAttribute('cx')),
+      cy: Number(el.getAttribute('cy')),
+      r: Number(el.getAttribute('r'))
+    };
+  }
+
+  if (tag === 'polygon') {
+    const points = (el.getAttribute('points') || '')
+      .trim().split(/\s+/)
+      .map(p => p.split(/[ ,]+/).map(Number))
+      .filter(p => p.length === 2 && p.every(Number.isFinite));
+    return { type: 'polygon', points };
+  }
+
+  return { type: 'rect' };
+}
+
+function svgPolyClipPoints(shape) {
+  const match = PolyClips[shape]?.match(/^polygon\((.+)\)$/i);
+  if (!match) return null;
+
+  return [...match[1].matchAll(/(-?[\d.]+)%\s+(-?[\d.]+)%/g)]
+    .map(([, x, y]) => [Number(x), Number(y)]);
+}
+
+function svgFitSvg(parent, source, box) {
+  const values = (source.getAttribute('viewBox') || '0 0 100 100')
+    .trim().split(/[ ,]+/).map(Number);
+  const [x, y, width, height] = values;
+  if (!(width > 0 && height > 0)) throw new Error('SVG needs a valid viewBox.');
+
+  const scale = Math.min(box.width / width, box.height / height);
+  const group = svgElem(parent, 'g', {}, {
+    transform: `translate(${box.x + (box.width - width * scale) / 2 - x * scale} ${box.y + (box.height - height * scale) / 2 - y * scale}) scale(${scale})`
+  });
+
+  for (const child of source.children) {
+    const copy = document.importNode(child, true);
+    if (copy.tagName.toLowerCase() === 'defs') svgAddDef(parent.ownerSVGElement, copy);
+    else group.appendChild(copy);
+  }
+}
+
+function svgInsetPoints(points, strokeWidth = 0) {
+  if (!strokeWidth) return points;
+
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const sx = (Math.max(...xs) - Math.min(...xs) - strokeWidth) /
+    (Math.max(...xs) - Math.min(...xs));
+  const sy = (Math.max(...ys) - Math.min(...ys) - strokeWidth) /
+    (Math.max(...ys) - Math.min(...ys));
+
+  return points.map(([x, y]) => [
+    cx + (x - cx) * sx,
+    cy + (y - cy) * sy
+  ]);
+}
+//#endregion
+
+//#region gem
+
+
+/**
+ * Fits text inside any SVG shape element by maximizing font size and wrapping lines.
+ * 
+ * @param {SVGElement} shapeElem - Any SVG shape element (<path>, <polygon>, <circle>, <rect>, <ellipse>).
+ * @param {string} text - The text string to fit inside the shape.
+ * @param {Object} [opts={}] - Configuration options.
+ * @param {boolean} [opts.breakWord=false] - If true, breaks anywhere; if false, breaks at word boundaries.
+ * @param {string} [opts.fontFamily='sans-serif'] - CSS font-family for rendering.
+ * @param {string} [opts.fontWeight='bold'] - CSS font-weight.
+ * @param {string} [opts.fill='#000000'] - Text fill color.
+ * @param {number} [opts.padding=4] - Inset padding in SVG units from the shape border.
+ * @param {number} [opts.minFontSize=6] - Minimum font size threshold.
+ * @param {number} [opts.maxFontSize=200] - Maximum font size ceiling.
+ * @returns {SVGTextElement|null} The generated <text> element appended inside the SVG parent.
+ */
+function fitTextToShape(shapeElem, text, opts = {}) {
+  const {
+    breakWord = false,
+    fontFamily = 'sans-serif',
+    fontWeight = 'bold',
+    fill = '#000000',
+    padding = 4,
+    minFontSize = 6,
+    maxFontSize = 200
+  } = opts;
+
+  const svg = shapeElem.ownerSVGElement || shapeElem;
+  if (!svg) return null;
+
+  // 1. Convert shape boundary into discrete horizontal collision segments
+  const bbox = shapeElem.getBBox();
+  const totalLen = shapeElem.getTotalLength ? shapeElem.getTotalLength() : 0;
+
+  // Sample perimeter points along the shape
+  const points = [];
+  if (totalLen > 0) {
+    const numSamples = Math.max(120, Math.floor(totalLen / 2));
+    for (let i = 0; i < numSamples; i++) {
+      const pt = shapeElem.getPointAtLength((i / numSamples) * totalLen);
+      points.push([pt.x, pt.y]);
+    }
+  } else {
+    // Fallback for shapes lacking getTotalLength (e.g. basic rects)
+    points.push(
+      [bbox.x, bbox.y],
+      [bbox.x + bbox.width, bbox.y],
+      [bbox.x + bbox.width, bbox.y + bbox.height],
+      [bbox.x, bbox.y + bbox.height]
+    );
+  }
+
+  // Raycasting helper to find min/max X boundaries of shape at a specific Y line
+  function getHorizontalSpanAtY(y) {
+    const xIntersects = [];
+    for (let i = 0; i < points.length; i++) {
+      const p1 = points[i];
+      const p2 = points[(i + 1) % points.length];
+      if ((p1[1] <= y && p2[1] > y) || (p2[1] <= y && p1[1] > y)) {
+        const t = (y - p1[1]) / (p2[1] - p1[1]);
+        const x = p1[0] + t * (p2[0] - p1[0]);
+        xIntersects.push(x);
+      }
+    }
+    if (xIntersects.length < 2) return null;
+    xIntersects.sort((a, b) => a - b);
+
+    // Filter out spans that are too narrow due to inner padding
+    const minX = xIntersects[0] + padding;
+    const maxX = xIntersects[xIntersects.length - 1] - padding;
+    return maxX > minX ? { left: minX, right: maxX, width: maxX - minX } : null;
+  }
+
+  // Offscreen SVG canvas context for precise text measurement
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  // Tokens breakdown
+  const tokens = breakWord ? text.split('') : text.split(/\s+/);
+
+  /**
+   * Evaluates if text can fit at a specific font size and returns line layout.
+   */
+  function checkFit(fontSize) {
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const lineHeight = fontSize * 1.15;
+
+    // Test overall height fit
+    const maxYLines = Math.floor((bbox.height - padding * 2) / lineHeight);
+    if (maxYLines <= 0) return null;
+
+    let tokenIdx = 0;
+    const lines = [];
+
+    // Center vertical placement inside shape BBox
+    const startY = bbox.y + padding + lineHeight * 0.8;
+
+    for (let currentY = startY; currentY <= bbox.y + bbox.height - padding; currentY += lineHeight) {
+      const span = getHorizontalSpanAtY(currentY);
+      if (!span) continue;
+
+      let lineStr = '';
+      let lineValid = false;
+
+      while (tokenIdx < tokens.length) {
+        const token = tokens[tokenIdx];
+        const testStr = lineStr ? (breakWord ? lineStr + token : lineStr + ' ' + token) : token;
+        const metrics = ctx.measureText(testStr);
+
+        if (metrics.width <= span.width) {
+          lineStr = testStr;
+          lineValid = true;
+          tokenIdx++;
+        } else {
+          break; // Line limit reached for current horizontal segment
+        }
+      }
+
+      if (lineValid) {
+        lines.push({
+          text: lineStr,
+          x: span.left + span.width / 2, // Center alignment per line
+          y: currentY
+        });
+      }
+
+      if (tokenIdx >= tokens.length) {
+        return lines; // All text fitted successfully
+      }
+    }
+
+    return null; // Could not fit all tokens
+  }
+
+  // 2. Binary search for maximum font size that successfully fits text
+  let low = minFontSize;
+  let high = maxFontSize;
+  let bestFontSize = null;
+  let bestLayout = null;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const layout = checkFit(mid);
+
+    if (layout) {
+      bestFontSize = mid;
+      bestLayout = layout;
+      low = mid + 1; // Try larger font size
+    } else {
+      high = mid - 1; // Try smaller font size
+    }
+  }
+
+  console.log(bestLayout)
+  if (!bestLayout) return null;
+
+  // 3. Render SVG <text> element with <tspan> lines
+  const textElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  mStyle(textElem, {
+    fontFamily: fontFamily,
+    fontWeight: fontWeight,
+    fontSize: bestFontSize,
+    fill: fill,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  });
+
+  bestLayout.forEach(line => {
+    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    mStyle(tspan, {
+      x: line.x,
+      y: line.y
+    });
+    tspan.textContent = line.text;
+    textElem.appendChild(tspan);
+  });
+
+  shapeElem.parentNode.appendChild(textElem);
+  return textElem;
+}
+
+
+/**
+ * Fits text inside any SVG shape element by maximizing font size and wrapping lines.
+ * 
+ * @param {SVGElement} shapeElem - Any SVG shape element (<path>, <polygon>, <circle>, <rect>, <ellipse>).
+ * @param {string} text - The text string to fit inside the shape.
+ * @param {Object} [opts={}] - Configuration options.
+ * @param {boolean} [opts.breakWord=false] - If true, breaks anywhere; if false, breaks at word boundaries.
+ * @param {string} [opts.fontFamily='sans-serif'] - CSS font-family for rendering.
+ * @param {string} [opts.fontWeight='bold'] - CSS font-weight.
+ * @param {string} [opts.fill='#ffffff'] - Text fill color.
+ * @param {number} [opts.padding=8] - Inset padding in SVG units from the shape border.
+ * @param {number} [opts.minFontSize=8] - Minimum font size threshold.
+ * @param {number} [opts.maxFontSize=160] - Maximum font size ceiling.
+ * @returns {SVGTextElement|null} The generated <text> element.
+ */
+function fitTextToShape(shapeElem, text, opts = {}) {
+  const {
+    breakWord = false,
+    fontFamily = 'sans-serif',
+    fontWeight = 'bold',
+    fill = '#ffffff',
+    padding = 8,
+    minFontSize = 8,
+    maxFontSize = 160
+  } = opts;
+
+  // 1. Get precise shape bounding box in SVG local coordinates
+  const bbox = shapeElem.getBBox();
+  const totalLen = typeof shapeElem.getTotalLength === 'function' ? shapeElem.getTotalLength() : 0;
+
+  // Sample perimeter points along the shape boundary
+  const points = [];
+  if (totalLen > 0) {
+    const numSamples = Math.max(120, Math.floor(totalLen / 2));
+    for (let i = 0; i < numSamples; i++) {
+      const pt = shapeElem.getPointAtLength((i / numSamples) * totalLen);
+      points.push([pt.x, pt.y]);
+    }
+  } else {
+    // Fallback for shapes like <rect>
+    points.push(
+      [bbox.x, bbox.y],
+      [bbox.x + bbox.width, bbox.y],
+      [bbox.x + bbox.width, bbox.y + bbox.height],
+      [bbox.x, bbox.y + bbox.height]
+    );
+  }
+
+  // Calculate left and right horizontal bounds inside the shape for a given Y
+  function getHorizontalSpanAtY(y) {
+    const xIntersects = [];
+    for (let i = 0; i < points.length; i++) {
+      const p1 = points[i];
+      const p2 = points[(i + 1) % points.length];
+      if ((p1[1] <= y && p2[1] > y) || (p2[1] <= y && p1[1] > y)) {
+        const t = (y - p1[1]) / (p2[1] - p1[1]);
+        const x = p1[0] + t * (p2[0] - p1[0]);
+        xIntersects.push(x);
+      }
+    }
+    if (xIntersects.length < 2) return null;
+    xIntersects.sort((a, b) => a - b);
+
+    const minX = xIntersects[0] + padding;
+    const maxX = xIntersects[xIntersects.length - 1] - padding;
+    return maxX > minX ? { left: minX, right: maxX, width: maxX - minX } : null;
+  }
+
+  // Canvas context for word measurement
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const tokens = breakWord ? text.split('') : text.split(/\s+/);
+
+  function checkFit(fontSize) {
+    ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+    const lineHeight = fontSize * 1.15;
+
+    // Total vertical space check
+    const maxAvailableHeight = bbox.height - padding * 2;
+    if (lineHeight > maxAvailableHeight) return null;
+
+    let tokenIdx = 0;
+    const lines = [];
+
+    // Test line layouts starting from the upper region of the shape BBox
+    const startY = bbox.y + padding + lineHeight * 0.75;
+    const endY = bbox.y + bbox.height - padding;
+
+    for (let currentY = startY; currentY <= endY; currentY += lineHeight) {
+      const span = getHorizontalSpanAtY(currentY);
+      if (!span) continue;
+
+      let lineStr = '';
+      let lineValid = false;
+
+      while (tokenIdx < tokens.length) {
+        const token = tokens[tokenIdx];
+        const testStr = lineStr ? (breakWord ? lineStr + token : lineStr + ' ' + token) : token;
+        const metrics = ctx.measureText(testStr);
+
+        if (metrics.width <= span.width) {
+          lineStr = testStr;
+          lineValid = true;
+          tokenIdx++;
+        } else {
+          break;
+        }
+      }
+
+      if (lineValid) {
+        lines.push({
+          text: lineStr,
+          x: span.left + span.width / 2, // Centered horizontal X
+          y: currentY
+        });
+      }
+
+      if (tokenIdx >= tokens.length) {
+        // Vertical centering adjustment for all fitted lines
+        const totalBlockHeight = (lines.length - 1) * lineHeight;
+        const blockStartY = bbox.y + (bbox.height - totalBlockHeight) / 2;
+        const yOffset = blockStartY - lines[0].y;
+
+        return lines.map(line => ({
+          ...line,
+          y: line.y + yOffset
+        }));
+      }
+    }
+
+    return null;
+  }
+
+  // Binary search for maximum font size
+  let low = minFontSize;
+  let high = maxFontSize;
+  let bestFontSize = minFontSize;
+  let bestLayout = null;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const layout = checkFit(mid);
+
+    if (layout) {
+      bestFontSize = mid;
+      bestLayout = layout;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  // Remove previous generated text if re-running on same shape
+  const existingText = shapeElem.parentNode.querySelector(`[data-fitted-for="${shapeElem.id || 'shape'}"]`);
+  if (existingText) existingText.remove();
+
+  if (!bestLayout) return null;
+
+  // Create SVG <text> element positioned inside the shape
+  const textElem = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  if (shapeElem.id) textElem.setAttribute('data-fitted-for', shapeElem.id);
+
+  mStyle(textElem, {
+    fontFamily: fontFamily,
+    fontWeight: fontWeight,
+    fontSize: bestFontSize,
+    fill: fill,
+    textAnchor: 'middle',
+    dominantBaseline: 'central',
+    pointerEvents: 'none'
+  });
+
+  bestLayout.forEach(line => {
+    const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+    mStyle(tspan, {
+      x: line.x,
+      y: line.y
+    });
+    tspan.textContent = line.text;
+    textElem.appendChild(tspan);
+  });
+
+  // Append inside shape's parent container directly after the shape
+  shapeElem.parentNode.appendChild(textElem);
+  return textElem;
+}
+
+
+
+
+
+function svgShape(shape, parent, styles = {}, opts = {}) {
+  const svg = svgCreate(parent, {
+    w: '100%',
+    h: '100%',
+    display: 'block',
+    overflow: 'visible'
+  }, {
+    viewBox: '0 0 100 100'
+  });
+
+  let shapeEl;
+  let points = Array.isArray(shape) ? shape : svgPolyClipPoints(shape);
+
+  if (shape === 'circle') {
+    shapeEl = svgCircle(svg, 50, 50, 48, styles);
+  } else if (points) {
+    //shapeEl = svgPolygon(svg, points, styles);
+    const strokeWidth = Number(styles.thickness ?? styles.strokeWidth ?? 0);
+    shapeEl = svgPolygon(svg, svgInsetPoints(points, strokeWidth), styles);
+  } else if (PolyClips[shape]) {
+    // Handles CSS shapes such as inset(...).
+    svg.style.clipPath = PolyClips[shape];
+    shapeEl = svgRect(svg, 0, 0, 100, 100, styles);
+  } else {
+    shapeEl = svgRect(svg, 2, 2, 96, 96, styles, { rx: 18, ry: 18 });
+  }
+
+  return svg;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//#endregion
+
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror'))
+      throw new Error('svgFitContent: invalid SVG content.');
+  }
+
+  const shape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(shape, box, shapeEl)
+    : { box, shape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Math.max(0, Number(opts.padding ?? 8));
+  const minSize = Math.max(1, Math.floor(Number(opts.minFontSize ?? 10)));
+  const maxSize = Math.max(minSize, Math.floor(Number(opts.fontSize ?? 48)));
+  const lineRatio = Math.max(0.8, Number(opts.lineHeight ?? 1.15));
+  const baseY = area.box.y + area.box.height / 2 + Number(opts.textOffsetY ?? 0);
+  const ctx = document.createElement('canvas').getContext('2d');
+  const fitAlgorithm = opts.fitAlgorithm ?? opts.fitMethod ?? 'balanced';
+  const flowMode = ['flow', 'hourglass', 'original', 'greedy'].includes(fitAlgorithm);
+  let best = null;
+
+  // Largest font wins. At that size, search vertical placement and all
+  // possible whole-word line groupings, then choose the most balanced fit.
+  for (let size = maxSize; size >= minSize && !best; size--) {
+    const lineHeight = size * lineRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    if (flowMode) {
+      const flow = svgFlowLayout(text, ctx, area.box, area.shape, padding, lineHeight, size);
+      if (flow) best = { lines: flow.lines, ys: flow.ys, size, lineHeight, centerY: area.box.y + area.box.height / 2 };
+      continue;
+    }
+    const maxLines = Math.min(words.length,
+      Math.floor((area.box.height - 2 * padding) / lineHeight));
+    const maxShift = Math.max(0, (area.box.height - 2 * padding - size) / 2);
+    if (!maxLines) continue;
+
+    let atSize = null;
+    const shifts = new Set([0, -maxShift, maxShift]);
+    const step = Math.max(1, Math.min(3, lineHeight / 5));
+    for (let d = step; d < maxShift; d += step) {
+      shifts.add(-d);
+      shifts.add(d);
+    }
+
+    for (const shift of shifts) {
+      const centerY = baseY + shift;
+      for (let count = 1; count <= maxLines; count++) {
+        const half = ((count - 1) * lineHeight + size) / 2;
+        if (centerY - half < area.box.y + padding ||
+          centerY + half > area.box.y + area.box.height - padding) continue;
+
+        const wrap = fitAlgorithm === 'greedy' ? svgWrapForShapeGreedy : svgWrapForShape;
+        const lines = wrap(text, ctx, area.box, area.shape,
+          padding, lineHeight, count, centerY);
+        if (!lines) continue;
+
+        const score = lines.score + Math.abs(shift) * 0.0001;
+        if (!atSize || score < atSize.score)
+          atSize = { lines, score, size, lineHeight, centerY };
+      }
+    }
+    best = atSize;
+  }
+
+  if (!best) return;
+  const x = area.box.x + area.box.width / 2;
+  const textEl = svgElem(parent, 'text', {
+    fill: color, fontFamily: family, fontSize: best.size, fontWeight: weight,
+    textAnchor: 'middle', dominantBaseline: 'central'
+  }, {
+    x, y: best.ys ? best.ys[0] : best.centerY - ((best.lines.length - 1) * best.lineHeight) / 2
+  });
+
+  best.lines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, best.ys ? { x, y: best.ys[i] } : { x, dy: i ? best.lineHeight : 0 });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapForShape(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  if (lineCount < 1 || lineCount > words.length) return null;
+
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const widths = [];
+
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    // Use the narrowest cross-section across each line's glyph height.
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    widths.push(Math.max(0, Math.min(...samples.map(yy =>
+      svgWidthAt(shape, box, yy) - 2 * padding
+    ))));
+  }
+
+  // Dynamic programming chooses contiguous whole-word groups for each row.
+  const dp = Array.from({ length: lineCount + 1 },
+    () => Array(words.length + 1).fill(null));
+  dp[0][0] = { score: 0, lines: [] };
+
+  for (let row = 0; row < lineCount; row++) {
+    for (let start = 0; start < words.length; start++) {
+      const prev = dp[row][start];
+      if (!prev) continue;
+      let line = '';
+
+      for (let end = start; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > widths[row]) break;
+
+        const slack = widths[row] ? (widths[row] - measured) / widths[row] : 1;
+        const candidate = {
+          score: prev.score + slack * slack,
+          lines: [...prev.lines, line]
+        };
+        const next = end + 1;
+        if (!dp[row + 1][next] || candidate.score < dp[row + 1][next].score)
+          dp[row + 1][next] = candidate;
+      }
+    }
+  }
+
+  const result = dp[lineCount][words.length];
+  if (!result) return null;
+  result.lines.score = result.score;
+  return result.lines;
+}
+
+function svgCenteredWidthAt(shape, box, y, cx) {
+  if (shape.type === 'circle') {
+    const dy = y - shape.cy;
+    const half = Math.sqrt(Math.max(0, shape.r * shape.r - dy * dy));
+    const left = shape.cx - half, right = shape.cx + half;
+    return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+  }
+  if (shape.points?.length) {
+    const xs = [];
+    for (let i = 0; i < shape.points.length; i++) {
+      const [x1, y1] = shape.points[i];
+      const [x2, y2] = shape.points[(i + 1) % shape.points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      if (cx >= xs[i] && cx <= xs[i + 1])
+        return 2 * Math.min(cx - xs[i], xs[i + 1] - cx);
+    }
+    return 0;
+  }
+  const left = box.x, right = box.x + box.width;
+  return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+}
+
+
+
+function svgWrapForShapeGreedy(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || lineCount < 1) return null;
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const lines = [];
+  let wordIndex = 0, score = 0;
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    const width = Math.max(0, Math.min(...samples.map(yy =>
+      svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+    )));
+    let line = '';
+    while (wordIndex < words.length) {
+      const candidate = line ? line + ' ' + words[wordIndex] : words[wordIndex];
+      if (ctx.measureText(candidate).width > width) break;
+      line = candidate;
+      wordIndex++;
+    }
+    if (!line) return null;
+    const slack = width ? (width - ctx.measureText(line).width) / width : 1;
+    score += slack * slack;
+    lines.push(line);
+  }
+  if (wordIndex !== words.length) return null;
+  lines.score = score;
+  return lines;
+}
+
+
+function svgFlowLayout(text, ctx, box, shape, padding, lineHeight, fontSize) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  const firstY = box.y + padding + fontSize / 2;
+  const lastY = box.y + box.height - padding - fontSize / 2;
+  const slots = [];
+
+  for (let y = firstY; y <= lastY; y += lineHeight) {
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    const width = Math.max(0, Math.min(...samples.map(yy =>
+      svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+    )));
+    slots.push({ y, width });
+  }
+  if (!slots.length) return null;
+
+  const dp = Array.from({ length: slots.length + 1 }, () => new Map());
+  dp[0].set(0, { score: 0, lines: [], ys: [] });
+  function save(row, wordIndex, state) {
+    const old = dp[row].get(wordIndex);
+    if (!old || state.score < old.score) dp[row].set(wordIndex, state);
+  }
+
+  for (let row = 0; row < slots.length; row++) {
+    for (const [wordIndex, state] of dp[row]) {
+      save(row + 1, wordIndex, state); // Skip narrow rows around a waist.
+      if (wordIndex >= words.length) continue;
+      let line = '';
+
+      for (let end = wordIndex; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > slots[row].width) break;
+        const slack = slots[row].width
+          ? (slots[row].width - measured) / slots[row].width : 1;
+        save(row + 1, end + 1, {
+          score: state.score + slack * slack,
+          lines: [...state.lines, line],
+          ys: [...state.ys, slots[row].y]
+        });
+      }
+    }
+  }
+
+  const result = dp[slots.length].get(words.length);
+  if (!result || !result.lines.length) return null;
+  const meanY = result.ys.reduce((sum, y) => sum + y, 0) / result.ys.length;
+  result.score += Math.abs(meanY - (box.y + box.height / 2)) / box.height * 0.01;
+  return result;
+}
+
+
+function svgWrapForShapeGreedy(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length || lineCount < 1) return null;
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const lines = [];
+  let wordIndex = 0, score = 0;
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    const width = Math.max(0, Math.min(...samples.map(yy =>
+      svgCenteredWidthAt(shape, box, yy, box.x + box.width / 2) - 2 * padding
+    )));
+    let line = '';
+    while (wordIndex < words.length) {
+      const candidate = line ? line + ' ' + words[wordIndex] : words[wordIndex];
+      if (ctx.measureText(candidate).width > width) break;
+      line = candidate;
+      wordIndex++;
+    }
+    if (!line) return null;
+    const slack = width ? (width - ctx.measureText(line).width) / width : 1;
+    score += slack * slack;
+    lines.push(line);
+  }
+  if (wordIndex !== words.length) return null;
+  lines.score = score;
+  return lines;
+}
+
+
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror'))
+      throw new Error('svgFitContent: invalid SVG content.');
+  }
+
+  const shape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(shape, box, shapeEl)
+    : { box, shape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Math.max(0, Number(opts.padding ?? 8));
+  const minSize = Math.max(1, Math.floor(Number(opts.minFontSize ?? 10)));
+  const maxSize = Math.max(minSize, Math.floor(Number(opts.fontSize ?? 48)));
+  const lineRatio = Math.max(0.8, Number(opts.lineHeight ?? 1.15));
+  const baseY = area.box.y + area.box.height / 2 + Number(opts.textOffsetY ?? 0);
+  const ctx = document.createElement('canvas').getContext('2d');
+  const fitAlgorithm = opts.fitAlgorithm ?? opts.fitMethod ?? 'balanced';
+  let best = null;
+
+  // Largest font wins. At that size, search vertical placement and all
+  // possible whole-word line groupings, then choose the most balanced fit.
+  for (let size = maxSize; size >= minSize && !best; size--) {
+    const lineHeight = size * lineRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+    const maxLines = Math.min(words.length,
+      Math.floor((area.box.height - 2 * padding) / lineHeight));
+    const maxShift = Math.max(0, (area.box.height - 2 * padding - size) / 2);
+    if (!maxLines) continue;
+
+    let atSize = null;
+    const shifts = new Set([0, -maxShift, maxShift]);
+    const step = Math.max(1, Math.min(3, lineHeight / 5));
+    for (let d = step; d < maxShift; d += step) {
+      shifts.add(-d);
+      shifts.add(d);
+    }
+
+    for (const shift of shifts) {
+      const centerY = baseY + shift;
+      for (let count = 1; count <= maxLines; count++) {
+        const half = ((count - 1) * lineHeight + size) / 2;
+        if (centerY - half < area.box.y + padding ||
+          centerY + half > area.box.y + area.box.height - padding) continue;
+
+        const wrap = fitAlgorithm === 'greedy' ? svgWrapForShapeGreedy : svgWrapForShape;
+        const lines = wrap(text, ctx, area.box, area.shape,
+          padding, lineHeight, count, centerY);
+        if (!lines) continue;
+
+        const score = lines.score + Math.abs(shift) * 0.0001;
+        if (!atSize || score < atSize.score)
+          atSize = { lines, score, size, lineHeight, centerY };
+      }
+    }
+    best = atSize;
+  }
+
+  if (!best) return;
+  const x = area.box.x + area.box.width / 2;
+  const textEl = svgElem(parent, 'text', {
+    fill: color, fontFamily: family, fontSize: best.size, fontWeight: weight,
+    textAnchor: 'middle', dominantBaseline: 'central'
+  }, {
+    x, y: best.centerY - ((best.lines.length - 1) * best.lineHeight) / 2
+  });
+
+  best.lines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, { x, dy: i ? best.lineHeight : 0 });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapForShape(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  if (lineCount < 1 || lineCount > words.length) return null;
+
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const widths = [];
+
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    // Use the narrowest cross-section across each line's glyph height.
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    widths.push(Math.max(0, Math.min(...samples.map(yy =>
+      svgWidthAt(shape, box, yy) - 2 * padding
+    ))));
+  }
+
+  // Dynamic programming chooses contiguous whole-word groups for each row.
+  const dp = Array.from({ length: lineCount + 1 },
+    () => Array(words.length + 1).fill(null));
+  dp[0][0] = { score: 0, lines: [] };
+
+  for (let row = 0; row < lineCount; row++) {
+    for (let start = 0; start < words.length; start++) {
+      const prev = dp[row][start];
+      if (!prev) continue;
+      let line = '';
+
+      for (let end = start; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > widths[row]) break;
+
+        const slack = widths[row] ? (widths[row] - measured) / widths[row] : 1;
+        const candidate = {
+          score: prev.score + slack * slack,
+          lines: [...prev.lines, line]
+        };
+        const next = end + 1;
+        if (!dp[row + 1][next] || candidate.score < dp[row + 1][next].score)
+          dp[row + 1][next] = candidate;
+      }
+    }
+  }
+
+  const result = dp[lineCount][words.length];
+  if (!result) return null;
+  result.lines.score = result.score;
+  return result.lines;
+}
+
+function svgCenteredWidthAt(shape, box, y, cx) {
+  if (shape.type === 'circle') {
+    const dy = y - shape.cy;
+    const half = Math.sqrt(Math.max(0, shape.r * shape.r - dy * dy));
+    const left = shape.cx - half, right = shape.cx + half;
+    return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+  }
+  if (shape.points?.length) {
+    const xs = [];
+    for (let i = 0; i < shape.points.length; i++) {
+      const [x1, y1] = shape.points[i];
+      const [x2, y2] = shape.points[(i + 1) % shape.points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      if (cx >= xs[i] && cx <= xs[i + 1])
+        return 2 * Math.min(cx - xs[i], xs[i + 1] - cx);
+    }
+    return 0;
+  }
+  const left = box.x, right = box.x + box.width;
+  return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+}
+
+
+
+//multiple fittins
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror'))
+      throw new Error('svgFitContent: invalid SVG content.');
+  }
+
+  const shape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(shape, box, shapeEl)
+    : { box, shape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Math.max(0, Number(opts.padding ?? 8));
+  const minSize = Math.max(1, Math.floor(Number(opts.minFontSize ?? 10)));
+  const maxSize = Math.max(minSize, Math.floor(Number(opts.fontSize ?? 48)));
+  const lineRatio = Math.max(0.8, Number(opts.lineHeight ?? 1.15));
+  const baseY = area.box.y + area.box.height / 2 + Number(opts.textOffsetY ?? 0);
+  const ctx = document.createElement('canvas').getContext('2d');
+  let best = null;
+
+  // Largest font wins. At that size, search vertical placement and all
+  // possible whole-word line groupings, then choose the most balanced fit.
+  for (let size = maxSize; size >= minSize && !best; size--) {
+    const lineHeight = size * lineRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+    const maxLines = Math.min(words.length,
+      Math.floor((area.box.height - 2 * padding) / lineHeight));
+    const maxShift = Math.max(0, (area.box.height - 2 * padding - size) / 2);
+    if (!maxLines) continue;
+
+    let atSize = null;
+    const shifts = new Set([0, -maxShift, maxShift]);
+    const step = Math.max(1, Math.min(3, lineHeight / 5));
+    for (let d = step; d < maxShift; d += step) {
+      shifts.add(-d);
+      shifts.add(d);
+    }
+
+    for (const shift of shifts) {
+      const centerY = baseY + shift;
+      for (let count = 1; count <= maxLines; count++) {
+        const half = ((count - 1) * lineHeight + size) / 2;
+        if (centerY - half < area.box.y + padding ||
+          centerY + half > area.box.y + area.box.height - padding) continue;
+
+        const lines = svgWrapForShape(text, ctx, area.box, area.shape,
+          padding, lineHeight, count, centerY);
+        if (!lines) continue;
+
+        const score = lines.score + Math.abs(shift) * 0.0001;
+        if (!atSize || score < atSize.score)
+          atSize = { lines, score, size, lineHeight, centerY };
+      }
+    }
+    best = atSize;
+  }
+
+  if (!best) return;
+  const x = area.box.x + area.box.width / 2;
+  const textEl = svgElem(parent, 'text', {
+    fill: color, fontFamily: family, fontSize: best.size, fontWeight: weight,
+    textAnchor: 'middle', dominantBaseline: 'central'
+  }, {
+    x, y: best.centerY - ((best.lines.length - 1) * best.lineHeight) / 2
+  });
+
+  best.lines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, { x, dy: i ? best.lineHeight : 0 });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapForShape(text, ctx, box, shape, padding, lineHeight, lineCount, centerY) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  if (lineCount < 1 || lineCount > words.length) return null;
+
+  const fontSize = Number((ctx.font.match(/([\d.]+)px/) || [])[1]) || lineHeight / 1.15;
+  const firstY = centerY - ((lineCount - 1) * lineHeight) / 2;
+  const widths = [];
+
+  for (let row = 0; row < lineCount; row++) {
+    const y = firstY + row * lineHeight;
+    // Use the narrowest cross-section across each line's glyph height.
+    const samples = [y - fontSize * 0.38, y, y + fontSize * 0.38];
+    widths.push(Math.max(0, Math.min(...samples.map(yy =>
+      svgWidthAt(shape, box, yy) - 2 * padding
+    ))));
+  }
+
+  // Dynamic programming chooses contiguous whole-word groups for each row.
+  const dp = Array.from({ length: lineCount + 1 },
+    () => Array(words.length + 1).fill(null));
+  dp[0][0] = { score: 0, lines: [] };
+
+  for (let row = 0; row < lineCount; row++) {
+    for (let start = 0; start < words.length; start++) {
+      const prev = dp[row][start];
+      if (!prev) continue;
+      let line = '';
+
+      for (let end = start; end < words.length; end++) {
+        line = line ? line + ' ' + words[end] : words[end];
+        const measured = ctx.measureText(line).width;
+        if (measured > widths[row]) break;
+
+        const slack = widths[row] ? (widths[row] - measured) / widths[row] : 1;
+        const candidate = {
+          score: prev.score + slack * slack,
+          lines: [...prev.lines, line]
+        };
+        const next = end + 1;
+        if (!dp[row + 1][next] || candidate.score < dp[row + 1][next].score)
+          dp[row + 1][next] = candidate;
+      }
+    }
+  }
+
+  const result = dp[lineCount][words.length];
+  if (!result) return null;
+  result.lines.score = result.score;
+  return result.lines;
+}
+
+function svgCenteredWidthAt(shape, box, y, cx) {
+  if (shape.type === 'circle') {
+    const dy = y - shape.cy;
+    const half = Math.sqrt(Math.max(0, shape.r * shape.r - dy * dy));
+    const left = shape.cx - half, right = shape.cx + half;
+    return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+  }
+  if (shape.points?.length) {
+    const xs = [];
+    for (let i = 0; i < shape.points.length; i++) {
+      const [x1, y1] = shape.points[i];
+      const [x2, y2] = shape.points[(i + 1) % shape.points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let i = 0; i + 1 < xs.length; i += 2) {
+      if (cx >= xs[i] && cx <= xs[i + 1])
+        return 2 * Math.min(cx - xs[i], xs[i + 1] - cx);
+    }
+    return 0;
+  }
+  const left = box.x, right = box.x + box.width;
+  return cx >= left && cx <= right ? 2 * Math.min(cx - left, right - cx) : 0;
+}
+
+//some other one
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, box);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+  const ctx = document.createElement('canvas').getContext('2d');
+  const shape = svgTextShapeInfo(shapeEl);
+
+  let fittedLines;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    // Recalculate line widths using the expected vertical positions.
+    for (let pass = 0; pass < 10; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, box, shape, padding, lineHeight, lineCount, breakWords
+      );
+
+      if (!lines) break;
+      if (lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    // Verify wrapping once more using the actual line count.
+    lines = svgWrapForShape(
+      text, ctx, box, shape, padding, lineHeight, lines.length, breakWords
+    );
+
+    if (!lines || lines.length * lineHeight > box.height - padding * 2) continue;
+    // if (!lines) continue;
+
+    // const firstY = centerY - ((lines.length - 1) * lineHeight) / 2;
+    // const lastY = centerY + ((lines.length - 1) * lineHeight) / 2;
+    // const textTop = firstY - size / 2;
+    // const textBottom = lastY + size / 2;
+
+    // if (
+    //   textTop < box.y + padding ||
+    //   textBottom > box.y + box.height - padding
+    // ) {
+    //   continue; // Try a smaller font size.
+    // }
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2 + Number(opts.textOffsetY ?? fittedSize * 0.08);
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: centerX,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: centerX,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+function svgWrapForShape(
+  text,
+  ctx,
+  box,
+  shape,
+  padding,
+  lineHeight,
+  lineCount,
+  breakWords = true
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const y = box.y + box.height / 2 +
+      (lineIndex - (lineCount - 1) / 2) * lineHeight;
+    return Math.max(0, svgWidthAt(shape, box, y) - 2 * padding);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      // The word itself does not fit on an empty line.
+      if (!breakWords) return null;
+
+      // Split only as much of the word as fits, then continue on a new line.
+      let cut = remaining.length;
+      while (cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null; // Even one character cannot fit at this font size.
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+
+
+
+//#region svg
+//version with optional fitUsingCircle
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' ||
+      source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  const originalShape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(originalShape, box, shapeEl)
+    : { box, shape: originalShape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+  const ctx = document.createElement('canvas').getContext('2d');
+
+  let fittedLines = null;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    for (let pass = 0; pass < 12; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, area.box, area.shape, padding,
+        lineHeight, lineCount, breakWords, 0
+      );
+
+      if (!lines || lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    lines = svgWrapForShape(
+      text, ctx, area.box, area.shape, padding,
+      lineHeight, lines.length, breakWords, 0
+    );
+
+    if (!lines || lines.length * lineHeight > area.box.height - padding * 2) {
+      continue;
+    }
+
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const centerX = area.box.x + area.box.width / 2;
+  const centerY = area.box.y + area.box.height / 2 +
+    Number(opts.textOffsetY ?? 0);
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: centerX,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: centerX,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+function svgWrapForShape(
+  text,
+  ctx,
+  box,
+  shape,
+  padding,
+  lineHeight,
+  lineCount,
+  breakWords = true,
+  centerOffsetY = 0
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const y = box.y + box.height / 2 + centerOffsetY +
+      (lineIndex - (lineCount - 1) / 2) * lineHeight;
+
+    return Math.max(0, svgWidthAt(shape, box, y) - 2 * padding);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      // Keep words intact when breakWords is false.
+      if (!breakWords) return null;
+
+      // Otherwise split the word into the largest fitting chunks.
+      let cut = remaining.length;
+      while (
+        cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available
+      ) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null;
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+
+//version with optional bottomUp
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' ||
+      source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  const shape = svgTextShapeInfo(shapeEl);
+  const area = opts.fitUsingCircle
+    ? svgInscribedCircleArea(shape, box, shapeEl)
+    : { box, shape, svgBox: box };
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, area.svgBox);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+  const topDown = opts.topDown ?? true;
+  const offsetY = Number(opts.textOffsetY ?? 0);
+  const ctx = document.createElement('canvas').getContext('2d');
+
+  let fittedLines = null;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    for (let pass = 0; pass < 12; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, area.box, area.shape, padding,
+        lineHeight, lineCount, breakWords, topDown
+      );
+
+      if (!lines || lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    // Recheck using the final line count.
+    lines = svgWrapForShape(
+      text, ctx, area.box, area.shape, padding,
+      lineHeight, lines.length, breakWords, topDown
+    );
+
+    if (!lines) continue;
+
+    const centerY = area.box.y + area.box.height / 2 + offsetY;
+    const halfTextHeight =
+      ((lines.length - 1) * lineHeight + size) / 2;
+
+    if (
+      centerY - halfTextHeight < area.box.y + padding ||
+      centerY + halfTextHeight > area.box.y + area.box.height - padding
+    ) {
+      continue;
+    }
+
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const centerX = area.box.x + area.box.width / 2;
+  const centerY = area.box.y + area.box.height / 2 + offsetY;
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: centerX,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: centerX,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapForShape(
+  text,
+  ctx,
+  box,
+  shape,
+  padding,
+  lineHeight,
+  lineCount,
+  breakWords = true,
+  topDown = true
+) {
+  let words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  if (!topDown) words = words.reverse();
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const row = lineIndex - (lineCount - 1) / 2;
+    const y = box.y + box.height / 2 + (topDown ? row : -row) * lineHeight;
+    return Math.max(0, svgWidthAt(shape, box, y) - 2 * padding);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      if (!breakWords) return null;
+
+      let cut = remaining.length;
+      while (
+        cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available
+      ) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null;
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+
+  if (!topDown) {
+    return lines
+      .reverse()
+      .map(line => line.split(/\s+/).reverse().join(' '));
+  }
+
+  return lines;
+}
+
+
+
+
+
+function _svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, box);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+
+  const ctx = document.createElement('canvas').getContext('2d');
+  const shape = svgTextShapeInfo(shapeEl);
+  const middleY = box.y + box.height / 2;
+  const centerY = (opts.gravityCenter === false ? middleY : svgGravityCenterY(shape, box)) + Number(opts.textOffsetY ?? 0);
+  const centerOffsetY = centerY - middleY;
+
+  let fittedLines = null;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    // Recalculate wrapping as the number and vertical positions of lines change.
+    for (let pass = 0; pass < 12; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, box, shape, padding, lineHeight, lineCount,
+        breakWords, centerOffsetY
+      );
+
+      if (!lines) break;
+      if (lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    // Confirm the lines still fit using the final line count.
+    lines = svgWrapForShape(
+      text, ctx, box, shape, padding, lineHeight, lines.length,
+      breakWords, centerOffsetY
+    );
+
+    //if (!lines || lines.length * lineHeight > box.height - padding * 2) { continue; }
+    if (!lines) continue;
+
+    const firstY = centerY - ((lines.length - 1) * lineHeight) / 2;
+    const lastY = centerY + ((lines.length - 1) * lineHeight) / 2;
+    const textTop = firstY - size / 2;
+    const textBottom = lastY + size / 2;
+
+    if (
+      textTop < box.y + padding ||
+      textBottom > box.y + box.height - padding
+    ) {
+      continue; // Try a smaller font size.
+    }
+
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: box.x + box.width / 2,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: box.x + box.width / 2,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+
+function _svgWrapForShape(
+  text, ctx, box, shape, padding, lineHeight, lineCount,
+  breakWords = true, centerOffsetY = 0
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const y = box.y + box.height / 2 + centerOffsetY +
+      (lineIndex - (lineCount - 1) / 2) * lineHeight;
+    return Math.max(0, svgWidthAt(shape, box, y) - padding * 2);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      if (!breakWords) return null;
+
+      let cut = remaining.length;
+      while (cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null;
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, box);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+  const ctx = document.createElement('canvas').getContext('2d');
+  const shape = svgTextShapeInfo(shapeEl);
+
+  let fittedLines;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    // Recalculate line widths using the expected vertical positions.
+    for (let pass = 0; pass < 10; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, box, shape, padding, lineHeight, lineCount, breakWords
+      );
+
+      if (!lines) break;
+      if (lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    // Verify wrapping once more using the actual line count.
+    lines = svgWrapForShape(
+      text, ctx, box, shape, padding, lineHeight, lines.length, breakWords
+    );
+
+    if (!lines || lines.length * lineHeight > box.height - padding * 2) continue;
+    // if (!lines) continue;
+
+    // const firstY = centerY - ((lines.length - 1) * lineHeight) / 2;
+    // const lastY = centerY + ((lines.length - 1) * lineHeight) / 2;
+    // const textTop = firstY - size / 2;
+    // const textBottom = lastY + size / 2;
+
+    // if (
+    //   textTop < box.y + padding ||
+    //   textBottom > box.y + box.height - padding
+    // ) {
+    //   continue; // Try a smaller font size.
+    // }
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2 + Number(opts.textOffsetY ?? fittedSize * 0.08);
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: centerX,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: centerX,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+function svgWrapForShape(
+  text,
+  ctx,
+  box,
+  shape,
+  padding,
+  lineHeight,
+  lineCount,
+  breakWords = true
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const y = box.y + box.height / 2 +
+      (lineIndex - (lineCount - 1) / 2) * lineHeight;
+    return Math.max(0, svgWidthAt(shape, box, y) - 2 * padding);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      // The word itself does not fit on an empty line.
+      if (!breakWords) return null;
+
+      // Split only as much of the word as fits, then continue on a new line.
+      let cut = remaining.length;
+      while (cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null; // Even one character cannot fit at this font size.
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+
+
+
+function svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  let source = content;
+
+  if (typeof source === 'string' && /^\s*<svg[\s>]/i.test(source)) {
+    source = new DOMParser()
+      .parseFromString(source, 'image/svg+xml')
+      .documentElement;
+
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror')) {
+      throw new Error('svgFitContent: invalid SVG content.');
+    }
+  }
+
+  if (source?.nodeType === 1 && source.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, source, box);
+    return;
+  }
+
+  const text = String(content).trim();
+  if (!text) return;
+
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight ?? 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const padding = Number(opts.padding ?? 8);
+  const minSize = Number(opts.minFontSize ?? 10);
+  const maxSize = Number(opts.fontSize ?? 48);
+  const lineHeightRatio = Number(opts.lineHeight ?? 1.15);
+  const breakWords = opts.breakWords ?? true;
+  const ctx = document.createElement('canvas').getContext('2d');
+  const shape = svgTextShapeInfo(shapeEl);
+
+  let fittedLines;
+  let fittedSize;
+  let fittedLineHeight;
+
+  for (let size = maxSize; size >= minSize; size--) {
+    const lineHeight = size * lineHeightRatio;
+    ctx.font = `${weight} ${size}px ${family}`;
+
+    let lineCount = 1;
+    let lines = null;
+
+    // Recalculate line widths using the expected vertical positions.
+    for (let pass = 0; pass < 10; pass++) {
+      lines = svgWrapForShape(
+        text, ctx, box, shape, padding, lineHeight, lineCount, breakWords
+      );
+
+      if (!lines) break;
+      if (lines.length === lineCount) break;
+      lineCount = lines.length;
+    }
+
+    if (!lines) continue;
+
+    // Verify wrapping once more using the actual line count.
+    lines = svgWrapForShape(
+      text, ctx, box, shape, padding, lineHeight, lines.length, breakWords
+    );
+
+    //if (!lines || lines.length * lineHeight > box.height - padding * 2) continue;
+    if (!lines) continue;
+
+    const firstY = centerY - ((lines.length - 1) * lineHeight) / 2;
+    const lastY = centerY + ((lines.length - 1) * lineHeight) / 2;
+    const textTop = firstY - size / 2;
+    const textBottom = lastY + size / 2;
+
+    if (
+      textTop < box.y + padding ||
+      textBottom > box.y + box.height - padding
+    ) {
+      continue; // Try a smaller font size.
+    }
+    fittedLines = lines;
+    fittedSize = size;
+    fittedLineHeight = lineHeight;
+    break;
+  }
+
+  if (!fittedLines) return;
+
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2 + Number(opts.textOffsetY ?? fittedSize * 0.08);
+
+  const textEl = svgElem(parent, 'text', {
+    fill: color,
+    fontFamily: family,
+    fontSize: fittedSize,
+    fontWeight: weight,
+    textAnchor: 'middle',
+    dominantBaseline: 'central'
+  }, {
+    x: centerX,
+    y: centerY - ((fittedLines.length - 1) * fittedLineHeight) / 2
+  });
+
+  fittedLines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: centerX,
+      dy: i === 0 ? 0 : fittedLineHeight
+    });
+    tspan.textContent = line;
+  });
+}
+function svgWrapForShape(
+  text,
+  ctx,
+  box,
+  shape,
+  padding,
+  lineHeight,
+  lineCount,
+  breakWords = true
+) {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let line = '';
+
+  function maxWidthAt(lineIndex) {
+    const y = box.y + box.height / 2 +
+      (lineIndex - (lineCount - 1) / 2) * lineHeight;
+    return Math.max(0, svgWidthAt(shape, box, y) - 2 * padding);
+  }
+
+  for (const word of words) {
+    let remaining = word;
+
+    while (remaining) {
+      const available = maxWidthAt(lines.length);
+      const candidate = line ? `${line} ${remaining}` : remaining;
+
+      if (ctx.measureText(candidate).width <= available) {
+        line = candidate;
+        remaining = '';
+        continue;
+      }
+
+      if (line) {
+        lines.push(line);
+        line = '';
+        continue;
+      }
+
+      // The word itself does not fit on an empty line.
+      if (!breakWords) return null;
+
+      // Split only as much of the word as fits, then continue on a new line.
+      let cut = remaining.length;
+      while (cut > 1 &&
+        ctx.measureText(remaining.slice(0, cut)).width > available) {
+        cut--;
+      }
+
+      if (ctx.measureText(remaining.slice(0, cut)).width > available) {
+        return null; // Even one character cannot fit at this font size.
+      }
+
+      lines.push(remaining.slice(0, cut));
+      remaining = remaining.slice(cut);
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines;
+}
+function svgGravityCenterY(shape, box, sections = 32) {
+  const sectionHeight = box.height / sections;
+  let totalArea = 0;
+  let weightedY = 0;
+
+  for (let i = 0; i < sections; i++) {
+    const y = box.y + (i + 0.5) * sectionHeight;
+    const area = svgWidthAt(shape, box, y) * sectionHeight;
+
+    totalArea += area;
+    weightedY += y * area;
+  }
+
+  return totalArea ? weightedY / totalArea : box.y + box.height / 2;
+}
+
+
+function _svgFitContent(parent, content, box, shapeEl, opts = {}) {
+  if (content?.nodeType === 1 && content.tagName.toLowerCase() === 'svg') {
+    svgFitSvg(parent, content, box);
+    return;
+  }
+
+  if (typeof content === 'string' && /^\s*<svg[\s>]/i.test(content)) {
+    const source = new DOMParser().parseFromString(content, 'image/svg+xml').documentElement;
+    if (source.tagName.toLowerCase() !== 'svg' || source.querySelector('parsererror')) {
+      throw new Error('Invalid SVG content.');
+    }
+    svgFitSvg(parent, source, box);
+    return;
+  }
+
+  const text = String(content);
+  const family = opts.fontFamily || 'system-ui, sans-serif';
+  const weight = opts.fontWeight || 700;
+  const color = opts.fg || opts.color || '#1e293b';
+  const ctx = document.createElement('canvas').getContext('2d');
+  const shapeInfo = svgTextShapeInfo(shapeEl);
+  const padding = opts.padding ?? 8;
+  const maxSize = opts.fontSize ?? 48;
+  const minSize = opts.minFontSize ?? 10;
+
+  for (let size = maxSize; size >= minSize; size -= 2) {
+    ctx.font = `${weight} ${size}px ${family}`;
+    const lineHeight = size * (opts.lineHeight ?? 1.15);
+    let guess = 1;
+    let lines = [];
+
+    // Rewrap using each line's actual vertical position in the shape.
+    for (let pass = 0; pass < 4; pass++) {
+      lines = svgWrapForShape(text, ctx, box, shapeInfo, padding, lineHeight, guess, opts.breakWords ?? true);
+      //if (lines.length === guess) break;
+      if (!lines) break;
+      guess = lines.length;
+    }
+
+    if (lines.length * lineHeight <= box.height - padding * 2) {
+      const textEl = svgElem(parent, 'text', {
+        fill: color,
+        fontFamily: family,
+        fontSize: size,
+        fontWeight: weight,
+        textAnchor: 'middle',
+        dominantBaseline: 'middle'
+      }, {
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2 - ((lines.length - 1) * lineHeight) / 2 + (opts.textOffsetY ?? size * 0.08)
+        //y: box.y + box.height / 2 - ((lines.length - 1) * lineHeight) / 2
+      });
+
+      lines.forEach((line, i) => {
+        svgElem(textEl, 'tspan', {}, {
+          x: box.x + box.width / 2,
+          dy: i === 0 ? 0 : lineHeight
+        }).textContent = line;
+      });
+      return;
+    }
+  }
+}
+function _svgWrapForShape(text, ctx, box, shape, padding, lineHeight, lineCount, breakWords) {
+  const words = text.trim().split(/\s+/);
+  const lines = [];
+  if (breakWords === undefined) breakWords = words.length <= 1;
+  let line = '';
+
+  for (const word of words) {
+    const y = box.y + box.height / 2 +
+      (lines.length - (lineCount - 1) / 2) * lineHeight;
+    const maxWidth = Math.max(0, svgWidthAt(shape, box, y) - padding * 2);
+    const candidate = line ? `${line} ${word}` : word;
+
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+    } else {
+      if (line) lines.push(line);
+      line = word;
+
+      // Break an overlong word into characters if needed.
+      while (line && ctx.measureText(line).width > maxWidth) {
+        let cut = line.length;
+        while (cut > 1 && ctx.measureText(line.slice(0, cut)).width > maxWidth) cut--;
+        lines.push(line.slice(0, cut));
+        line = line.slice(cut);
+      }
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+
+
+function svgContentIn(shapeEl, content, styles = {}, opts = {}) {
+  mStyle(shapeEl, styles);
+
+  const svg = shapeEl.ownerSVGElement;
+  if (!svg) throw new Error('svgContentIn: shape must be inside an <svg>.');
+
+  const box = shapeEl.getBBox();
+  const clipId = getUID('clip');
+
+  if (!shapeEl.id) shapeEl.id = getUID('shape');
+
+  // Clip the added content to the existing shape.
+  const clip = svgElem(null, 'clipPath', {}, {
+    id: clipId,
+    clipPathUnits: 'userSpaceOnUse'
+  });
+  const clipShape = shapeEl.cloneNode(false);
+  clipShape.removeAttribute('id');
+  clipShape.removeAttribute('transform');
+  clip.appendChild(clipShape);
+  svgAddDef(svg, clip);
+
+  const group = svgElem(shapeEl.parentNode, 'g', {}, {
+    'clip-path': `url(#${clipId})`,
+    transform: shapeEl.getAttribute('transform') || ''
+  });
+
+  if (isSvgValue(content)) {
+    svgBoxAddSvg(group, content, box);
+  } else {
+    svgBoxAddText(group, content, box, shapeEl, opts.contentStyles || {}, opts);
+  }
+
+  return group;
+}
+
+function svgShapeBox(shapeName, content, parent, styles = {}, opts = {}) {
+  const svg = svgCreate(parent, {
+    w: opts.w ?? 100,
+    h: opts.h ?? 100,
+    display: 'block',
+    overflow: 'visible'
+  }, {
+    viewBox: opts.viewBox || '0 0 100 100'
+  });
+
+  let shape;
+  const points = Array.isArray(shapeName)
+    ? shapeName
+    : svgPolyClipPoints(PolyClips[shapeName]);
+
+  if (shapeName === 'circle') {
+    shape = svgCircle(svg, 50, 50, 48, styles, {
+      id: getUID('shape')
+    });
+  } else if (points) {
+    shape = svgPolygon(svg, points, styles, {
+      id: getUID('shape')
+    });
+  } else if (PolyClips[shapeName]) {
+    // Supports CSS clip shapes such as inset(...).
+    svg.style.clipPath = PolyClips[shapeName];
+    shape = svgRect(svg, 2, 2, 96, 96, styles, {
+      id: getUID('shape')
+    });
+  } else {
+    shape = svgRect(svg, 2, 2, 96, 96, styles, {
+      id: getUID('shape'),
+      rx: 18,
+      ry: 18
+    });
+  }
+
+  svgContentIn(shape, content, {}, opts);
+  return svg;
+}
+
+function svgBoxAddText(parent, value, box, shape, styles = {}, opts = {}) {
+  const text = String(value);
+  const family = styles.fontFamily || 'system-ui, sans-serif';
+  const weight = styles.fontWeight || 700;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  let size = opts.fontSize || 48;
+  const minSize = opts.minFontSize || 10;
+  const lineHeight = opts.lineHeight || 1.15;
+  let lines;
+
+  while (size >= minSize) {
+    ctx.font = `${weight} ${size}px ${family}`;
+    lines = svgWrapLines(text, ctx, box, shape, size, lineHeight);
+    if (lines.length * size * lineHeight <= box.height * 0.82) break;
+    size *= 0.9;
+  }
+  size = Math.max(size, minSize);
+
+  const lineStep = size * lineHeight;
+  const startY = box.y + box.height / 2 - (lines.length - 1) * lineStep / 2;
+
+  const textEl = svgElem(parent, 'text', {
+    fill: styles.fill || styles.fg || '#1e293b',
+    fontFamily: family,
+    fontSize: size,
+    fontWeight: weight
+  }, {
+    x: box.x + box.width / 2,
+    y: startY,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central'
+  });
+
+  lines.forEach((line, i) => {
+    const tspan = svgElem(textEl, 'tspan', {}, {
+      x: box.x + box.width / 2,
+      dy: i === 0 ? 0 : lineStep
+    });
+    tspan.textContent = line;
+  });
+}
+
+function svgWrapLines(text, ctx, box, shape, fontSize, lineHeight) {
+  const words = text.trim().split(/\s+/);
+  const centerY = box.y + box.height / 2;
+  const step = fontSize * lineHeight;
+  let lines = [''];
+
+  // Iterate because the available width depends on each line's vertical position.
+  for (let pass = 0; pass < 4; pass++) {
+    const count = Math.max(1, lines.length);
+    const next = [''];
+
+    for (const word of words) {
+      let i = next.length - 1;
+      const y = centerY + (i - (count - 1) / 2) * step;
+      const maxWidth = svgShapeWidthAt(shape, box, y) - 8;
+      const candidate = next[i] ? `${next[i]} ${word}` : word;
+
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        next[i] = candidate;
+      } else {
+        next.push(word);
+      }
+    }
+
+    lines = next.filter(Boolean);
+  }
+  return lines;
+}
+
+function svgShapeWidthAt(shape, box, y) {
+  const tag = shape.tagName.toLowerCase();
+
+  if (tag === 'circle') {
+    const cx = Number(shape.getAttribute('cx') || box.x + box.width / 2);
+    const cy = Number(shape.getAttribute('cy') || box.y + box.height / 2);
+    const r = Number(shape.getAttribute('r') || Math.min(box.width, box.height) / 2);
+    const dy = y - cy;
+    return Math.abs(dy) >= r ? 0 : 2 * Math.sqrt(r * r - dy * dy);
+  }
+
+  if (tag === 'polygon') {
+    const points = svgReadPoints(shape.getAttribute('points'));
+    const xs = [];
+
+    for (let i = 0; i < points.length; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % points.length];
+      if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y)) {
+        xs.push(x1 + (y - y1) * (x2 - x1) / (y2 - y1));
+      }
+    }
+
+    return xs.length < 2 ? 0 : Math.max(...xs) - Math.min(...xs);
+  }
+
+  return box.width;
+}
+
+function svgPolyClipPoints(clip) {
+  const match = clip?.match(/^polygon\((.+)\)$/i);
+  if (!match) return null;
+
+  return [...match[1].matchAll(/(-?[\d.]+)%\s+(-?[\d.]+)%/g)]
+    .map(([, x, y]) => [Number(x), Number(y)]);
+}
+
+function svgReadPoints(value = '') {
+  return value.trim().split(/\s+/).map(pair =>
+    pair.split(/[,\s]+/).map(Number)
+  );
+}
+
+function svgBoxAddSvg(parent, value, box) {
+  const source = value?.nodeType === 1
+    ? value
+    : new DOMParser().parseFromString(value, 'image/svg+xml').documentElement;
+
+  if (source.tagName.toLowerCase() !== 'svg') {
+    throw new Error('Expected SVG markup or an <svg> element.');
+  }
+
+  const viewBox = (source.getAttribute('viewBox') || '0 0 100 100')
+    .split(/[ ,]+/).map(Number);
+  const [x, y, width, height] = viewBox;
+  const scale = Math.min(box.width / width, box.height / height);
+  const group = svgElem(parent, 'g', {}, {
+    transform:
+      `translate(${box.x + box.width / 2} ${box.y + box.height / 2}) ` +
+      `scale(${scale}) translate(${-x - width / 2} ${-y - height / 2})`
+  });
+
+  for (const child of source.children) {
+    if (child.tagName.toLowerCase() !== 'defs') {
+      group.appendChild(document.importNode(child, true));
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+function svgElem(parent, tag, styles = {}, opts = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  const attrs = { ...opts };
+
+  // applyOpts assigns className as a property; SVG elements should use the class attribute.
+  if (attrs.className) {
+    attrs.class = attrs.className;
+    delete attrs.className;
+  }
+
+  applyOpts(el, attrs);
+  mStyle(el, styles);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function svgCreate(parent, styles = {}, opts = {}) {
+  return svgElem(parent, 'svg', styles, opts);
+}
+
+function svgAddDef(svg, elem) {
+  let defs = [...svg.children].find(el => el.tagName === 'defs');
+  if (!defs) defs = document.createElementNS(SVG_NS, 'defs');
+  if (svg.firstElementChild !== defs) svg.prepend(defs);
+  defs.appendChild(elem);
+  return elem;
+}
+
+function svgLinearGradient(id, stops, opts = {}) {
+  const grad = svgElem(null, 'linearGradient', {}, {
+    id, x1: '0%', y1: '0%', x2: '100%', y2: '100%', ...opts
+  });
+
+  for (const [offset, color] of stops) {
+    svgElem(grad, 'stop', {}, { offset, 'stop-color': color });
+  }
+  return grad;
+}
+
+function svgRect(parent, x, y, width, height, styles = {}, opts = {}) {
+  return svgElem(parent, 'rect', styles, { x, y, width, height, ...opts });
+}
+
+function svgCircle(parent, cx, cy, r, styles = {}, opts = {}) {
+  return svgElem(parent, 'circle', styles, { cx, cy, r, ...opts });
+}
+
+function svgEllipse(parent, cx, cy, rx, ry, styles = {}, opts = {}) {
+  return svgElem(parent, 'ellipse', styles, { cx, cy, rx, ry, ...opts });
+}
+
+function svgLine(parent, x1, y1, x2, y2, styles = {}, opts = {}) {
+  return svgElem(parent, 'line', styles, { x1, y1, x2, y2, ...opts });
+}
+
+function svgPolygon(parent, points, styles = {}, opts = {}) {
+  const pointsAttr = points.map(p => Array.isArray(p) ? p.join(',') : p).join(' ');
+  return svgElem(parent, 'polygon', styles, { points: pointsAttr, ...opts });
+}
+
+function svgPath(parent, d, styles = {}, opts = {}) {
+  return svgElem(parent, 'path', styles, { d, ...opts });
+}
+
+function svgText(parent, text, x, y, styles = {}, opts = {}) {
+  const el = svgElem(parent, 'text', styles, { x, y, ...opts });
+  el.textContent = text;
+  return el;
+}
+
+function svgTextPath(parent, text, pathId, styles = {}, opts = {}) {
+  const el = svgElem(parent, 'text', styles, opts);
+  const textPath = svgElem(el, 'textPath', {}, { href: `#${pathId}` });
+  textPath.textContent = text;
+  return el;
+}
+
+function svgAddFilter(svg, filter) {
+  return svgAddDef(svg, filter);
+}
+
+function svgCreateFilter(id, opts = {}) {
+  const filter = svgElem(null, 'filter', {}, {
+    id, x: '-25%', y: '-25%', width: '150%', height: '160%', ...opts
+  });
+
+  svgElem(filter, 'feDropShadow', {}, {
+    dx: 0, dy: 4, stdDeviation: 4,
+    'flood-color': '#000', 'flood-opacity': 0.3
+  });
+  return filter;
+}
+
+function svgAddClipPath(svg, id, shape) {
+  const clip = svgElem(null, 'clipPath', {}, {
+    id, clipPathUnits: 'objectBoundingBox'
+  });
+  const match = PolyClips[shape]?.match(/^polygon\((.+)\)$/i);
+  if (!match) throw new Error(`PolyClips.${shape} is not a polygon() shape`);
+
+  const points = [...match[1].matchAll(/(-?[\d.]+)%\s+(-?[\d.]+)%/g)]
+    .map(([, x, y]) => `${x / 100},${y / 100}`)
+    .join(' ');
+
+  svgElem(clip, 'polygon', {}, { points });
+  svgAddDef(svg, clip);
+  return clip;
+}
+
+function svgClippedRect(parent, shape, styles = {}, opts = {}) {
+  const clip = PolyClips[shape];
+  if (!clip) throw new Error(`Unknown PolyClips shape: ${shape}`);
+  return svgElem(parent, 'rect', { ...styles, clipPath: clip }, opts);
+}
+
+function svgUse(parent, id, x = 0, y = 0, styles = {}, opts = {}) {
+  return svgElem(parent, 'use', styles, { href: `#${id}`, x, y, ...opts });
+}
+
+function svgMake(parent, tag, styles = {}, opts = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  mStyle(el, styles);
+  applyOpts(el, opts);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function svgGroup(parent, styles = {}, opts = {}) {
+  return svgMake(parent, 'g', styles, opts);
+}
+
+function svgLine(parent, x1, y1, x2, y2, styles = {}, opts = {}) {
+  return svgMake(parent, 'line', styles, { x1, y1, x2, y2, ...opts });
+}
+
+function svgPolygon(parent, points, styles = {}, opts = {}) {
+  const pointsAttr = points
+    .map(p => Array.isArray(p) ? p.join(',') : p)
+    .join(' ');
+  return svgMake(parent, 'polygon', styles, { points: pointsAttr, ...opts });
+}
+
+function svgPath(parent, d, styles = {}, opts = {}) {
+  return svgMake(parent, 'path', styles, { d, ...opts });
+}
+
+function svgEllipse(parent, cx, cy, rx, ry, styles = {}, opts = {}) {
+  return svgMake(parent, 'ellipse', styles, { cx, cy, rx, ry, ...opts });
+}
+
+function svgTextPath(parent, text, pathId, styles = {}, opts = {}) {
+  const textEl = svgMake(parent, 'text', styles, opts);
+  const pathEl = svgMake(textEl, 'textPath', {}, { href: `#${pathId}` });
+  pathEl.textContent = text;
+  return textEl;
+}
+
+function svgAddClipPath(parent, shape, styles = {}, opts = {}) {
+  const clip = svgMake(parent, 'rect', {
+    ...styles,
+    clipPath: PolyClips[shape]
+  }, opts);
+  return clip;
+}
+
+function svgAddFilter(svg, filter) {
+  return svgAddDef(svg, filter);
+}
+
+function svgUse(parent, id, x = 0, y = 0, styles = {}, opts = {}) {
+  return svgMake(parent, 'use', styles, {
+    href: `#${id}`,
+    x, y,
+    ...opts
+  });
+}
+
+
+
+function svgAddClipPath(svg, id, shape) {
+  const clip = svgElem(null, 'clipPath', {}, {
+    id, clipPathUnits: 'objectBoundingBox'
+  });
+  const match = PolyClips[shape]?.match(/^polygon\((.+)\)$/i);
+  if (!match) throw new Error(`PolyClips.${shape} is not a polygon() shape`);
+
+  const points = [...match[1].matchAll(/(-?[\d.]+)%\s+(-?[\d.]+)%/g)]
+    .map(([, x, y]) => `${x / 100},${y / 100}`)
+    .join(' ');
+
+  svgElem(clip, 'polygon', {}, { points });
+  svgAddDef(svg, clip);
+  return clip;
+}
+
+function svgAddDef(svg, elem) {
+  let defs = [...svg.children].find(el => el.tagName === 'defs');
+  if (!defs) defs = document.createElementNS(SVG_NS, 'defs');
+  if (svg.firstElementChild !== defs) svg.prepend(defs);
+  defs.appendChild(elem);
+  return elem;
+}
+
+function svgAddFilter(svg, filter) {
+  return svgAddDef(svg, filter);
+}
+
+function svgCircle(parent, cx, cy, r, styles = {}, opts = {}) {
+  return svgElem(parent, 'circle', styles, { cx, cy, r, ...opts });
+}
+
+function svgClippedRect(parent, shape, styles = {}, opts = {}) {
+  const clipPath = PolyClips[shape];
+  if (!clipPath) throw new Error(`Unknown PolyClips shape: ${shape}`);
+  return svgElem(parent, 'rect', { ...styles, clipPath }, opts);
+}
+
+function svgCreate(parent, styles = {}, opts = {}) {
+  return svgElem(parent, 'svg', styles, opts);
+}
+
+function svgCreateFilter(id, opts = {}) {
+  const filter = svgElem(null, 'filter', {}, {
+    id, x: '-25%', y: '-25%', width: '150%', height: '160%', ...opts
+  });
+
+  svgElem(filter, 'feDropShadow', {}, {
+    dx: 0, dy: 4, stdDeviation: 4,
+    'flood-color': '#000', 'flood-opacity': 0.3
+  });
+  return filter;
+}
+
+function svgEllipse(parent, cx, cy, rx, ry, styles = {}, opts = {}) {
+  return svgElem(parent, 'ellipse', styles, { cx, cy, rx, ry, ...opts });
+}
+
+function svgElem(parent, tag, styles = {}, opts = {}) {
+  const el = document.createElementNS(SVG_NS, tag);
+  const attrs = { ...opts };
+
+  if (attrs.className) {
+    attrs.class = attrs.className;
+    delete attrs.className;
+  }
+
+  applyOpts(el, attrs);
+  mStyle(el, styles);
+  if (parent) parent.appendChild(el);
+  return el;
+}
+
+function svgGroup(parent, styles = {}, opts = {}) {
+  return svgElem(parent, 'g', styles, opts);
+}
+
+function svgLine(parent, x1, y1, x2, y2, styles = {}, opts = {}) {
+  return svgElem(parent, 'line', styles, { x1, y1, x2, y2, ...opts });
+}
+
+function svgLinearGradient(id, stops, opts = {}) {
+  const grad = svgElem(null, 'linearGradient', {}, {
+    id, x1: '0%', y1: '0%', x2: '100%', y2: '100%', ...opts
+  });
+
+  for (const [offset, color] of stops) {
+    svgElem(grad, 'stop', {}, { offset, 'stop-color': color });
+  }
+  return grad;
+}
+
+function svgPath(parent, d, styles = {}, opts = {}) {
+  return svgElem(parent, 'path', styles, { d, ...opts });
+}
+
+function svgPolygon(parent, points, styles = {}, opts = {}) {
+  const pointsAttr = points
+    .map(p => Array.isArray(p) ? p.join(',') : p)
+    .join(' ');
+  return svgElem(parent, 'polygon', styles, { points: pointsAttr, ...opts });
+}
+
+function svgRect(parent, x, y, width, height, styles = {}, opts = {}) {
+  return svgElem(parent, 'rect', styles, { x, y, width, height, ...opts });
+}
+
+function svgText(parent, text, x, y, styles = {}, opts = {}) {
+  const el = svgElem(parent, 'text', styles, { x, y, ...opts });
+  el.textContent = text;
+  return el;
+}
+
+function svgTextPath(parent, text, pathId, styles = {}, opts = {}) {
+  const textEl = svgElem(parent, 'text', styles, opts);
+  const pathEl = svgElem(textEl, 'textPath', {}, { href: `#${pathId}` });
+  pathEl.textContent = text;
+  return textEl;
+}
+
+function svgUse(parent, id, x = 0, y = 0, styles = {}, opts = {}) {
+  return svgElem(parent, 'use', styles, { href: `#${id}`, x, y, ...opts });
+}
+
+//#region dice
+function showDice(n, m, dParent, boxStyles = {}, diceStyles = {}) {
+  return new Promise((resolve) => {
+
+    dParent = toElem(dParent);
+
+    // 1. Reset container with flexbox layout & 3D perspective
+    dParent = mDom(dParent, boxStyles);
+    dParent = mDom(dParent, { p: 24, flexbox: 'center center 20 row wrap' });
+    dParent.style.perspective = '1200px';
+
+    // Standard pip geometry (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    function createFaceSVG(val) {
+      /**
+       * Generates clean SVG dice face markup.
+       * Guarantees precise geometric centering using standard SVG text-anchor and dominant-baseline.
+       */
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      let fillColor = diceStyles.fg ?? '#1e293b';
+      console.log(fillColor);
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="${fillColor}" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="${fillColor}"
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // 2. Instantiate dice wrappers and inner 3D tumbling cards
+    for (let i = 0; i < n; i++) {
+      const outer = document.createElement('div');
+      outer.style.width = '72px';
+      outer.style.height = '72px';
+      outer.style.position = 'relative';
+      outer.style.perspective = '600px';
+
+      const inner = document.createElement('div');
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.position = 'relative';
+      inner.style.transformStyle = 'preserve-3d';
+      inner.style.borderRadius = '16px';
+      inner.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)';
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      inner.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+      outer.appendChild(inner);
+      dParent.appendChild(outer);
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360,
+        transY: 0
+      });
+    }
+
+    // 3. Smooth cubic-bezier physics animation loop using cubic easing
+    const duration = 1100; // ms
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) {
+        return n1 * t * t;
+      } else if (t < 2 / d1) {
+        return n1 * (t -= 1.5 / d1) * t + 0.75;
+      } else if (t < 2.5 / d1) {
+        return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      } else {
+        return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      }
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      // Eased progress curves
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      // Periodically update face values during rotation, slowing frequency near the end
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      // Apply smooth transformation matrix to each die
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        // Arc jump height that converts into a landing bounce
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        d.el.style.transform = `
+          translate3d(0, ${currentY}px, 0)
+          rotateX(${currentRotX}deg) 
+          rotateY(${currentRotY}deg) 
+          rotateZ(${currentRotZ}deg)
+          scale(${scale})
+        `;
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Reset transform cleanup on completion
+        diceList.forEach(d => {
+          d.el.style.transform = 'none';
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+
+function showDice(n, m, dParent, boxStyles = {}, diceStyles = {}) {
+  return new Promise((resolve) => {
+
+    dParent = toElem(dParent);
+
+    // 1. Reset container with flexbox layout & 3D perspective
+    dParent = mDom(dParent, boxStyles);
+    dParent = mDom(dParent, { p: 24, flexbox: 'center center 20 row wrap' });
+    dParent.style.perspective = '1200px';
+
+    // Standard pip geometry (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    let dieFaceSvgId = 0;
+
+    function createFaceSVG(val, dParent = null) {
+      const id = `dieFace${++dieFaceSvgId}`;
+      const gradientId = `${id}Grad`;
+      const filterId = `${id}Bevel`;
+
+      const svg = svgCreate(dParent, {
+        w: '100%',
+        h: '100%',
+        display: 'block',
+        overflow: 'visible'
+      }, {
+        viewBox: '0 0 100 100'
+      });
+
+      const gradient = svgLinearGradient(gradientId, [
+        ['0%', '#ffffff'],
+        ['100%', '#f1f5f9']
+      ]);
+      svgAddDef(svg, gradient);
+      svgAddDef(svg, svgCreateFilter(filterId));
+
+      svgRect(svg, 2, 2, 96, 96, {
+        fill: `url(#${gradientId})`,
+        stroke: '#cbd5e1',
+        strokeWidth: 2,
+        filter: `url(#${filterId})`
+      }, {
+        rx: 18,
+        ry: 18
+      });
+
+      const fillColor = diceStyles.fg ?? '#1e293b';
+      const isPipType = m <= 6 && pipPositions[val];
+
+      if (isPipType) {
+        for (const [x, y] of pipPositions[val]) {
+          svgCircle(svg, x, y, 8.5, { fill: fillColor });
+        }
+      } else {
+        const text = String(val);
+        const fontSize = text.length >= 3 ? 32 : text.length === 2 ? 40 : 48;
+
+        svgText(svg, text, '50%', '50%', {
+          fill: fillColor,
+          fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          fontSize,
+          fontWeight: 700
+        }, {
+          'text-anchor': 'middle',
+          'dominant-baseline': 'central',
+          'alignment-baseline': 'central'
+        });
+      }
+
+      return svg;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // 2. Instantiate dice wrappers and inner 3D tumbling cards
+    for (let i = 0; i < n; i++) {
+      const outer = document.createElement('div');
+      outer.style.width = '72px';
+      outer.style.height = '72px';
+      outer.style.position = 'relative';
+      outer.style.perspective = '600px';
+
+      const inner = document.createElement('div');
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.position = 'relative';
+      inner.style.transformStyle = 'preserve-3d';
+      inner.style.borderRadius = '16px';
+      inner.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)';
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      inner.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+      outer.appendChild(inner);
+      dParent.appendChild(outer);
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360,
+        transY: 0
+      });
+    }
+
+    // 3. Smooth cubic-bezier physics animation loop using cubic easing
+    const duration = 1100; // ms
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) {
+        return n1 * t * t;
+      } else if (t < 2 / d1) {
+        return n1 * (t -= 1.5 / d1) * t + 0.75;
+      } else if (t < 2.5 / d1) {
+        return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      } else {
+        return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      }
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      // Eased progress curves
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      // Periodically update face values during rotation, slowing frequency near the end
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      // Apply smooth transformation matrix to each die
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        // Arc jump height that converts into a landing bounce
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        d.el.style.transform = `
+          translate3d(0, ${currentY}px, 0)
+          rotateX(${currentRotX}deg) 
+          rotateY(${currentRotY}deg) 
+          rotateZ(${currentRotZ}deg)
+          scale(${scale})
+        `;
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Reset transform cleanup on completion
+        diceList.forEach(d => {
+          d.el.style.transform = 'none';
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+
+function _showDice(n, m, dParent) {
+  return new Promise((resolve) => {
+    // 1. Reset container with flexbox layout & 3D perspective
+    dParent.innerHTML = '';
+    dParent.style.display = 'flex';
+    dParent.style.flexWrap = 'wrap';
+    dParent.style.gap = '20px';
+    dParent.style.justifyContent = 'center';
+    dParent.style.alignItems = 'center';
+    dParent.style.padding = '24px';
+    dParent.style.perspective = '1200px';
+
+    // Standard pip geometry (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Generates clean SVG dice face markup.
+     * Guarantees precise geometric centering using standard SVG text-anchor and dominant-baseline.
+     */
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // 2. Instantiate dice wrappers and inner 3D tumbling cards
+    for (let i = 0; i < n; i++) {
+      const outer = document.createElement('div');
+      outer.style.width = '72px';
+      outer.style.height = '72px';
+      outer.style.position = 'relative';
+      outer.style.perspective = '600px';
+
+      const inner = document.createElement('div');
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.position = 'relative';
+      inner.style.transformStyle = 'preserve-3d';
+      inner.style.borderRadius = '16px';
+      inner.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)';
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      inner.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+      outer.appendChild(inner);
+      dParent.appendChild(outer);
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360,
+        transY: 0
+      });
+    }
+
+    // 3. Smooth cubic-bezier physics animation loop using cubic easing
+    const duration = 1100; // ms
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) {
+        return n1 * t * t;
+      } else if (t < 2 / d1) {
+        return n1 * (t -= 1.5 / d1) * t + 0.75;
+      } else if (t < 2.5 / d1) {
+        return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      } else {
+        return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      }
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      // Eased progress curves
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      // Periodically update face values during rotation, slowing frequency near the end
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      // Apply smooth transformation matrix to each die
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        // Arc jump height that converts into a landing bounce
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        d.el.style.transform = `
+          translate3d(0, ${currentY}px, 0)
+          rotateX(${currentRotX}deg) 
+          rotateY(${currentRotY}deg) 
+          rotateZ(${currentRotZ}deg)
+          scale(${scale})
+        `;
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Reset transform cleanup on completion
+        diceList.forEach(d => {
+          d.el.style.transform = 'none';
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+function showDice(n, m, dParent, styles = {}) {
+  return new Promise((resolve) => {
+
+    dParent = toElem(dParent);
+
+
+    // 1. Reset container with flexbox layout & 3D perspective
+    dParent = mDom(dParent, { position: 'absolute', w100: true, top: 0, left: 0 });
+    dParent = mDom(dParent, { bg: 'green', p: 24, flexbox: 'center center 20 row wrap' });
+    // dParent.innerHTML = '';
+    // dParent.style.display = 'flex';
+    // dParent.style.flexWrap = 'wrap';
+    // dParent.style.gap = '20px';
+    // dParent.style.justifyContent = 'center';
+    // dParent.style.alignItems = 'center';
+    // dParent.style.padding = '24px';
+    dParent.style.perspective = '1200px';
+
+    // Standard pip geometry (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Generates clean SVG dice face markup.
+     * Guarantees precise geometric centering using standard SVG text-anchor and dominant-baseline.
+     */
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // 2. Instantiate dice wrappers and inner 3D tumbling cards
+    for (let i = 0; i < n; i++) {
+      const outer = document.createElement('div');
+      outer.style.width = '72px';
+      outer.style.height = '72px';
+      outer.style.position = 'relative';
+      outer.style.perspective = '600px';
+
+      const inner = document.createElement('div');
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.position = 'relative';
+      inner.style.transformStyle = 'preserve-3d';
+      inner.style.borderRadius = '16px';
+      inner.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)';
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      inner.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+      outer.appendChild(inner);
+      dParent.appendChild(outer);
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360,
+        transY: 0
+      });
+    }
+
+    // 3. Smooth cubic-bezier physics animation loop using cubic easing
+    const duration = 1100; // ms
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) {
+        return n1 * t * t;
+      } else if (t < 2 / d1) {
+        return n1 * (t -= 1.5 / d1) * t + 0.75;
+      } else if (t < 2.5 / d1) {
+        return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      } else {
+        return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      }
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      // Eased progress curves
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      // Periodically update face values during rotation, slowing frequency near the end
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      // Apply smooth transformation matrix to each die
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        // Arc jump height that converts into a landing bounce
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        d.el.style.transform = `
+          translate3d(0, ${currentY}px, 0)
+          rotateX(${currentRotX}deg) 
+          rotateY(${currentRotY}deg) 
+          rotateZ(${currentRotZ}deg)
+          scale(${scale})
+        `;
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Reset transform cleanup on completion
+        diceList.forEach(d => {
+          d.el.style.transform = 'none';
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+function _showDice(n, m, dParent) {
+  return new Promise((resolve) => {
+    // Retrieve parent DOM element if passed as an ID string
+    const parent = typeof dParent === 'string' ? document.getElementById(dParent) : dParent;
+    parent.innerHTML = '';
+
+    // Set up container styling using STYLES shortcuts (flexRowWrap, p, center layout)
+    mStyle(parent, {
+      flexRowWrap: 20,
+      justify: 'center',
+      align: 'center',
+      p: 24,
+      perspective: 1200
+    });
+
+    // Standard pip positions (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Generates clean SVG dice face markup.
+     */
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // Create n dice structures using mDom and mStyle
+    for (let i = 0; i < n; i++) {
+      // Outer perspective card wrapper
+      const outer = mDom(parent, {
+        sz: 72,
+        position: 'relative',
+        perspective: 600
+      });
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      // Inner 3D spinning container created via mDom
+      const inner = mDom(outer, {
+        sz: '100%',
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        r: 16,
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)'
+      }, {
+        html: createFaceSVG(Math.floor(Math.random() * m) + 1)
+      });
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360
+      });
+    }
+
+    // Smooth physics animation loop
+    const duration = 1100;
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) return n1 * t * t;
+      if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+      if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        mStyle(d.el, {
+          transform: `translate3d(0, ${currentY}px, 0) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) rotateZ(${currentRotZ}deg) scale(${scale})`
+        });
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        diceList.forEach(d => {
+          mStyle(d.el, { transform: 'none' });
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+function showDice(n, m, dParent, styles = {}) {
+  /**
+   * Rolls n dice of m faces with smooth 3D spatial rotation and centered digits.
+   * 
+   * @param {number} n - Number of dice to roll.
+   * @param {number} m - Number of faces per die.
+   * @param {HTMLElement|string} dParent - Container element (or element ID) where dice will be rendered.
+   * @param {Object} [styles={}] - Optional custom styles for the individual dice (e.g. { sz: 80, bg: 'gold', r: 20 }).
+   * @returns {Promise<number[]>} Resolves with the rolled values array when complete.
+   */
+  return new Promise((resolve) => {
+    const parent = typeof dParent === 'string' ? document.getElementById(dParent) : dParent;
+    parent.innerHTML = '';
+
+    // Parent layout wrapper
+    mStyle(parent, {
+      bg: 'yellow',
+      flexRowWrap: 20,
+      justify: 'center',
+      align: 'center',
+      p: 24,
+      perspective: 1200
+    });
+
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      let fillColor = styles.fg ?? '#1e293b';
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="${fillColor}" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="${fillColor}"
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      let dieBg = styles.bg ?? 'white';
+      let stop2 = styles.bg2 ?? '#f1f5f9';
+      let [stroke, thickness] = styles.border ? styles.border.split(' ') : ['#cbd5e1', 2];//let stroke
+      console.log(stroke, thickness);
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="${dieBg}" />
+              <stop offset="100%" stop-color="${stop2}" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="${stroke}" stroke-width="${thickness}}" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // Extract size from styles or default to 72px
+    const dieSize = styles.sz || styles.w || 72;
+
+    for (let i = 0; i < n; i++) {
+      // Outer perspective wrapper matching the die size
+      const outer = mDom(parent, {
+        //bg:'grey',
+        sz: dieSize,
+        position: 'relative',
+        perspective: 600
+      });
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      // Default inner base styles merged with custom user styles
+      //delete styles.bg;
+      const innerStyle = {
+        sz: '100%',
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        r: 16,
+        //overflow: 'hidden',
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+        ...styles
+      };
+
+      const inner = mDom(outer, innerStyle, {
+        html: createFaceSVG(Math.floor(Math.random() * m) + 1)
+      });
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360
+      });
+    }
+
+    const duration = 1100;
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) return n1 * t * t;
+      if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+      if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        mStyle(d.el, {
+          transform: `translate3d(0, ${currentY}px, 0) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) rotateZ(${currentRotZ}deg) scale(${scale})`
+        });
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        diceList.forEach(d => {
+          mStyle(d.el, { transform: 'none' });
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+function _showDice(n, m, dParent) {
+  return new Promise((resolve) => {
+    // 1. Reset container with flexbox layout & 3D perspective
+    dParent.innerHTML = '';
+    dParent.style.display = 'flex';
+    dParent.style.flexWrap = 'wrap';
+    dParent.style.gap = '20px';
+    dParent.style.justifyContent = 'center';
+    dParent.style.alignItems = 'center';
+    dParent.style.padding = '24px';
+    dParent.style.perspective = '1200px';
+
+    // Standard pip geometry (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Generates clean SVG dice face markup.
+     * Guarantees precise geometric centering using standard SVG text-anchor and dominant-baseline.
+     */
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // 2. Instantiate dice wrappers and inner 3D tumbling cards
+    for (let i = 0; i < n; i++) {
+      const outer = document.createElement('div');
+      outer.style.width = '72px';
+      outer.style.height = '72px';
+      outer.style.position = 'relative';
+      outer.style.perspective = '600px';
+
+      const inner = document.createElement('div');
+      inner.style.width = '100%';
+      inner.style.height = '100%';
+      inner.style.position = 'relative';
+      inner.style.transformStyle = 'preserve-3d';
+      inner.style.borderRadius = '16px';
+      inner.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)';
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      inner.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+      outer.appendChild(inner);
+      dParent.appendChild(outer);
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360,
+        transY: 0
+      });
+    }
+
+    // 3. Smooth cubic-bezier physics animation loop using cubic easing
+    const duration = 1100; // ms
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) {
+        return n1 * t * t;
+      } else if (t < 2 / d1) {
+        return n1 * (t -= 1.5 / d1) * t + 0.75;
+      } else if (t < 2.5 / d1) {
+        return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      } else {
+        return n1 * (t -= 2.625 / d1) * t + 0.984375;
+      }
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      // Eased progress curves
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      // Periodically update face values during rotation, slowing frequency near the end
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      // Apply smooth transformation matrix to each die
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        // Arc jump height that converts into a landing bounce
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        d.el.style.transform = `
+          translate3d(0, ${currentY}px, 0)
+          rotateX(${currentRotX}deg) 
+          rotateY(${currentRotY}deg) 
+          rotateZ(${currentRotZ}deg)
+          scale(${scale})
+        `;
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Reset transform cleanup on completion
+        diceList.forEach(d => {
+          d.el.style.transform = 'none';
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+/**
+ * Rolls n dice of m faces with smooth 3D spatial rotation and centered digits.
+ * 
+ * @param {number} n - Number of dice to roll.
+ * @param {number} m - Number of faces per die.
+ * @param {HTMLElement|string} dParent - Container element (or element ID) where dice will be rendered.
+ * @param {Object} [styles={}] - Optional custom styles for the individual dice (e.g. { sz: 80, bg: 'gold', r: 20 }).
+ * @returns {Promise<number[]>} Resolves with the rolled values array when complete.
+ */
+function showDice(n, m, dParent, styles = {}) {
+  return new Promise((resolve) => {
+    const parent = typeof dParent === 'string' ? document.getElementById(dParent) : dParent;
+    parent.innerHTML = '';
+
+    // Parent layout wrapper
+    mStyle(parent, {
+      flexRowWrap: 20,
+      justify: 'center',
+      align: 'center',
+      p: 24,
+      perspective: 1200
+    });
+
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // Extract size from styles or default to 72px
+    const dieSize = styles.sz || styles.w || 72;
+
+    for (let i = 0; i < n; i++) {
+      // Outer perspective wrapper matching the die size
+      const outer = mDom(parent, {
+        sz: dieSize,
+        position: 'relative',
+        perspective: 600
+      });
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      // Default inner base styles merged with custom user styles
+      const innerStyle = {
+        sz: '100%',
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        r: 16,
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+        ...styles
+      };
+
+      const inner = mDom(outer, innerStyle, {
+        html: createFaceSVG(Math.floor(Math.random() * m) + 1)
+      });
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360
+      });
+    }
+
+    const duration = 1100;
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) return n1 * t * t;
+      if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+      if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        mStyle(d.el, {
+          transform: `translate3d(0, ${currentY}px, 0) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) rotateZ(${currentRotZ}deg) scale(${scale})`
+        });
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        diceList.forEach(d => {
+          mStyle(d.el, { transform: 'none' });
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+/**
+ * Rolls n dice of m faces with smooth 3D spatial rotation and centered digits,
+ * using mDom and mStyle DOM/styling helpers.
+ * 
+ * @param {number} n - Number of dice to roll.
+ * @param {number} m - Number of faces per die.
+ * @param {HTMLElement|string} dParent - Container element (or element ID) where dice will be rendered.
+ * @returns {Promise<number[]>} Resolves with the rolled values array when complete.
+ */
+function showDice(n, m, dParent) {
+  return new Promise((resolve) => {
+    // Retrieve parent DOM element if passed as an ID string
+    const parent = typeof dParent === 'string' ? document.getElementById(dParent) : dParent;
+    parent.innerHTML = '';
+
+    // Set up container styling using STYLES shortcuts (flexRowWrap, p, center layout)
+    mStyle(parent, {
+      flexRowWrap: 20,
+      justify: 'center',
+      align: 'center',
+      p: 24,
+      perspective: 1200
+    });
+
+    // Standard pip positions (0-100 coordinate space)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Generates clean SVG dice face markup.
+     */
+    function createFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#1e293b" />`)
+          .join('');
+      } else {
+        const textStr = String(val);
+        const fontSize = textStr.length >= 3 ? '32' : textStr.length === 2 ? '40' : '48';
+
+        content = `
+          <text x="50%" y="50%" 
+                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
+                font-size="${fontSize}" 
+                font-weight="700" 
+                fill="#1e293b" 
+                text-anchor="middle" 
+                dominant-baseline="central"
+                alignment-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block; overflow: visible;">
+          <defs>
+            <linearGradient id="dieFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#f1f5f9" />
+            </linearGradient>
+            <filter id="subtleBevel" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.1" />
+            </filter>
+          </defs>
+          <rect x="2" y="2" width="96" height="96" rx="18" ry="18" 
+                fill="url(#dieFaceGrad)" stroke="#cbd5e1" stroke-width="2" filter="url(#subtleBevel)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceList = [];
+    const finalResults = [];
+
+    // Create n dice structures using mDom and mStyle
+    for (let i = 0; i < n; i++) {
+      // Outer perspective card wrapper
+      const outer = mDom(parent, {
+        sz: 72,
+        position: 'relative',
+        perspective: 600
+      });
+
+      const targetValue = Math.floor(Math.random() * m) + 1;
+      finalResults.push(targetValue);
+
+      // Inner 3D spinning container created via mDom
+      const inner = mDom(outer, {
+        sz: '100%',
+        position: 'relative',
+        transformStyle: 'preserve-3d',
+        r: 16,
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)'
+      }, {
+        html: createFaceSVG(Math.floor(Math.random() * m) + 1)
+      });
+
+      diceList.push({
+        el: inner,
+        targetValue: targetValue,
+        rotX: (Math.random() - 0.5) * 720,
+        rotY: (Math.random() - 0.5) * 720,
+        rotZ: (Math.random() - 0.5) * 360
+      });
+    }
+
+    // Smooth physics animation loop
+    const duration = 1100;
+    const startTime = performance.now();
+
+    function cubicOut(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function bounceOut(t) {
+      const n1 = 7.5625;
+      const d1 = 2.75;
+      if (t < 1 / d1) return n1 * t * t;
+      if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75;
+      if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375;
+      return n1 * (t -= 2.625 / d1) * t + 0.984375;
+    }
+
+    let lastValChange = 0;
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const linearProgress = Math.min(elapsed / duration, 1);
+
+      const spinProgress = cubicOut(linearProgress);
+      const bounceProgress = bounceOut(linearProgress);
+
+      if (linearProgress < 0.85 && currentTime - lastValChange > 40 + linearProgress * 120) {
+        diceList.forEach(d => {
+          d.el.innerHTML = createFaceSVG(Math.floor(Math.random() * m) + 1);
+        });
+        lastValChange = currentTime;
+      }
+
+      diceList.forEach((d) => {
+        if (linearProgress >= 0.85 && !d.isFinal) {
+          d.isFinal = true;
+          d.el.innerHTML = createFaceSVG(d.targetValue);
+        }
+
+        const currentRotX = d.rotX * (1 - spinProgress);
+        const currentRotY = d.rotY * (1 - spinProgress);
+        const currentRotZ = d.rotZ * (1 - spinProgress);
+
+        const arcHeight = -45 * Math.sin(linearProgress * Math.PI);
+        const bounceOffset = (1 - bounceProgress) * -15;
+        const currentY = linearProgress < 0.7 ? arcHeight : bounceOffset;
+        const scale = 1 + Math.sin(linearProgress * Math.PI) * 0.15;
+
+        mStyle(d.el, {
+          transform: `translate3d(0, ${currentY}px, 0) rotateX(${currentRotX}deg) rotateY(${currentRotY}deg) rotateZ(${currentRotZ}deg) scale(${scale})`
+        });
+      });
+
+      if (linearProgress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        diceList.forEach(d => {
+          mStyle(d.el, { transform: 'none' });
+        });
+        resolve(finalResults);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  });
+}
+
+function _showDice(n, m, dParent) {
+  return new Promise((resolve) => {
+    // 1. Clear previous content and set up responsive flex container
+    dParent.innerHTML = '';
+    dParent.style.display = 'flex';
+    dParent.style.flexWrap = 'wrap';
+    dParent.style.gap = '16px';
+    dParent.style.justifyContent = 'center';
+    dParent.style.alignItems = 'center';
+    dParent.style.padding = '20px';
+    dParent.style.perspective = '1000px';
+
+    // Ensure inject keyframe animations exist in document
+    if (!document.getElementById('dice-anim-styles')) {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'dice-anim-styles';
+      styleEl.textContent = `
+        @keyframes dieShake {
+          0% { transform: translateY(0) rotate(0deg) scale(1); }
+          25% { transform: translateY(-12px) rotate(-8deg) scale(1.05); }
+          50% { transform: translateY(6px) rotate(6deg) scale(0.98); }
+          75% { transform: translateY(-4px) rotate(-3deg) scale(1.02); }
+          100% { transform: translateY(0) rotate(0deg) scale(1); }
+        }
+        @keyframes dieSettle {
+          0% { transform: scale(1.15) rotate(-5deg); }
+          60% { transform: scale(0.95) rotate(2deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+      `;
+      document.head.appendChild(styleEl);
+    }
+
+    // Standard 6-dot layouts mapped to SVG coordinates (unit scale 0-100)
+    const pipPositions = {
+      1: [[50, 50]],
+      2: [[28, 28], [72, 72]],
+      3: [[28, 28], [50, 50], [72, 72]],
+      4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+      5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+      6: [[28, 28], [72, 28], [28, 50], [72, 50], [28, 72], [72, 72]]
+    };
+
+    /**
+     * Renders SVG face content for a given face value.
+     * Uses classic pips for m <= 6, and crisp modern typography for m > 6.
+     */
+    function createDieFaceSVG(val) {
+      const isPipType = m <= 6 && pipPositions[val];
+      let content = '';
+
+      if (isPipType) {
+        content = pipPositions[val]
+          .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="8.5" fill="#222222" />`)
+          .join('');
+      } else {
+        content = `
+          <text x="50" y="58" 
+                font-family="system-ui, -apple-system, sans-serif" 
+                font-size="${val > 99 ? '32' : val > 9 ? '40' : '48'}" 
+                font-weight="700" 
+                fill="#222222" 
+                text-anchor="middle" 
+                dominant-baseline="central">${val}</text>
+        `;
+      }
+
+      return `
+        <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; display: block;">
+          <defs>
+            <linearGradient id="dieGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="100%" stop-color="#ededed" />
+            </linearGradient>
+            <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feOffset dx="0" dy="2" />
+              <feGaussianBlur stdDeviation="2" result="offset-blur" />
+              <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+              <feFlood flood-color="black" flood-opacity="0.15" result="color" />
+              <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+              <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+            </filter>
+          </defs>
+          <rect x="3" y="3" width="94" height="94" rx="18" ry="18" 
+                fill="url(#dieGrad)" stroke="#dcdcdc" stroke-width="2.5" />
+          <rect x="3" y="3" width="94" height="94" rx="18" ry="18" 
+                fill="none" filter="url(#innerShadow)" />
+          ${content}
+        </svg>
+      `;
+    }
+
+    const diceElements = [];
+    const finalValues = [];
+
+    // 2. Build DOM elements for all n dice
+    for (let i = 0; i < n; i++) {
+      const dieEl = document.createElement('div');
+      dieEl.style.width = '68px';
+      dieEl.style.height = '68px';
+      dieEl.style.borderRadius = '14px';
+      dieEl.style.boxShadow = '0 6px 16px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)';
+      dieEl.style.cursor = 'pointer';
+      dieEl.style.userSelect = 'none';
+      dieEl.style.transformOrigin = 'center center';
+      dieEl.style.animation = 'dieShake 0.18s infinite linear';
+
+      // Pick final random value between 1 and m
+      const finalVal = Math.floor(Math.random() * m) + 1;
+      finalValues.push(finalVal);
+
+      dieEl.innerHTML = createDieFaceSVG(Math.floor(Math.random() * m) + 1);
+      dParent.appendChild(dieEl);
+
+      diceElements.push({
+        el: dieEl,
+        finalVal: finalVal,
+        settled: false
+      });
+    }
+
+    // 3. Animate rapid face cycling with staggered deceleration per die
+    const duration = 1200; // Total roll duration in ms
+    const startTime = performance.now();
+
+    function step(currentTime) {
+      const elapsed = currentTime - startTime;
+
+      diceElements.forEach((die, idx) => {
+        // Stagger stopping times across dice for sequential settling effect
+        const dieStopTime = duration - (n - 1 - idx) * (Math.min(300 / n, 80));
+
+        if (elapsed < dieStopTime) {
+          // Rapidly cycle random faces while rolling
+          const tempVal = Math.floor(Math.random() * m) + 1;
+          die.el.innerHTML = createDieFaceSVG(tempVal);
+        } else if (!die.settled) {
+          // Freeze on final value and play landing pop animation
+          die.settled = true;
+          die.el.innerHTML = createDieFaceSVG(die.finalVal);
+          die.el.style.animation = 'dieSettle 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+          die.el.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)';
+        }
+      });
+
+      if (elapsed < duration + 100) {
+        requestAnimationFrame(step);
+      } else {
+        resolve(finalValues);
+      }
+    }
+
+    requestAnimationFrame(step);
+  });
+}
+
+function _showDice(n, m, dParent) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  dParent.replaceChildren();
+
+  const tray = mDom(dParent, {
+    flexRowWrap: 16,
+    justify: "center",
+    align: "center",
+    p: 20
+  });
+
+  const results = [];
+  const edge = "#aebbd0";
+
+  for (let i = 0; i < n; i++) {
+    const result = 1 + Math.floor(Math.random() * m);
+    results.push(result);
+
+    const svg = `
+      <svg viewBox="0 0 120 120" width="110" height="110"
+           role="img" aria-label="Die showing ${result}">
+        <path d="M60 8 L109 25 L109 82 L60 109 L11 82 L11 25 Z"
+              fill="${edge}" stroke="${edge}" stroke-width="4"
+              stroke-linejoin="round"/>
+        <path d="M60 8 L109 25 L60 44 L11 25 Z"
+              fill="#fff" stroke="${edge}" stroke-width="3"
+              stroke-linejoin="round"/>
+        <path d="M11 25 L60 44 L60 108 L11 82 Z"
+              fill="#e3eaf5" stroke="${edge}" stroke-width="3"
+              stroke-linejoin="round"/>
+        <path d="M60 44 L109 25 L109 82 L60 108 Z"
+              fill="#f8fafc" stroke="${edge}" stroke-width="3"
+              stroke-linejoin="round"/>
+        <text x="83" y="70" text-anchor="middle" dominant-baseline="central"
+              fill="#18253a" font-family="system-ui, sans-serif"
+              font-size="28" font-weight="800">${result}</text>
+      </svg>`;
+
+    mDom(tray, { sz: 110, center: true }, { html: svg });
+  }
+
+  return results;
+}
+function _showDice(n, m, dParent) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  dParent.replaceChildren();
+
+  const tray = mDom(dParent, {
+    flexRowWrap: 16,
+    justify: "center",
+    align: "center",
+    p: 20
+  });
+
+  const results = [];
+  const borderColor = "#ff0000";
+
+  for (let i = 0; i < n; i++) {
+    const result = 1 + Math.floor(Math.random() * m);
+    results.push(result);
+
+    const holder = mDom(tray, { sz: 110, center: true });
+    const svg = mDom(holder, {}, {
+      tag: "svg",
+      viewBox: "0 0 120 120",
+      role: "img",
+      "aria-label": `Die showing ${result}`
+    });
+
+    svg.innerHTML = `
+      <!-- Border-colored silhouette fills the joined corners -->
+      <path
+        d="M60 7 L111 25 L111 81 L60 109 L9 81 L9 25 Z"
+        fill="${borderColor}"
+        stroke="${borderColor}"
+        stroke-width="4"
+        stroke-linejoin="round"
+      />
+
+      <!-- Top face -->
+      <path
+        d="M60 9 L110 27 L60 46 L10 27 Z"
+        fill="#ffffff"
+        stroke="${borderColor}"
+        stroke-width="3"
+        stroke-linejoin="round"
+      />
+
+      <!-- Left face -->
+      <path
+        d="M10 27 L60 46 L60 106 L10 82 Z"
+        fill="#e3eaf5"
+        stroke="${borderColor}"
+        stroke-width="3"
+        stroke-linejoin="round"
+      />
+
+      <!-- Front face -->
+      <path
+        d="M60 46 L110 27 L110 82 L60 106 Z"
+        fill="#f8fafc"
+        stroke="${borderColor}"
+        stroke-width="3"
+        stroke-linejoin="round"
+      />
+
+      <text
+        x="84" y="70"
+        text-anchor="middle"
+        dominant-baseline="central"
+        fill="#18253a"
+        font-family="system-ui, sans-serif"
+        font-size="28"
+        font-weight="800"
+      >${result}</text>
+    `;
+  }
+
+  return results;
+}
+
+function _showDice(n, m, dParent) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  const borderColor = "#aebbd0";
+  dParent.replaceChildren();
+
+  const tray = mDom(dParent, {
+    flexRowWrap: 18,
+    justify: "center",
+    align: "center",
+    perspective: "700px",
+    p: 20
+  });
+
+  const results = [];
+  const sides = [
+    ["#f8fafc", "translateZ(32px)"],
+    ["#dbe5f2", "rotateY(180deg) translateZ(32px)"],
+    ["#c4d2e5", "rotateY(90deg) translateZ(32px)"],
+    ["#e5edf7", "rotateY(-90deg) translateZ(32px)"],
+    ["#ffffff", "rotateX(90deg) translateZ(32px)"],
+    ["#aebed4", "rotateX(-90deg) translateZ(32px)"]
+  ];
+
+  for (let i = 0; i < n; i++) {
+    const result = 1 + Math.floor(Math.random() * m);
+    results.push(result);
+
+    const holder = mDom(tray, { sz: 100, center: true });
+    const cube = mDom(holder, {
+      sz: 64,
+      position: "relative",
+      transform: "rotateX(-25deg) rotateY(35deg)",
+      transformStyle: "preserve-3d",
+      bg: borderColor,
+      r: 8
+    });
+
+    sides.forEach(([faceColor, transform], faceIndex) => {
+      const backing = mDom(cube, {
+        sz: 64,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        bg: borderColor,
+        transformStyle: "preserve-3d",
+        transform
+      });
+
+      mDom(backing, {
+        position: "absolute",
+        top: 2,
+        left: 2,
+        sz: 60,
+        center: true,
+        r: 8,
+        bg: faceColor,
+        fg: "#18253a",
+        fw: "800",
+        fontSize: 28,
+        transform: "translateZ(1px)"
+      }, { html: faceIndex === 0 ? result : "" });
+    });
+  }
+
+  return results;
+}
+function _showDice(n, m, dParent) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  const borderColor = "#aebed4";
+  dParent.replaceChildren();
+
+  const tray = mDom(dParent, {
+    flexRowWrap: 18,
+    justify: "center",
+    align: "center",
+    perspective: "700px",
+    p: 20
+  });
+
+  const results = [];
+
+  for (let i = 0; i < n; i++) {
+    const result = 1 + Math.floor(Math.random() * m);
+    results.push(result);
+
+    const holder = mDom(tray, { sz: 100, center: true });
+    const cube = mDom(holder, {
+      sz: 64,
+      position: "relative",
+      transform: "rotateX(-25deg) rotateY(35deg)",
+      transformStyle: "preserve-3d",
+      backgroundColor: borderColor,
+      borderRadius: 8,
+    });
+
+    const sides = [
+      ["#f8fafc", "translateZ(32px)"],
+      ["#dbe5f2", "rotateY(180deg) translateZ(32px)"],
+      ["#c4d2e5", "rotateY(90deg) translateZ(32px)"],
+      ["#e5edf7", "rotateY(-90deg) translateZ(32px)"],
+      ["#ffffff", "rotateX(90deg) translateZ(32px)"],
+      ["#aebed4", "rotateX(-90deg) translateZ(32px)"]
+    ];
+
+    sides.forEach(([color, transform], sideIndex) => {
+      mDom(cube, {
+        sz: 64,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        center: true,
+        r: 8,
+        bg: color,
+        fg: "#18253a",
+        fw: "800",
+        fontSize: 28,
+        border: `1px solid ${borderColor}`,
+        backfaceVisibility: "hidden",
+        transform
+      }, { html: sideIndex === 0 ? result : "" });
+    });
+  }
+
+  return results;
+}
+function _showDice(n, m, dParent) {
+  dParent = toElem(dParent);
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  dParent.replaceChildren();
+
+  const tray = mDom(dParent, {
+    flexRowWrap: 18,
+    justify: "center",
+    align: "center",
+    perspective: "700px",
+    p: 20
+  });
+
+  const results = [];
+
+  for (let i = 0; i < n; i++) {
+    const result = 1 + Math.floor(Math.random() * m);
+    results.push(result);
+
+    const holder = mDom(tray, { sz: 100, center: true });
+    const cube = mDom(holder, {
+      sz: 64,
+      position: "relative",
+      transform: "rotateX(-15deg) rotateY(-18deg)",
+      transformStyle: "preserve-3d"
+    });
+
+    const sides = [
+      ["#f8fafc", "", "translateZ(32px)"],
+      ["#dbe5f2", "", "rotateY(180deg) translateZ(32px)"],
+      ["#c4d2e5", "", "rotateY(90deg) translateZ(32px)"],
+      ["#e5edf7", "", "rotateY(-90deg) translateZ(32px)"],
+      ["#ffffff", "", "rotateX(90deg) translateZ(32px)"],
+      ["#aebed4", "", "rotateX(-90deg) translateZ(32px)"]
+    ];
+
+    sides.forEach(([color, , transform], sideIndex) => {
+      const face = mDom(cube, {
+        sz: 64,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        center: true,
+        r: 8,
+        bg: color,
+        fg: "#18253a",
+        fw: "800",
+        fontSize: 28,
+        //border: "1px solid #8394ad",
+        border: "1px solid red",
+        backfaceVisibility: "hidden",
+        transform
+      }, { html: sideIndex === 0 ? result : "" });
+    });
+  }
+
+  return results;
+}
+async function aniDice(n, m, easing = "linear", totalTime = 1400) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  const overlay = mDom(document.body, {
+    position: "fixed", top: 0, right: 0, bottom: 0, left: 0,
+    z: 99999, center: true,
+    backgroundColor: "rgba(16,24,39,.75)"
+  });
+
+  const panel = mDom(overlay, {
+    center: true, dir: "column", gap: 12, p: 24, r: 20,
+    bg: "#1e3347", boxShadow: "0 16px 50px #0008"
+  });
+
+  const tray = mDom(panel, { flexRowWrap: 16 });
+  const faceNames = [
+    ["front", ""], ["back", "rotateY(180deg)"],
+    ["right", "rotateY(90deg)"], ["left", "rotateY(-90deg)"],
+    ["top", "rotateX(90deg)"], ["bottom", "rotateX(-90deg)"]
+  ];
+
+  const dice = Array.from({ length: n }, () => {
+    const holder = mDom(tray, {
+      width: 82, height: 82, center: true, perspective: "600px",
+      filter: "drop-shadow(0 10px 8px #0008)"
+    });
+
+    const cube = mDom(holder, {
+      sz: 64, position: "relative", transformStyle: "preserve-3d"
+    });
+
+    const faces = faceNames.map(([, rotation]) => {
+      const face = mDom(cube, {
+        position: "absolute", top: 0, left: 0, sz: 64,
+        center: true, r: 12,
+        border: "2px solid white",
+        background: "linear-gradient(145deg, #fff, #b8c8df)",
+        color: "#18253a", fontSize: 30, fw: "800",
+        backfaceVisibility: "hidden",
+        transform: `${rotation} translateZ(32px)`
+      }, { html: "–" });
+
+      return face;
+    });
+    return { faces };
+    cube.animate(
+      [
+        { transform: "rotateX(0deg) rotateY(0deg) rotateZ(0deg)" },
+        { transform: "rotateX(720deg) rotateY(1080deg) rotateZ(720deg)" }
+      ],
+      { duration: totalTime, easing, fill: "forwards" }
+    );
+
+    return { faces };
+  });
+
+  const results = await Promise.all(dice.map(({ faces }) =>
+    new Promise(resolve => {
+      const timer = setInterval(() => {
+        const value = 1 + Math.floor(Math.random() * m);
+        faces.forEach(face => { face.textContent = value; });
+      }, 55);
+
+      setTimeout(() => {
+        clearInterval(timer);
+        const result = 1 + Math.floor(Math.random() * m);
+        faces.forEach(face => { face.textContent = result; });
+        resolve(result);
+      }, totalTime);
+    })
+  ));
+
+  //setTimeout(() => overlay.remove(), 800);
+  return results;
+}
+async function _aniDice(n, m, easing = "linear", totalTime = 1400) {
+  const overlay = mDom(document.body, {
+    position: "fixed", top: 0, right: 0, bottom: 0, left: 0,
+    z: 99999, center: true,
+    //backgroundColor: "rgba(255,24,39,.75)"
+  });
+
+  const panel = mDom(overlay, {
+    center: true, dir: "column", gap: 12, p: 24, r: 20,
+    bg: "#1e3347", boxShadow: "0 16px 50px #0008"
+  });
+
+  const tray = mDom(panel, { flexRowWrap: 16 });
+
+  const dice = Array.from({ length: n }, () => {
+    const die = mDom(tray, {
+      center: true, sz: 72, r: 18,
+      bg: "#eaf0fa", fg: "#18253a", fw: '800', fontSize: 36,
+      border: "3px solid white",
+      boxShadow: "inset 0 -5px #a5b5d0, 0 8px 14px #0006"
+    }, { html: "–" });
+
+    die.animate(
+      [{ transform: "rotate(0deg)" }, { transform: "rotate(1080deg)" }],
+      { duration: totalTime, easing, fill: "forwards" }
+    );
+
+    return die;
+  });
+
+  const results = await Promise.all(dice.map(die => new Promise(resolve => {
+    const timer = setInterval(() => {
+      die.textContent = 1 + Math.floor(Math.random() * m);
+    }, 55);
+
+    setTimeout(() => {
+      clearInterval(timer);
+      const result = 1 + Math.floor(Math.random() * m);
+      die.textContent = result;
+      resolve(result);
+    }, totalTime);
+  })));
+
+  //setTimeout(() => overlay.remove(), 800);
+  return results;
+}
+async function _aniDice(n, m, easing = "linear", totalTime = 1400) {
+  const overlay = mDom(document.body, {
+    position: "fixed", inset: "0", zIndex: "99999",
+    display: "grid", placeItems: "center",
+    bg: "#101827bb"
+  });
+
+  const tray = mDom(overlay, {
+    flexWrap: 16, padding: "24px", borderRadius: "20px",
+    bg: "#1e3347", boxShadow: "0 16px 50px #0008"
+  });
+
+  const dice = Array.from({ length: n }, () => {
+    const die = mDom(tray, {
+      width: "72px", height: "72px", display: "grid", placeItems: "center",
+      border: "3px solid white", borderRadius: "18px",
+      background: "linear-gradient(145deg, white, #c9d7ef)",
+      color: "#18253a", fontSize: "36px", fontWeight: "800",
+      boxShadow: "inset 0 -5px #a5b5d0, 0 8px 14px #0006"
+    }, { html: "–" });
+
+    die.animate(
+      [{ transform: "rotate(0deg)" }, { transform: "rotate(1440deg)" }],
+      { duration: totalTime, easing, fill: "forwards" }
+    );
+
+    return die;
+  });
+
+  const results = await Promise.all(dice.map(die => new Promise(resolve => {
+    const timer = setInterval(() => {
+      die.textContent = 1 + Math.floor(Math.random() * m);
+    }, 55);
+
+    setTimeout(() => {
+      clearInterval(timer);
+      const result = 1 + Math.floor(Math.random() * m);
+      die.textContent = result;
+      resolve(result);
+    }, totalTime);
+  })));
+
+  setTimeout(() => overlay.remove(), 800);
+  return results;
+}
+async function _aniDiceRoll(n, m, easing = "linear", totalTime = 1400) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+  if (!Number.isFinite(totalTime) || totalTime < 1) {
+    throw new RangeError("totalTime must be a positive number of milliseconds");
+  }
+
+  if (!document.getElementById("ani-dice-style")) {
+    const style = document.createElement("style");
+    style.id = "ani-dice-style";
+    // style.textContent = `
+    //   @keyframes dice-spin {
+    //     0%   { transform: rotate(0turn); }
+    //     25%  { transform: rotate(1turn); }
+    //     50%  { transform: rotate(2turn); }
+    //     75%  { transform: rotate(3turn); }
+    //     100% { transform: rotate(4turn); }
+    //   }`;
+    // style.textContent = `
+    //     @keyframes dice-spin {
+    //     from { transform: rotate(0deg); }
+    //     to   { transform: rotate(1440deg); }
+    //   }`;
+    style.textContent = `
+      @keyframes dice-spin {
+        0%   { transform: rotate(3turn); }
+      }`;
+
+    style.textContent += `
+      .ani-dice-overlay {
+        position: fixed; inset: 0; z-index: 99999;
+        display: grid; place-items: center;
+        background: #101827bb; backdrop-filter: blur(5px);
+      }
+      .ani-dice-panel {
+        padding: 28px; border: 1px solid #ffffff35; border-radius: 24px;
+        background: linear-gradient(145deg, #263a58, #111a2a);
+        box-shadow: 0 24px 80px #0009; color: white; text-align: center;
+        font: 600 16px system-ui, sans-serif;
+      }
+      .ani-dice-tray {
+        display: flex; flex-wrap: wrap; justify-content: center;
+        gap: 18px; max-width: min(80vw, 700px); padding: 12px;
+      }
+      .ani-die {
+        width: 78px; height: 78px; display: grid; place-items: center;
+        border: 3px solid white; border-radius: 19px;
+        background: linear-gradient(145deg, white, #c9d7ef);
+        color: #18253a; font: 800 36px system-ui, sans-serif;
+        box-shadow: inset 0 -5px 0 #a5b5d0, 0 10px 18px #0006;
+        animation-name: pulseInfinite;
+        animation-fill-mode: both;
+        backface-visibility: hidden;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ani-die { animation-duration: .01ms !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "ani-dice-overlay";
+
+  const panel = document.createElement("div");
+  panel.className = "ani-dice-panel";
+  panel.textContent = `Rolling ${n}d${m}`;
+
+  const tray = document.createElement("div");
+  tray.className = "ani-dice-tray";
+  panel.appendChild(tray);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  const dice = Array.from({ length: n }, () => {
+    const die = document.createElement("div");
+    die.className = "ani-die";
+    die.textContent = "–";
+    die.style.animationDuration = `${totalTime}ms`;
+    die.style.animationTimingFunction = easing;
+    die.style.animationDirection = 'normal';
+    tray.appendChild(die);
+    return die;
+  });
+
+  const results = await Promise.all(dice.map(die => new Promise(resolve => {
+    const timer = setInterval(() => {
+      die.textContent = 1 + Math.floor(Math.random() * m);
+    }, 50);
+
+    setTimeout(() => {
+      clearInterval(timer);
+      const result = 1 + Math.floor(Math.random() * m);
+      die.textContent = result;
+      resolve(result);
+    }, totalTime);
+  })));
+
+  //setTimeout(() => overlay.remove(), 1500);
+  return results;
+}
+async function aniDiceRoll1(n, m) {
+  if (!Number.isInteger(n) || n < 1 || !Number.isInteger(m) || m < 2) {
+    throw new RangeError("n must be at least 1 and m must be at least 2");
+  }
+
+  if (!document.getElementById("ani-dice-style")) {
+    const style = document.createElement("style");
+    style.id = "ani-dice-style";
+    style.textContent = `
+      @keyframes dice-tumble {
+        0%   { transform: translateY(-50px) rotateX(0) rotateY(0) rotateZ(-18deg) scale(.7); }
+        45%  { transform: translateY(-18px) rotateX(420deg) rotateY(250deg) rotateZ(12deg) scale(1.12); }
+        75%  { transform: translateY(5px) rotateX(700deg) rotateY(520deg) rotateZ(-5deg) scale(.96); }
+        100% { transform: translateY(0) rotateX(720deg) rotateY(720deg) rotateZ(0) scale(1); }
+      }
+      .ani-dice-overlay {
+        position: fixed; inset: 0; z-index: 99999;
+        display: grid; place-items: center;
+        background: #101827bb; backdrop-filter: blur(5px);
+      }
+      .ani-dice-panel {
+        padding: 28px; border: 1px solid #ffffff35; border-radius: 24px;
+        background: linear-gradient(145deg, #263a58, #111a2a);
+        box-shadow: 0 24px 80px #0009; color: white; text-align: center;
+        font: 600 16px system-ui, sans-serif;
+      }
+      .ani-dice-tray {
+        display: flex; flex-wrap: wrap; justify-content: center;
+        gap: 18px; max-width: min(80vw, 700px); padding: 12px;
+        perspective: 800px;
+      }
+      .ani-die {
+        width: 78px; height: 78px; display: grid; place-items: center;
+        border: 3px solid #fff; border-radius: 19px;
+        background: linear-gradient(145deg, #fff, #c9d7ef);
+        color: #18253a; font: 800 36px system-ui, sans-serif;
+        box-shadow: inset 0 -5px 0 #a5b5d0, 0 10px 18px #0006;
+        text-shadow: 0 1px 0 white;
+        animation: dice-tumble 1.25s cubic-bezier(.18,.8,.25,1) both;
+      }
+      .ani-dice-close {
+        margin-top: 14px; padding: 8px 18px; border: 0; border-radius: 99px;
+        background: #ffffff20; color: white; font: inherit; cursor: pointer;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ani-die { animation-duration: .01ms !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "ani-dice-overlay";
+  overlay.innerHTML = `
+    <div class="ani-dice-panel" role="status" aria-live="polite">
+      <div>Rolling ${n}d${m}</div>
+      <div class="ani-dice-tray"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const tray = overlay.querySelector(".ani-dice-tray");
+  const dice = Array.from({ length: n }, () => {
+    const die = document.createElement("div");
+    die.className = "ani-die";
+    die.textContent = "–";
+    tray.appendChild(die);
+    return die;
+  });
+
+  const results = await Promise.all(dice.map((die, i) => new Promise(resolve => {
+    const duration = 1000 + i * 130;
+    const timer = setInterval(() => {
+      die.textContent = 1 + Math.floor(Math.random() * m);
+    }, 55);
+
+    setTimeout(() => {
+      clearInterval(timer);
+      const result = 1 + Math.floor(Math.random() * m);
+      die.textContent = result;
+      resolve(result);
+    }, duration);
+  })));
+
+  // const close = document.createElement("button");
+  // close.className = "ani-dice-close";
+  // close.textContent = "Continue";
+  // close.onclick = () => overlay.remove();
+  // overlay.querySelector(".ani-dice-panel").appendChild(close);
+
+  return results;
+}
+
+
+//#endregion dice
+
+//#region colors
 var ColorByHex = Object.freeze({
   "#00000d": "rich_black_fog",
   "#000000": "black",
@@ -2229,7 +10928,7 @@ function clrRandom(space = 'hsl', opts = {}) {
   return hex;
 }
 function palFrom(hex, n = 5, space = 'hsl', opts = {}) {
-  let sp = CLR_SPACES[space]; 
+  let sp = CLR_SPACES[space];
   let [names, ...defaults] = CLR_RANGES[space] ?? [];
   if (!sp || !names) throw new Error('palFrom: unknown space ' + space);
 
@@ -2297,38 +10996,38 @@ function clrRandom(n, opts = {}, space = 'lab') {
   return res;
 }
 function mStyle(elem, styles = {}) {
-	elem = toElem(elem);
-	const target = elem.style || elem;
+  elem = toElem(elem);
+  const target = elem.style || elem;
 
-	for (let key in styles) {
-		let val = styles[key];
+  for (let key in styles) {
+    let val = styles[key];
 
-		// Resolve shorthand or functional properties first
-		let prop = STYLES[key] || key;
-		if (typeof prop === 'function') [prop, val] = prop(val);
+    // Resolve shorthand or functional properties first
+    let prop = STYLES[key] || key;
+    if (typeof prop === 'function') [prop, val] = prop(val);
 
-		// If val is null or undefined, delete/remove the property or attribute
-		if (val == null) {
-			if (prop in target) {
-				target[prop] = ''; // Setting to empty string removes style declaration in JS
-			} else if (elem.nodeType) {
-				elem.removeAttribute(prop);
-			}
-			continue;
-		}
+    // If val is null or undefined, delete/remove the property or attribute
+    if (val == null) {
+      if (prop in target) {
+        target[prop] = ''; // Setting to empty string removes style declaration in JS
+      } else if (elem.nodeType) {
+        elem.removeAttribute(prop);
+      }
+      continue;
+    }
 
-		// Auto-append 'px' for numeric values
-		if (typeof val === 'number' && !NO_UNIT.has(prop)) val += 'px';
+    // Auto-append 'px' for numeric values
+    if (typeof val === 'number' && !NO_UNIT.has(prop)) val += 'px';
 
-		// Single assignment branch
-		if (prop in target) target[prop] = val;
-		else if (elem.nodeType) elem.setAttribute(prop, val);
-	}
+    // Single assignment branch
+    if (prop in target) target[prop] = val;
+    else if (elem.nodeType) elem.setAttribute(prop, val);
+  }
 
-	return elem;
+  return elem;
 }
 
-
+//#endregion
 
 //#region m gemini
 
@@ -2341,11 +11040,11 @@ function mStyle(elem, styles = {}) {
  */
 function mStyle(elem, styles) {
   if (!elem || !styles) return elem;
-  
+
   // Resolve root target element and actual style object
   const target = elem.nodeType ? elem : null;
   const targetStyle = target ? target.style : elem;
-  
+
   for (let key in styles) {
     let val = styles[key];
     if (val == null) continue;
@@ -2403,7 +11102,7 @@ function line(v) {   // 2 | 'red' | '2 red' | 'red 2' | 'none' | any full css va
   if (p.length > 2 || p[0] == 'none' || p.length == 2 && i < 0) return v;
   return p.length == 1 ? (i == 0 ? `${px(v)} solid currentColor` : `1px solid ${colorFrom(v)}`) : `${px(p[i])} solid ${colorFrom(p[1 - i])}`;
 }
-const STYLES = {
+const _STYLES = {
   ...Object.fromEntries(`
     align:text-align bgAttach:background-attachment bgBlend:background-blend-mode bgImage:background-image bgRepeat:background-repeat bgSize:background-size
     caret:caret-color clip:clip-path deco:text-decoration dir:flex-direction family:font-family fit:object-fit flow:grid-auto-flow fStyle:font-style fz:font-size
@@ -2430,7 +11129,7 @@ const STYLES = {
   pahv: v => ['padding', hv(v)],
   round: v => ['border-radius', v ? '50%' : '0%'],
 };
-STYLES.grid = STYLES.autoGrid;
+_STYLES.grid = STYLES.autoGrid;
 const UNITLESS = /^(opacity|z-index|font-weight|order|aspect-ratio|orphans|widows|column-count|animation-iteration-count|zoom|scale|flex(-grow|-shrink)?|grid-(row|column|area).*)$/;
 
 function mStyles(styles) {
@@ -2438,7 +11137,7 @@ function mStyles(styles) {
   for (const k in styles) {
     let key = k.startsWith('--') ? k : k.replace(/[A-Z]/g, c => '-' + c.toLowerCase()), val = styles[k], sc = STYLES[k];
     if (isString(sc)) key = sc;
-    else if (isList(sc)) { if (!val) continue; [key, val] = sc; }
+    else if (isList(sc)) { if (!val) continue;[key, val] = sc; }
     else if (sc) {
       let out = sc(val, styles.bg);
       if (isDict(out)) { Object.assign(res, mStyles(out)); continue; }
@@ -2482,92 +11181,92 @@ function mDom(dParent, styles = {}, opts = {}) {
 
 
 function clrDominant(el, n = 5, minDist = 10, bits = 4, maxSize = 100) {
-	let w = el.naturalWidth || el.videoWidth || el.width, h = el.naturalHeight || el.videoHeight || el.height;
-	if (!w || !h) return [];
-	let k = Math.min(1, maxSize / Math.max(w, h)), cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
-	let cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
-	let ctx = cv.getContext('2d', { willReadFrequently: true });
-	ctx.imageSmoothingEnabled = false;                      // no blended edge colors
-	ctx.drawImage(el, 0, 0, cw, ch);
-	let d = ctx.getImageData(0, 0, cw, ch).data, s = 8 - bits, bins = new Map();
-	for (let i = 0; i < d.length; i += 4) {                 // 1. count pixels per coarse bucket
-		if (d[i + 3] < 128) continue;                         //    (skip transparent ones)
-		let key = ((d[i] >> s) << (2 * bits)) | ((d[i + 1] >> s) << bits) | (d[i + 2] >> s);
-		let b = bins.get(key);
-		if (!b) bins.set(key, b = [0, 0, 0, 0]);
-		b[0]++; b[1] += d[i]; b[2] += d[i + 1]; b[3] += d[i + 2];
-	}
-	let clusters = [];                                      // 2. merge buckets that look alike, biggest first
-	for (let b of [...bins.values()].sort((a, c) => c[0] - a[0])) {
-		let lab = clrRgbToLab(b[1] / b[0], b[2] / b[0], b[3] / b[0]);
-		let c = clusters.find(c => (c.lab[0] - lab[0]) ** 2 + (c.lab[1] - lab[1]) ** 2 + (c.lab[2] - lab[2]) ** 2 < minDist ** 2);
-		if (c) { c.n += b[0]; c.r += b[1]; c.g += b[2]; c.b += b[3]; }
-		else clusters.push({ lab, n: b[0], r: b[1], g: b[2], b: b[3] });
-	}
-	return clusters.sort((a, c) => c.n - a.n).slice(0, n)   // 3. most frequent first, as average color
-		.map(c => clrRgbToHex(c.r / c.n, c.g / c.n, c.b / c.n));
+  let w = el.naturalWidth || el.videoWidth || el.width, h = el.naturalHeight || el.videoHeight || el.height;
+  if (!w || !h) return [];
+  let k = Math.min(1, maxSize / Math.max(w, h)), cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+  let cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+  let ctx = cv.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingEnabled = false;                      // no blended edge colors
+  ctx.drawImage(el, 0, 0, cw, ch);
+  let d = ctx.getImageData(0, 0, cw, ch).data, s = 8 - bits, bins = new Map();
+  for (let i = 0; i < d.length; i += 4) {                 // 1. count pixels per coarse bucket
+    if (d[i + 3] < 128) continue;                         //    (skip transparent ones)
+    let key = ((d[i] >> s) << (2 * bits)) | ((d[i + 1] >> s) << bits) | (d[i + 2] >> s);
+    let b = bins.get(key);
+    if (!b) bins.set(key, b = [0, 0, 0, 0]);
+    b[0]++; b[1] += d[i]; b[2] += d[i + 1]; b[3] += d[i + 2];
+  }
+  let clusters = [];                                      // 2. merge buckets that look alike, biggest first
+  for (let b of [...bins.values()].sort((a, c) => c[0] - a[0])) {
+    let lab = clrRgbToLab(b[1] / b[0], b[2] / b[0], b[3] / b[0]);
+    let c = clusters.find(c => (c.lab[0] - lab[0]) ** 2 + (c.lab[1] - lab[1]) ** 2 + (c.lab[2] - lab[2]) ** 2 < minDist ** 2);
+    if (c) { c.n += b[0]; c.r += b[1]; c.g += b[2]; c.b += b[3]; }
+    else clusters.push({ lab, n: b[0], r: b[1], g: b[2], b: b[3] });
+  }
+  return clusters.sort((a, c) => c.n - a.n).slice(0, n)   // 3. most frequent first, as average color
+    .map(c => clrRgbToHex(c.r / c.n, c.g / c.n, c.b / c.n));
 }
 
 async function palFromImg(input, count = 5, tolerance = 16) {
-	/* Extracts the n most prevalent HEX colors from an image URL, <img> tag, or <canvas> element */
-	let elImgOrCanvas = input;
+  /* Extracts the n most prevalent HEX colors from an image URL, <img> tag, or <canvas> element */
+  let elImgOrCanvas = input;
 
-	// If input is a URL string, asynchronously load it into an Image object
-	if (typeof input === 'string') {
-		elImgOrCanvas = await new Promise((resolve, reject) => {
-			let img = new Image();
-			img.crossOrigin = 'anonymous';
-			img.onload = () => resolve(img);
-			img.onerror = (err) => reject(new Error('Failed to load image from src: ' + input));
-			img.src = input;
-		});
-	}
+  // If input is a URL string, asynchronously load it into an Image object
+  if (typeof input === 'string') {
+    elImgOrCanvas = await new Promise((resolve, reject) => {
+      let img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(new Error('Failed to load image from src: ' + input));
+      img.src = input;
+    });
+  }
 
-	let cvs = document.createElement('canvas');
-	let ctx = cvs.getContext('2d');
+  let cvs = document.createElement('canvas');
+  let ctx = cvs.getContext('2d');
 
-	let w = elImgOrCanvas.naturalWidth || elImgOrCanvas.width || 100;
-	let h = elImgOrCanvas.naturalHeight || elImgOrCanvas.height || 100;
+  let w = elImgOrCanvas.naturalWidth || elImgOrCanvas.width || 100;
+  let h = elImgOrCanvas.naturalHeight || elImgOrCanvas.height || 100;
 
-	// Downscale to a max dimension of 150px for fast color sampling
-	let maxDim = 150;
-	if (w > maxDim || h > maxDim) {
-		if (w > h) {
-			h = Math.round((h * maxDim) / w);
-			w = maxDim;
-		} else {
-			w = Math.round((w * maxDim) / h);
-			h = maxDim;
-		}
-	}
+  // Downscale to a max dimension of 150px for fast color sampling
+  let maxDim = 150;
+  if (w > maxDim || h > maxDim) {
+    if (w > h) {
+      h = Math.round((h * maxDim) / w);
+      w = maxDim;
+    } else {
+      w = Math.round((w * maxDim) / h);
+      h = maxDim;
+    }
+  }
 
-	cvs.width = w;
-	cvs.height = h;
-	ctx.drawImage(elImgOrCanvas, 0, 0, w, h);
+  cvs.width = w;
+  cvs.height = h;
+  ctx.drawImage(elImgOrCanvas, 0, 0, w, h);
 
-	let imgData = ctx.getImageData(0, 0, w, h).data;
-	let counts = {};
+  let imgData = ctx.getImageData(0, 0, w, h).data;
+  let counts = {};
 
-	for (let i = 0; i < imgData.length; i += 4) {
-		let a = imgData[i + 3];
-		if (a < 128) continue; // Skip transparent/semi-transparent pixels
+  for (let i = 0; i < imgData.length; i += 4) {
+    let a = imgData[i + 3];
+    if (a < 128) continue; // Skip transparent/semi-transparent pixels
 
-		// Quantize RGB values by tolerance step to group similar shades
-		let r = Math.round(imgData[i] / tolerance) * tolerance;
-		let g = Math.round(imgData[i + 1] / tolerance) * tolerance;
-		let b = Math.round(imgData[i + 2] / tolerance) * tolerance;
+    // Quantize RGB values by tolerance step to group similar shades
+    let r = Math.round(imgData[i] / tolerance) * tolerance;
+    let g = Math.round(imgData[i + 1] / tolerance) * tolerance;
+    let b = Math.round(imgData[i + 2] / tolerance) * tolerance;
 
-		r = Math.min(255, r);
-		g = Math.min(255, g);
-		b = Math.min(255, b);
+    r = Math.min(255, r);
+    g = Math.min(255, g);
+    b = Math.min(255, b);
 
-		let hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-		counts[hex] = (counts[hex] || 0) + 1;
-	}
+    let hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    counts[hex] = (counts[hex] || 0) + 1;
+  }
 
-	return Object.keys(counts)
-		.sort((a, b) => counts[b] - counts[a])
-		.slice(0, count);
+  return Object.keys(counts)
+    .sort((a, b) => counts[b] - counts[a])
+    .slice(0, count);
 }
 function _clrMostDifferent(elCvsOrImg, count = 5, maxPixels = 100) {
   /* Extracts n visually distinct colors from an image/canvas using CIELAB max-min distance sampling */
@@ -2623,8 +11322,8 @@ function _clrMostDifferent(elCvsOrImg, count = 5, maxPixels = 100) {
       let minDist = Infinity;
       for (let s of selected) {
         let dist = (cand.lab[0] - s.lab[0]) ** 2 +
-                   (cand.lab[1] - s.lab[1]) ** 2 +
-                   (cand.lab[2] - s.lab[2]) ** 2;
+          (cand.lab[1] - s.lab[1]) ** 2 +
+          (cand.lab[2] - s.lab[2]) ** 2;
         if (dist < minDist) minDist = dist;
       }
 
@@ -2702,8 +11401,8 @@ function clrMostDifferent(elCvsOrImg, count = 5, acceptedMax = 2500, maxPixels =
 
       for (let s of selected) {
         let dist = (cand.lab[0] - s.lab[0]) ** 2 +
-                   (cand.lab[1] - s.lab[1]) ** 2 +
-                   (cand.lab[2] - s.lab[2]) ** 2;
+          (cand.lab[1] - s.lab[1]) ** 2 +
+          (cand.lab[2] - s.lab[2]) ** 2;
         if (dist < minDist) minDist = dist;
       }
 

@@ -5154,7 +5154,7 @@ family:
 family_adult:
     emo: 🧑‍🧒‍🧒
     name: 'family: adult'
-    uni: child
+    uni: 1f9d1_200d_1f9d2_200d_1f9d2
     de: familie_1_erwachsene(r)_2_kinder
     es: familia_adulto_niño_niño
     fr: famille_adulte_enfant_enfant
@@ -16517,7 +16517,6 @@ pistol:
     zh: 手枪
     ja: マスカラ
     html: '&#128179;'
-    ani: ../y/noto/1f52b.webp
     sz: 57
 pizza:
     emo: 🍕
@@ -18404,7 +18403,6 @@ sheep:
     zh: 羊
     ja: 牛
     html: '&#128017;'
-    ani: ../y/noto/1f411.webp
     sz: 69
 shield:
     emo: 🛡️
