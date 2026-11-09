@@ -114,6 +114,12 @@ const STYLES = Object.freeze({
 		//console.log(hor, vert, gap, dir, wrap);
 		return { display: 'flex', justifyContent: hor, alignItems: vert, gap: Number(gap), flexDirection: dir, flexWrap: wrap };
 	},
+	flexCenterCenter: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }),
+	flexCenterTop: () => ({ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', flexWrap: 'wrap' }),
+	flexColumnCenter: () => ({ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }),
+	flexLeftCenter: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap' }),
+	flexLeftTop: () => ({ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', flexWrap: 'wrap' }),
+	flexSpaceBetween: () => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }),
 
 	// --- Grid Layout Generators ---
 	grid: (v) => {

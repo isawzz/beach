@@ -1,7 +1,23 @@
 onload = start; VERBOSE = false; TESTING = false; DEV = false; POLLING = true;
 
-function start() { test0_mKeyFromScratch(); }
+function start() { test0_gameTopdown(); }
 
+async function test0_gameTopdown1(){
+	await loadAssets();
+	let dMenu = mDom('dMenu', { flexCenterTop: 1 });
+
+
+}
+async function test0_gameTopdown(){
+	await loadAssets();
+	let dMenu = mDom('dPage',{flexCenterTop:1});
+	for(const [key,val] of Object.entries(M.config.games)){
+		console.log(key, val);
+		let d=msEmo(dMenu, { label: key, w: 100, h: 100 });
+
+	}
+
+}
 async function test0_mKeyFromScratch() {
 	//console.log([30, 50, 64, 96, 125, 200].reverse());return;
 	await loadAssets();

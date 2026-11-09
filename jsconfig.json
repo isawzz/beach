@@ -9,5 +9,6 @@
   "exclude": [
     "*/**/closure.js",
     "*/**/aristo0.js",
+    "node_modules"
  ]
 }

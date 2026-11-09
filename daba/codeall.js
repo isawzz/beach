@@ -11957,12 +11957,6 @@ function fleetingMessage(msg, d, styles, ms, fade) {
   if (fade) Animation1 = mAnimate(dFleetingMessage, 'opacity', [1, .4, 0], null, ms, 'ease-in', 0, 'both');
   return dFleetingMessage;
 }
-function flexCenterCenter() { return { display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' } }
-function flexCenterTop() { return { display: 'flex', alignItems: 'flex-start', justifyContent: 'center', flexWrap: 'wrap' } }
-function flexColumnCenter() { return { display: 'flex', dir: 'column', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' } }
-function flexLeftCenter() { return { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap' } }
-function flexLeftTop() { return { display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', flexWrap: 'wrap' } }
-function flexSpaceBetween() { return { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } }
 async function flipCard(card, animate = true, durationMs = 300) {
   /**
    * flipCard
