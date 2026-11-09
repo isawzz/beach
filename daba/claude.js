@@ -17,7 +17,6 @@ function applyFitToSvgText(textEl, result) {
 	}
 	return textEl;
 }
-
 function bboxOf(pts) {
 	let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
 	for (const [x, y] of pts) {
@@ -26,7 +25,6 @@ function bboxOf(pts) {
 	}
 	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
-
 function cleanRounded(pts) {
 	let out = pts, changed = true;
 	while (changed && out.length > 3) {
@@ -44,14 +42,12 @@ function cleanRounded(pts) {
 	}
 	return out;
 }
-
 function createStageX(dParent) {
 	let svg = mSvg(dParent, { id: 'svg', viewBox: '0 0 400 400', width: '100%', height: '100%' });
 	let g = mDom(svg, { tag: 'g', id: 'shapeLayer' });
 	let text = mDom(svg, { tag: 'text', id: 'out' });
 	return { svg, g, text };
 }
-
 function dedupe(pts) {
 	const out = pts.filter((p, i) => {
 		const q = pts[(i + pts.length - 1) % pts.length];
@@ -59,7 +55,6 @@ function dedupe(pts) {
 	});
 	return out;
 }
-
 function dilate(src, W, H, r) {
 
 	const tmp = new Uint8Array(src.length), out = new Uint8Array(src.length);
@@ -79,7 +74,6 @@ function dilate(src, W, H, r) {
 	}
 	return out;
 }
-
 function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 	const {
 		depth = 0,
@@ -148,7 +142,6 @@ function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 			: 'Text does not fit even at the minimum font size.'), layer, front, fitShape, ext
 	};
 }
-
 async function emojiSvgToShape(svg, options = {}) {
 	const {
 		box = { x: 20, y: 20, w: 360, h: 360 },
@@ -264,13 +257,11 @@ async function emojiSvgToShape(svg, options = {}) {
 
 	};
 }
-
 function erode(src, W, H, r) {            // outside the canvas counts as "shape"
 
 	const inv = src.map(v => 1 - v);
 	return dilate(inv, W, H, r).map(v => 1 - v);
 }
-
 function extrude(shape, depth, options = {}) {
 	const {
 		angle = 45, scale = 1, box = null, light = 135, samples = 120,
@@ -325,7 +316,6 @@ function extrude(shape, depth, options = {}) {
 
 	return { front, back, walls, backDark, bbox: bboxOf(front.concat(back)), offset: off };
 }
-
 function fitTextInShape(text, shape, options = {}) {
 
 	const {
@@ -481,7 +471,6 @@ function fitTextInShape(text, shape, options = {}) {
 		})),
 	};
 }
-
 function gCrossings(poly, y) {
 	const xs = [];
 	for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -493,7 +482,6 @@ function gCrossings(poly, y) {
 	for (let k = 0; k + 1 < xs.length; k += 2) out.push([xs[k], xs[k + 1]]);
 	return out;
 }
-
 function gIntersect(A, B) {
 	const out = [];
 	let i = 0, j = 0;
@@ -505,7 +493,6 @@ function gIntersect(A, B) {
 	}
 	return out;
 }
-
 function largestComponent(mask, W, H) {
 
 	const label = new Int32Array(mask.length);
@@ -535,14 +522,12 @@ function largestComponent(mask, W, H) {
 	}
 	return mask.map((_, i) => (label[i] === bestId ? 1 : 0));
 }
-
 function lineDist(p, a, b) {
 	const dx = b[0] - a[0], dy = b[1] - a[1];
 	const len = Math.hypot(dx, dy);
 	if (len < 1e-12) return Math.hypot(p[0] - a[0], p[1] - a[1]);
 	return Math.abs(dx * (a[1] - p[1]) - dy * (a[0] - p[0])) / len;
 }
-
 function makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily) {
 	const cache = new Map();
 	let raw, ascent = 0.8, descent = 0.2;
@@ -569,7 +554,6 @@ function makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily) {
 	};
 	return { M, ascent, descent };
 }
-
 function mSvg(dParent, opts = {}) {
 
 	let { x, y, w, h, path, pathlist, points, pad = 0, ...rest } = opts;
@@ -679,7 +663,6 @@ function mSvg(dParent, opts = {}) {
 
 	return svg;
 }
-
 function polygonCentroidY(poly) {
 	let a = 0, cy = 0;
 	for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -690,7 +673,6 @@ function polygonCentroidY(poly) {
 	}
 	return Math.abs(a) < 1e-12 ? null : cy / (3 * a);
 }
-
 function renderExtrusion(layer, g, options = {}) {
 	const { fill = '#8aa', stroke = 'white', strokeWidth = 1.5 } = options;
 	const NS = 'http://www.w3.org/2000/svg';
@@ -734,7 +716,6 @@ function renderExtrusion(layer, g, options = {}) {
 		},
 	};
 }
-
 function setText(fitShape, text, out, opts = {}) {
 	const { fill, ...fitOpts } = opts;                 // fill is for the <text>, the rest is for fitting
 	if (fill) out.setAttribute('fill', fill);
@@ -748,7 +729,6 @@ function setText(fitShape, text, out, opts = {}) {
 	applyFitToSvgText(out, r);
 	return r;
 }
-
 function setTextureFill(el, imageUrl, { tile = 64, repeat = true, color = 'navy', blend = 'color-dodge' } = {}) {
 	const svg = el.ownerSVGElement;
 	if (!svg) throw new Error('setTextureFill: append the element to the <svg> before calling');
@@ -786,7 +766,6 @@ function setTextureFill(el, imageUrl, { tile = 64, repeat = true, color = 'navy'
 	}
 	el.setAttribute('fill', `url(#${id})`);
 }
-
 function simplifyOpen(pts, eps) {
 	const last = pts.length - 1;
 	if (last < 2) return pts.slice();
@@ -804,7 +783,6 @@ function simplifyOpen(pts, eps) {
 	}
 	return pts.filter((_, i) => keep[i]);
 }
-
 function simplifyRing(ring, eps) {
 	if (ring.length <= 3) return ring.slice();
 	let far = 0, farD = -1;
@@ -816,7 +794,6 @@ function simplifyRing(ring, eps) {
 	const b = simplifyOpen(ring.slice(far).concat([ring[0]]), eps);
 	return a.concat(b.slice(1, -1));
 }
-
 function svgClean(code, stretch = false) {
 	const num = n => String(+(+n).toFixed(2));
 	const geo = ['d', 'points', 'x', 'y', 'cx', 'cy', 'r', 'rx', 'ry', 'width', 'height',
@@ -867,13 +844,11 @@ function svgClean(code, stretch = false) {
 	svg.style.display = 'block';
 	return svg.outerHTML;
 }
-
 function svgFromCode(code) {
 	const t = document.createElement('template');
 	t.innerHTML = code.trim();
 	return t.content.firstElementChild;
 }
-
 function toPoints(shape, samples) {
 	if (shape && shape.kind && shape.data) return toPoints(shape.data, samples);
 	if (typeof SVGGeometryElement !== 'undefined' && shape instanceof SVGGeometryElement) {
@@ -895,7 +870,6 @@ function toPoints(shape, samples) {
 	}
 	throw new Error('Unsupported shape');
 }
-
 function toPolygon(shape, samples) {
 	if (typeof SVGGeometryElement !== 'undefined' && shape instanceof SVGGeometryElement) {
 		const len = shape.getTotalLength();
@@ -921,7 +895,6 @@ function toPolygon(shape, samples) {
 	}
 	throw new Error('Unsupported shape: use a point list, {r, cx, cy}, or an SVG geometry element');
 }
-
 function toSvgRoot(svg) {
 	if (typeof svg === 'string') {
 		const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');

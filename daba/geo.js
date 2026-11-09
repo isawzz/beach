@@ -1,12 +1,6 @@
 
 
 function geoStar(n) {
-	/**
-	 * Generates an array of [x, y] coordinates forming an n-pointed star.
-	 * 
-	 * @param {number} n - The number of outer spikes/points on the star.
-	 * @returns {Array<[number, number]>} Array of [x, y] vertex coordinate pairs.
-	 */
 	const points = n * 2;
 	const angleStep = Math.PI / n;
 
