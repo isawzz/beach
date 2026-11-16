@@ -187,7 +187,7 @@ games:
       gamemode: 'solo,multi'
   fritz:
     friendly: 'A L''Honneur!'
-    logo: fencing
+    logo: person_fencing
     color: midnightblue
     defaulthandsorting: suit
     options:
@@ -306,7 +306,7 @@ games:
       strategy: 'clairvoyant,random'
   clickgame:
     friendly: Click Race
-    logo: target
+    logo: bullseye
     color: coral
     game_type: turn
     options:

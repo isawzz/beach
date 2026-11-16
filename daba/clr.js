@@ -1,5 +1,4 @@
 
-
 function clrClosest(hex, list, fDist) {
   if (!list.length) return null;
 
@@ -7,7 +6,6 @@ function clrClosest(hex, list, fDist) {
     fDist(hex, color) < fDist(hex, best) ? color : best
   );
 }
-
 function clrMaxContrast(hex, list, fDist) {
   if (!list.length) return null;
 
@@ -15,7 +13,6 @@ function clrMaxContrast(hex, list, fDist) {
     fDist(hex, color) > fDist(hex, best) ? color : best
   );
 }
-
 function clrRand() { return "#" + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, "0"); }
 function clrRandom(h = [0, 360], s = 100, l = 50) {
   const hue = isList(h) ? rChoose(range(...h)) : h;
@@ -25,7 +22,6 @@ function clrRandom(h = [0, 360], s = 100, l = 50) {
   return clrHslToHex(hue, sat, li);
 }
 function rColor() { return rChoose(Object.keys(ColorByHex)); }
-
 
 function justDark(hex, space = "oklch") {
   hex = clrHex(hex);
@@ -72,7 +68,6 @@ function justDark(hex, space = "oklch") {
 
   return clrMixMany(hex, "#000000", [high], space)[0];
 }
-
 function sortColors(hexlist, fDistance) {
   if (hexlist.length < 2) return [...hexlist];
 
@@ -97,7 +92,6 @@ function sortColors(hexlist, fDistance) {
 
   return sorted;
 }
-
 function clrDistance(hex1, hex2) {
   const lab1 = clrRgbToLab(...clrHexToRgb(hex1));
   const lab2 = clrRgbToLab(...clrHexToRgb(hex2));
@@ -113,25 +107,21 @@ function clrDistanceRgb(hex1, hex2) {
   const b = clrHexToRgb(hex2);
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
-
 function clrDistanceLab(hex1, hex2) {
   return clrDistance3(
     clrRgbToLab(...clrHexToRgb(hex1)),
     clrRgbToLab(...clrHexToRgb(hex2))
   );
 }
-
 function clrDistanceOklab(hex1, hex2) {
   return clrDistance3(
     clrRgbToOklab(...clrHexToRgb(hex1)),
     clrRgbToOklab(...clrHexToRgb(hex2))
   );
 }
-
 function clrDistance3(a, b) {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
-
 function clrDistanceHsl(hex1, hex2) {
   const [h1, s1, l1] = clrRgbToHsl(...clrHexToRgb(hex1));
   const [h2, s2, l2] = clrRgbToHsl(...clrHexToRgb(hex2));
@@ -206,7 +196,6 @@ function clrDistanceCiede2000(hex1, hex2) {
 
   return Math.sqrt(l * l + c * c + h * h + RT * c * h);
 }
-
 function clrTrans(c, alpha) {
   let hex = clrHex(c);
   if (alpha == 1) return hex;
@@ -486,7 +475,6 @@ function clrWarmer(hex, amt = 0.08) {
   let [r, g, b] = clrHexToRgb(hex);
   return clrRgbToHex(r * (1 + amt), g, b * (1 - amt));
 }
-
 function palMix(hex1, hex2, n = 5, space = 'lab', ignoreExtremes = false) {
   [hex1, hex2] = [clrHex(hex1), clrHex(hex2)];
   if (ignoreExtremes) { n += 2; }

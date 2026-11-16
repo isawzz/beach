@@ -1,89 +1,21 @@
-function applyFitToSvgText(textEl, result) {
+//gemini
 
-	const NS = 'http://www.w3.org/2000/svg';
-	while (textEl.firstChild) textEl.removeChild(textEl.firstChild);
-	textEl.setAttribute('font-size', result.fontSize);
-	textEl.setAttribute('font-family', result.fontFamily);
-	textEl.setAttribute('font-weight', result.fontWeight);
-	textEl.setAttribute('font-style', result.fontStyle);
-	textEl.setAttribute('text-anchor', result.textAnchor);
-	textEl.setAttribute('xml:space', 'preserve');
-	for (const ln of result.lines) {
-		const t = document.createElementNS(NS, 'tspan');
-		t.setAttribute('x', ln.x);
-		t.setAttribute('y', ln.y);
-		t.textContent = ln.text;
-		textEl.appendChild(t);
-	}
-	return textEl;
-}
-function bboxOf(pts) {
-	let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-	for (const [x, y] of pts) {
-		if (x < x0) x0 = x; if (x > x1) x1 = x;
-		if (y < y0) y0 = y; if (y > y1) y1 = y;
-	}
-	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-}
-function cleanRounded(pts) {
-	let out = pts, changed = true;
-	while (changed && out.length > 3) {
-		changed = false;
-		const next = [], n = out.length;
-		for (let i = 0; i < n; i++) {
-			const prev = out[(i + n - 1) % n], cur = out[i], nxt = out[(i + 1) % n];
-			const dup = cur[0] === prev[0] && cur[1] === prev[1];
-			const cross = (cur[0] - prev[0]) * (nxt[1] - cur[1]) - (cur[1] - prev[1]) * (nxt[0] - cur[0]);
-			if (dup || cross === 0) { changed = true; continue; }
-			next.push(cur);
-		}
-		if (next.length < 3) break;
-		out = next;
-	}
-	return out;
-}
 function createStageX(dParent) {
 	let svg = mSvg(dParent, { id: 'svg', viewBox: '0 0 400 400', width: '100%', height: '100%' });
 	let g = mDom(svg, { tag: 'g', id: 'shapeLayer' });
 	let text = mDom(svg, { tag: 'text', id: 'out' });
 	return { svg, g, text };
 }
-function dedupe(pts) {
-	const out = pts.filter((p, i) => {
-		const q = pts[(i + pts.length - 1) % pts.length];
-		return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-9;
-	});
-	return out;
-}
-function dilate(src, W, H, r) {
-
-	const tmp = new Uint8Array(src.length), out = new Uint8Array(src.length);
-	for (let y = 0; y < H; y++) {
-		for (let x = 0; x < W; x++) {
-			let v = 0;
-			for (let k = Math.max(0, x - r); k <= Math.min(W - 1, x + r); k++) if (src[y * W + k]) { v = 1; break; }
-			tmp[y * W + x] = v;
-		}
-	}
-	for (let y = 0; y < H; y++) {
-		for (let x = 0; x < W; x++) {
-			let v = 0;
-			for (let k = Math.max(0, y - r); k <= Math.min(H - 1, y + r); k++) if (tmp[k * W + x]) { v = 1; break; }
-			out[y * W + x] = v;
-		}
-	}
-	return out;
-}
 function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 	const {
 		depth = 0,
 		angle = 45,
 		scale = 1,
-		texture = '../assets/texwall/wood.png',   // null = no texture, plain color fill
+		texture = '../assets/texwall/wood.png',
 		repeat = false,
 		tile = null,
-		color = null,             // tint for the texture (or plain fill if texture is null)
-		blend = 'luminosity',     // 'multiply' | 'luminosity' | 'overlay' | 'color-dodge' ...
+		color = null,
+		blend = 'luminosity',
 		stroke = 'none',
 		strokeWidth = 1.5,
 		textFill = 'yellow'
@@ -95,7 +27,7 @@ function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 		el = document.createElementNS(NS, 'circle');
 		el.setAttribute('cx', def.data.cx); el.setAttribute('cy', def.data.cy); el.setAttribute('r', def.data.r);
 		shape = def.data;
-	} else if (def.kind === 'points' || nundef(def.kind)) {
+	} else if (def.kind === 'points' || typeof def.kind === 'undefined') {
 		el = document.createElementNS(NS, 'polygon');
 		el.setAttribute('points', def.data.map(p => p.join(',')).join(' '));
 		shape = def.data;
@@ -104,7 +36,7 @@ function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 		for (const [k, v] of Object.entries(def.attrs)) el.setAttribute(k, v);
 		shape = el;
 	}
-	layer.appendChild(el);            // attach first (needed for sampling and textures)
+	layer.appendChild(el);
 
 	let front = el;
 	let fitShape = shape;
@@ -135,10 +67,9 @@ function drawClaudeX(layer, def, text = 'hallo', out, opts = {}) {
 	}
 
 	const r = text ? setText(fitShape, text, out, { fill: textFill }) : null;
-
 	return {
 		message: (r && r.fits
-			? `font size ${r.fontSize.toFixed(1)}px, ${r.lines.length} lines` //, ${ms.toFixed(0)} ms`
+			? `font size ${r.fontSize.toFixed(1)}px, ${r.lines.length} lines`
 			: 'Text does not fit even at the minimum font size.'), layer, front, fitShape, ext
 	};
 }
@@ -156,8 +87,7 @@ async function emojiSvgToShape(svg, options = {}) {
 	const root = toSvgRoot(svg);
 
 	const host = document.createElement('div');
-	host.style.cssText =
-		'position:absolute;left:-99999px;top:0;width:500px;height:500px;visibility:hidden;pointer-events:none';
+	host.style.cssText = 'position:absolute;left:-99999px;top:0;width:500px;height:500px;visibility:hidden;pointer-events:none';
 	host.appendChild(root);
 	document.body.appendChild(host);
 	let vb;
@@ -187,7 +117,7 @@ async function emojiSvgToShape(svg, options = {}) {
 	img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml);
 	await img.decode();
 
-	const pad = Math.ceil(closing) + 2;          // room for the closing step
+	const pad = Math.ceil(closing) + 2;
 	const CW = W + 2 * pad, CH = H + 2 * pad;
 	const canvas = document.createElement('canvas');
 	canvas.width = CW; canvas.height = CH;
@@ -204,7 +134,7 @@ async function emojiSvgToShape(svg, options = {}) {
 
 	if (closing > 0) mask = erode(dilate(mask, CW, CH, closing), CW, CH, closing);
 	mask = largestComponent(mask, CW, CH);
-	const contour = traceOuter(mask, CW, CH);          // pixel coordinates
+	const contour = traceOuter(mask, CW, CH);
 	if (contour.length < 3) throw new Error('Could not trace an outline');
 
 	let pts = contour.map(([px, py]) => [
@@ -250,30 +180,152 @@ async function emojiSvgToShape(svg, options = {}) {
 		by0 = Math.min(by0, y); by1 = Math.max(by1, y);
 	}
 	return {
-
 		data: simple,
-
 		bbox: { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0 },
-
 	};
 }
-function erode(src, W, H, r) {            // outside the canvas counts as "shape"
+function mCleanSvg(svgCode, options = {}) {
+	const preserve = options.preserveRatio ?? options.preserveAspectRatio;
+	const ratioMode = preserve === true ? 'xMidYMid meet' : (typeof preserve === 'string' ? preserve : 'none');
 
+	const doc = new DOMParser().parseFromString(svgCode, 'image/svg+xml');
+	const source = doc.documentElement;
+
+	const roundNum = (v) => {
+		const n = parseFloat(v);
+		if (isNaN(n)) return v;
+		return Number.isInteger(n) ? n : parseFloat(n.toFixed(2));
+	};
+
+	const roundStr = (str) => str.replace(/[-+]?(?:\d*\.)?\d+(?:[eE][-+]?\d+)?/g, (m, idx, full) => {
+		const prevChar = full.slice(0, idx).trim().slice(-1).toUpperCase();
+		if (prevChar === 'A') return m;
+		return roundNum(m);
+	});
+
+	for (const el of source.querySelectorAll('path, polygon, polyline, rect, circle, ellipse, line')) {
+		if (el.hasAttribute('d')) el.setAttribute('d', roundStr(el.getAttribute('d')));
+		if (el.hasAttribute('points')) el.setAttribute('points', roundStr(el.getAttribute('points')));
+		for (const attr of ['x', 'y', 'width', 'height', 'cx', 'cy', 'r', 'rx', 'ry', 'x1', 'y1', 'x2', 'y2']) {
+			if (el.hasAttribute(attr)) el.setAttribute(attr, roundNum(el.getAttribute(attr)));
+		}
+	}
+
+	const measureContainer = document.createElement('div');
+	Object.assign(measureContainer.style, { position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden' });
+	measureContainer.appendChild(source);
+	document.body.appendChild(measureContainer);
+
+	let b;
+	try {
+		b = source.getBBox();
+	} finally {
+		measureContainer.remove();
+	}
+
+	const vbX = roundNum(b.x);
+	const vbY = roundNum(b.y);
+	const vbW = roundNum(b.width);
+	const vbH = roundNum(b.height);
+
+	source.setAttribute('width', '100%');
+	source.setAttribute('height', '100%');
+	source.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+	source.setAttribute('preserveAspectRatio', ratioMode);
+	source.style.display = 'block';
+
+	return source;
+}
+function svgFromCode(code) {
+	const tpl = document.createElement('template');
+	tpl.innerHTML = code.replace(/^\s*<\?xml[^>]*\?>/i, '').trim();
+	let svg = tpl.content.querySelector('svg');
+	if (!svg) {
+		tpl.innerHTML = `<svg xmlns="${NS}">${code}</svg>`;
+		svg = tpl.content.querySelector('svg');
+	}
+	return svg;
+}
+
+/* ==========================================================================
+	 INTERNAL HELPER FUNCTIONS (ALPHABETICAL)
+	 ========================================================================== */
+
+function applyFitToSvgText(textEl, result) {
+	while (textEl.firstChild) textEl.removeChild(textEl.firstChild);
+	textEl.setAttribute('font-size', result.fontSize);
+	textEl.setAttribute('font-family', result.fontFamily);
+	textEl.setAttribute('font-weight', result.fontWeight);
+	textEl.setAttribute('font-style', result.fontStyle);
+	textEl.setAttribute('text-anchor', result.textAnchor);
+	textEl.setAttribute('xml:space', 'preserve');
+	for (const ln of result.lines) {
+		const t = document.createElementNS(NS, 'tspan');
+		t.setAttribute('x', ln.x); t.setAttribute('y', ln.y);
+		t.textContent = ln.text;
+		textEl.appendChild(t);
+	}
+	return textEl;
+}
+function bboxOf(pts) {
+	let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+	for (const [x, y] of pts) {
+		if (x < x0) x0 = x; if (x > x1) x1 = x;
+		if (y < y0) y0 = y; if (y > y1) y1 = y;
+	}
+	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+function cleanRounded(pts) {
+	let out = pts, changed = true;
+	while (changed && out.length > 3) {
+		changed = false;
+		const next = [], n = out.length;
+		for (let i = 0; i < n; i++) {
+			const prev = out[(i + n - 1) % n], cur = out[i], nxt = out[(i + 1) % n];
+			const dup = cur[0] === prev[0] && cur[1] === prev[1];
+			const cross = (cur[0] - prev[0]) * (nxt[1] - cur[1]) - (cur[1] - prev[1]) * (nxt[0] - cur[0]);
+			if (dup || cross === 0) { changed = true; continue; }
+			next.push(cur);
+		}
+		if (next.length < 3) break;
+		out = next;
+	}
+	return out;
+}
+function dedupe(pts) {
+	return pts.filter((p, i) => {
+		const q = pts[(i + pts.length - 1) % pts.length];
+		return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-9;
+	});
+}
+function dilate(src, W, H, r) {
+	const tmp = new Uint8Array(src.length), out = new Uint8Array(src.length);
+	for (let y = 0; y < H; y++) {
+		for (let x = 0; x < W; x++) {
+			let v = 0;
+			for (let k = Math.max(0, x - r); k <= Math.min(W - 1, x + r); k++) if (src[y * W + k]) { v = 1; break; }
+			tmp[y * W + x] = v;
+		}
+	}
+	for (let y = 0; y < H; y++) {
+		for (let x = 0; x < W; x++) {
+			let v = 0;
+			for (let k = Math.max(0, y - r); k <= Math.min(H - 1, y + r); k++) if (tmp[k * W + x]) { v = 1; break; }
+			out[y * W + x] = v;
+		}
+	}
+	return out;
+}
+function erode(src, W, H, r) {
 	const inv = src.map(v => 1 - v);
 	return dilate(inv, W, H, r).map(v => 1 - v);
 }
 function extrude(shape, depth, options = {}) {
-	const {
-		angle = 45, scale = 1, box = null, light = 135, samples = 120,
-		minDark = 0.05, maxDark = 0.55, backDark = 0.6,
-	} = options;
-
+	const { angle = 45, scale = 1, box = null, light = 135, samples = 120, minDark = 0.05, maxDark = 0.55, backDark = 0.6 } = options;
 	let front = dedupe(toPoints(shape, samples));
 	if (front.length < 3) throw new Error('Shape needs at least 3 points');
-
 	const rad = a => (a * Math.PI) / 180;
 	const off = [depth * Math.cos(rad(angle)), -depth * Math.sin(rad(angle))];
-
 	const bb0 = bboxOf(front);
 	const c = [bb0.x + bb0.w / 2, bb0.y + bb0.h / 2];
 	let back = front.map(([x, y]) => [c[0] + (x - c[0]) * scale + off[0], c[1] + (y - c[1]) * scale + off[1]]);
@@ -284,8 +336,7 @@ function extrude(shape, depth, options = {}) {
 		const tx = box.x + (box.w - all.w * s) / 2 - all.x * s;
 		const ty = box.y + (box.h - all.h * s) / 2 - all.y * s;
 		const T = ([x, y]) => [x * s + tx, y * s + ty];
-		front = front.map(T);
-		back = back.map(T);
+		front = front.map(T); back = back.map(T);
 		off[0] *= s; off[1] *= s;
 	}
 
@@ -296,20 +347,17 @@ function extrude(shape, depth, options = {}) {
 	}
 	const sign = area >= 0 ? 1 : -1;
 	const L = [Math.cos(rad(light)), -Math.sin(rad(light))];
-
-	const walls = [];
-	const n = front.length;
+	const walls = [], n = front.length;
 	for (let i = 0; i < n; i++) {
 		const j = (i + 1) % n;
 		const dx = front[j][0] - front[i][0], dy = front[j][1] - front[i][1];
 		const len = Math.hypot(dx, dy);
 		if (len < 1e-9) continue;
-		const nx = (sign * dy) / len, ny = (-sign * dx) / len;      // outward normal
-
+		const nx = (sign * dy) / len, ny = (-sign * dx) / len;
 		const mx = (back[i][0] + back[j][0] - front[i][0] - front[j][0]) / 2;
 		const my = (back[i][1] + back[j][1] - front[i][1] - front[j][1]) / 2;
-		if (nx * mx + ny * my <= 1e-9 * Math.hypot(mx, my)) continue; // hidden wall
-		const lit = nx * L[0] + ny * L[1];                              // -1 .. 1
+		if (nx * mx + ny * my <= 1e-9 * Math.hypot(mx, my)) continue;
+		const lit = nx * L[0] + ny * L[1];
 		const dark = minDark + (maxDark - minDark) * (1 - lit) / 2;
 		walls.push({ points: [front[i], front[j], back[j], back[i]], dark });
 	}
@@ -317,29 +365,15 @@ function extrude(shape, depth, options = {}) {
 	return { front, back, walls, backDark, bbox: bboxOf(front.concat(back)), offset: off };
 }
 function fitTextInShape(text, shape, options = {}) {
-
 	const {
-		allowWordBreak = false,
-		fontFamily = 'sans-serif',
-		fontWeight = 'normal',
-		fontStyle = 'normal',
-		lineHeight = 1.2,
-		padding = 0,
-		align = 'center',
-		minFontSize = 1,
-		maxFontSize = Infinity,
-		precision = 0.1,
-		verticalSteps = 40,
-		curveSamples = 256,
-		measure: customMeasure,
+		allowWordBreak = false, fontFamily = 'sans-serif', fontWeight = 'normal', fontStyle = 'normal',
+		lineHeight = 1.2, padding = 0, align = 'center', minFontSize = 1, maxFontSize = Infinity,
+		precision = 0.1, verticalSteps = 40, curveSamples = 256, measure: customMeasure,
 	} = options;
-
 	const poly = toPolygon(shape, curveSamples);
 	if (poly.length < 3) throw new Error('Shape needs at least 3 points');
-
 	const ysAll = poly.map(p => p[1]);
-	const minY = Math.min(...ysAll), maxY = Math.max(...ysAll);
-	const H = maxY - minY;
+	const minY = Math.min(...ysAll), maxY = Math.max(...ysAll), H = maxY - minY;
 	const eps = Math.max(1e-9, H * 1e-7);
 	const vertexYs = [...new Set(ysAll)].sort((a, b) => a - b);
 	const centroidY = polygonCentroidY(poly) ?? (minY + maxY) / 2;
@@ -347,9 +381,7 @@ function fitTextInShape(text, shape, options = {}) {
 	function bandInterval(top, bottom) {
 		top -= padding; bottom += padding;
 		const ys = [top + eps, bottom - eps];
-		for (const vy of vertexYs) {
-			if (vy > top + eps && vy < bottom - eps) ys.push(vy - eps, vy + eps);
-		}
+		for (const vy of vertexYs) if (vy > top + eps && vy < bottom - eps) ys.push(vy - eps, vy + eps);
 		let cur = null;
 		for (const y of ys) {
 			const iv = gCrossings(poly, y);
@@ -363,47 +395,36 @@ function fitTextInShape(text, shape, options = {}) {
 	}
 
 	const { M, ascent, descent } = makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily);
-
 	const paragraphs = String(text).split(/\r?\n/);
 
 	function tryLayout(f, y0) {
-		const L = f * lineHeight;
-		const lines = [];
+		const L = f * lineHeight, lines = [];
 		let b = 0;
 		const next = () => {
 			const top = y0 + b * L; b++;
 			if (top + L > maxY + eps) return null;
 			return { top, ...bandInterval(top, top + L) };
 		};
-
 		for (const para of paragraphs) {
 			const tokens = para.split(/\s+/).filter(Boolean);
 			let band = next();
 			if (!band) return null;
 			if (!tokens.length) { lines.push({ text: '', band }); continue; }
-
 			let cur = '', i = 0;
 			while (i < tokens.length) {
-				const avail = band.width / f;           // available width at font-size 1
-				const word = tokens[i];
-				const cand = cur ? cur + ' ' + word : word;
-
+				const avail = band.width / f, word = tokens[i], cand = cur ? cur + ' ' + word : word;
 				if (M(cand) <= avail) { cur = cand; i++; continue; }
-
 				if (allowWordBreak) {
 					const prefix = cur ? cur + ' ' : '';
 					let k = 0;
 					while (k < word.length && M(prefix + word.slice(0, k + 1)) <= avail) k++;
 					if (k > 0) {
 						lines.push({ text: prefix + word.slice(0, k), band });
-						tokens[i] = word.slice(k);
-						cur = '';
-						band = next();
+						tokens[i] = word.slice(k); cur = ''; band = next();
 						if (!band) return null;
 						continue;
 					}
 				}
-
 				if (cur) { lines.push({ text: cur, band }); cur = ''; }
 				band = next();
 				if (!band) return null;
@@ -421,18 +442,15 @@ function fitTextInShape(text, shape, options = {}) {
 			const y0 = minY + ((H - L) * s) / verticalSteps;
 			const lines = tryLayout(f, y0);
 			if (!lines || !lines.length) continue;
-			const top = lines[0].band.top;
-			const bottom = lines[lines.length - 1].band.top + L;
+			const top = lines[0].band.top, bottom = lines[lines.length - 1].band.top + L;
 			const score = Math.abs((top + bottom) / 2 - centroidY);
 			if (score < bestScore) { bestScore = score; best = lines; }
 		}
 		return best;
 	}
 
-	let lo = minFontSize;
-	let hi = Math.min(maxFontSize, H / lineHeight);
+	let lo = minFontSize, hi = Math.min(maxFontSize, H / lineHeight);
 	let bestF = null, bestLines = null;
-
 	const top = hi >= lo ? bestLayout(hi) : null;
 	if (top) { bestF = hi; bestLines = top; }
 	else {
@@ -448,25 +466,14 @@ function fitTextInShape(text, shape, options = {}) {
 	}
 
 	const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
-	if (!bestLines) {
-		return {
-			fits: false, fontSize: minFontSize, lines: [], textAnchor: anchor,
-			lineHeight: minFontSize * lineHeight, fontFamily, fontWeight, fontStyle, align
-		};
-	}
+	if (!bestLines) return { fits: false, fontSize: minFontSize, lines: [], textAnchor: anchor, lineHeight: minFontSize * lineHeight, fontFamily, fontWeight, fontStyle, align };
 
 	const f = bestF, L = f * lineHeight;
 	return {
-		fits: true,
-		fontSize: f,
-		lineHeight: L,
-		fontFamily, fontWeight, fontStyle, align,
-		textAnchor: anchor,
+		fits: true, fontSize: f, lineHeight: L, fontFamily, fontWeight, fontStyle, align, textAnchor: anchor,
 		lines: bestLines.map(({ text, band }) => ({
-			text,
-			width: M(text) * f,
+			text, width: M(text) * f,
 			x: align === 'left' ? band.x0 : align === 'right' ? band.x1 : (band.x0 + band.x1) / 2,
-
 			y: band.top + (L - (ascent + descent) * f) / 2 + ascent * f,
 		})),
 	};
@@ -486,17 +493,14 @@ function gIntersect(A, B) {
 	const out = [];
 	let i = 0, j = 0;
 	while (i < A.length && j < B.length) {
-		const lo = Math.max(A[i][0], B[j][0]);
-		const hi = Math.min(A[i][1], B[j][1]);
+		const lo = Math.max(A[i][0], B[j][0]), hi = Math.min(A[i][1], B[j][1]);
 		if (hi > lo) out.push([lo, hi]);
 		if (A[i][1] < B[j][1]) i++; else j++;
 	}
 	return out;
 }
 function largestComponent(mask, W, H) {
-
-	const label = new Int32Array(mask.length);
-	const stack = new Int32Array(mask.length);
+	const label = new Int32Array(mask.length), stack = new Int32Array(mask.length);
 	let next = 0, bestId = 0, bestSize = 0;
 	for (let i = 0; i < mask.length; i++) {
 		if (!mask[i] || label[i]) continue;
@@ -504,15 +508,12 @@ function largestComponent(mask, W, H) {
 		let sp = 0, size = 0;
 		stack[sp++] = i; label[i] = id;
 		while (sp) {
-			const p = stack[--sp];
-			size++;
+			const p = stack[--sp]; size++;
 			const x = p % W, y = (p - x) / W;
 			for (let dy = -1; dy <= 1; dy++) {
-				const yy = y + dy;
-				if (yy < 0 || yy >= H) continue;
+				const yy = y + dy; if (yy < 0 || yy >= H) continue;
 				for (let dx = -1; dx <= 1; dx++) {
-					const xx = x + dx;
-					if (xx < 0 || xx >= W) continue;
+					const xx = x + dx; if (xx < 0 || xx >= W) continue;
 					const q = yy * W + xx;
 					if (mask[q] && !label[q]) { label[q] = id; stack[sp++] = q; }
 				}
@@ -523,21 +524,17 @@ function largestComponent(mask, W, H) {
 	return mask.map((_, i) => (label[i] === bestId ? 1 : 0));
 }
 function lineDist(p, a, b) {
-	const dx = b[0] - a[0], dy = b[1] - a[1];
-	const len = Math.hypot(dx, dy);
+	const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
 	if (len < 1e-12) return Math.hypot(p[0] - a[0], p[1] - a[1]);
 	return Math.abs(dx * (a[1] - p[1]) - dy * (a[0] - p[0])) / len;
 }
 function makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily) {
 	const cache = new Map();
 	let raw, ascent = 0.8, descent = 0.2;
-
 	if (customMeasure) {
 		raw = customMeasure;
 	} else {
-		const canvas = typeof OffscreenCanvas !== 'undefined'
-			? new OffscreenCanvas(1, 1)
-			: document.createElement('canvas');
+		const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(1, 1) : document.createElement('canvas');
 		const ctx = canvas.getContext('2d');
 		ctx.font = `${fontStyle} ${fontWeight} 100px ${fontFamily}`;
 		raw = s => ctx.measureText(s).width / 100;
@@ -554,128 +551,17 @@ function makeMeasure(customMeasure, fontStyle, fontWeight, fontFamily) {
 	};
 	return { M, ascent, descent };
 }
-function mSvg(dParent, opts = {}) {
-
-	let { x, y, w, h, path, pathlist, points, pad = 0, ...rest } = opts;
-
-	let vbX = x, vbY = y, vbW = w, vbH = h;
-	const pathsToDraw = [];
-	let pointsToDraw = null;
-
-	if (path) pathsToDraw.push(path);
-	if (Array.isArray(pathlist)) pathsToDraw.push(...pathlist);
-
-	let ptMinX = Infinity, ptMaxX = -Infinity, ptMinY = Infinity, ptMaxY = -Infinity;
-	if (points) {
-		let ptArray = [];
-		if (typeof points === 'string') {
-
-			const nums = points.trim().split(/[\s,]+/).map(Number);
-			for (let i = 0; i < nums.length; i += 2) {
-				if (!isNaN(nums[i]) && !isNaN(nums[i + 1])) {
-					ptArray.push([nums[i], nums[i + 1]]);
-				}
-			}
-			pointsToDraw = points;
-		} else if (Array.isArray(points)) {
-			ptArray = points.map(pt => Array.isArray(pt) ? pt : [pt.x, pt.y]);
-			pointsToDraw = ptArray.map(pt => `${pt[0]},${pt[1]}`).join(' ');
-		}
-
-		ptArray.forEach(([px, py]) => {
-			if (px < ptMinX) ptMinX = px;
-			if (px > ptMaxX) ptMaxX = px;
-			if (py < ptMinY) ptMinY = py;
-			if (py > ptMaxY) ptMaxY = py;
-		});
-	}
-
-	if ((vbW == null || vbH == null) && pathsToDraw.length > 0) {
-		let pMinX = Infinity, pMaxX = -Infinity, pMinY = Infinity, pMaxY = -Infinity;
-
-		pathsToDraw.forEach(dStr => {
-
-			const matches = dStr.match(/[-+]?(?:\d*\.\d+|\d+)/g);
-			if (matches) {
-				for (let i = 0; i < matches.length; i += 2) {
-					const px = parseFloat(matches[i]);
-					const py = parseFloat(matches[i + 1]);
-					if (!isNaN(px) && !isNaN(py)) {
-						if (px < pMinX) pMinX = px;
-						if (px > pMaxX) pMaxX = px;
-						if (py < pMinY) pMinY = py;
-						if (py > pMaxY) pMaxY = py;
-					}
-				}
-			}
-		});
-
-		if (pMinX !== Infinity) {
-			ptMinX = Math.min(ptMinX, pMinX);
-			ptMaxX = Math.max(ptMaxX, pMaxX);
-			ptMinY = Math.min(ptMinY, pMinY);
-			ptMaxY = Math.max(ptMaxY, pMaxY);
-		}
-	}
-
-	if (vbW == null || vbH == null) {
-		if (ptMinX !== Infinity) {
-			vbX = ptMinX - pad;
-			vbY = ptMinY - pad;
-			vbW = (ptMaxX - ptMinX) + (pad * 2);
-			vbH = (ptMaxY - ptMinY) + (pad * 2);
-		} else {
-
-			vbX = 0; vbY = 0; vbW = 100; vbH = 100;
-		}
-	} else {
-		vbX = vbX ?? 0;
-		vbY = vbY ?? 0;
-	}
-
-	const svg = mDom(dParent, {
-		tag: 'svg',
-		w100: true,
-		h100: true,
-		viewBox: `${vbX} ${vbY} ${vbW} ${vbH}`,
-		...rest
-	});
-
-	if (pointsToDraw) {
-		mDom(svg, {
-			tag: 'polygon',
-			points: pointsToDraw,
-			fill: rest.fill,
-			stroke: rest.stroke,
-			thickness: rest.thickness
-		});
-	}
-
-	pathsToDraw.forEach(dStr => {
-		mDom(svg, {
-			tag: 'path',
-			d: dStr,
-			fill: rest.fill,
-			stroke: rest.stroke,
-			thickness: rest.thickness
-		});
-	});
-
-	return svg;
-}
 function polygonCentroidY(poly) {
 	let a = 0, cy = 0;
 	for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
 		const [xi, yi] = poly[i], [xj, yj] = poly[j];
 		const c = xj * yi - xi * yj;
-		a += c;
-		cy += (yi + yj) * c;
+		a += c; cy += (yi + yj) * c;
 	}
 	return Math.abs(a) < 1e-12 ? null : cy / (3 * a);
 }
 function renderExtrusion(layer, g, options = {}) {
 	const { fill = '#8aa', stroke = 'white', strokeWidth = 1.5 } = options;
-	const NS = 'http://www.w3.org/2000/svg';
 	const pts = p => p.map(q => q.join(',')).join(' ');
 	const mk = (points, attrs) => {
 		const el = document.createElementNS(NS, 'polygon');
@@ -683,29 +569,18 @@ function renderExtrusion(layer, g, options = {}) {
 		for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
 		return el;
 	};
-
 	const group = document.createElementNS(NS, 'g');
-	const fillTargets = [];   // elements that take the base paint
-	const strokeTargets = []; // underlay walls: stroke = fill hides seams between walls
-
+	const fillTargets = [], strokeTargets = [];
 	const back = mk(g.back, { fill });
-	fillTargets.push(back);
-	group.appendChild(back);
+	fillTargets.push(back); group.appendChild(back);
 	group.appendChild(mk(g.back, { fill: 'black', 'fill-opacity': g.backDark }));
-
 	for (const w of g.walls) {
 		const e = mk(w.points, { fill, stroke: fill, 'stroke-width': 1, 'stroke-linejoin': 'round' });
-		fillTargets.push(e); strokeTargets.push(e);
-		group.appendChild(e);
+		fillTargets.push(e); strokeTargets.push(e); group.appendChild(e);
 	}
-
-	for (const w of g.walls) {
-		group.appendChild(mk(w.points, { fill: 'black', 'fill-opacity': w.dark }));
-	}
-
+	for (const w of g.walls) group.appendChild(mk(w.points, { fill: 'black', 'fill-opacity': w.dark }));
 	const front = mk(g.front, { fill, stroke, 'stroke-width': strokeWidth, 'stroke-linejoin': 'round' });
-	fillTargets.push(front);
-	group.appendChild(front);
+	fillTargets.push(front); group.appendChild(front);
 	layer.appendChild(group);
 
 	return {
@@ -717,21 +592,19 @@ function renderExtrusion(layer, g, options = {}) {
 	};
 }
 function setText(fitShape, text, out, opts = {}) {
-	const { fill, ...fitOpts } = opts;                 // fill is for the <text>, the rest is for fitting
+	const { fill, ...fitOpts } = opts;
 	if (fill) out.setAttribute('fill', fill);
 	if (!text) { out.replaceChildren(); return null; }
-
 	const r = fitTextInShape(text, fitShape, {
 		allowWordBreak: false, fontFamily: 'Arial', lineHeight: 1, padding: 12,
-		align: 'center', curveSamples: 100, verticalSteps: 12, precision: 0.5,
-		...fitOpts,
+		align: 'center', curveSamples: 100, verticalSteps: 12, precision: 0.5, ...fitOpts,
 	});
 	applyFitToSvgText(out, r);
 	return r;
 }
 function setTextureFill(el, imageUrl, { tile = 64, repeat = true, color = 'navy', blend = 'color-dodge' } = {}) {
 	const svg = el.ownerSVGElement;
-	if (!svg) throw new Error('setTextureFill: append the element to the <svg> before calling');
+	if (!svg) throw new Error('setTextureFill: append element to <svg> first');
 	let defs = svg.querySelector('defs');
 	if (!defs) { defs = document.createElementNS(NS, 'defs'); svg.prepend(defs); }
 
@@ -754,7 +627,7 @@ function setTextureFill(el, imageUrl, { tile = 64, repeat = true, color = 'navy'
 		}
 		for (const e of [pattern, image]) { e.setAttribute('width', u); e.setAttribute('height', u); }
 
-		if (color) {                                   // colour layer under the texture
+		if (color) {
 			const bg = document.createElementNS(NS, 'rect');
 			bg.setAttribute('width', u); bg.setAttribute('height', u);
 			bg.setAttribute('fill', color);
@@ -794,61 +667,6 @@ function simplifyRing(ring, eps) {
 	const b = simplifyOpen(ring.slice(far).concat([ring[0]]), eps);
 	return a.concat(b.slice(1, -1));
 }
-function svgClean(code, stretch = false) {
-	const num = n => String(+(+n).toFixed(2));
-	const geo = ['d', 'points', 'x', 'y', 'cx', 'cy', 'r', 'rx', 'ry', 'width', 'height',
-		'x1', 'y1', 'x2', 'y2', 'transform', 'stroke-width'];
-	const junk = ['version', 'baseProfile', 'enable-background', 'xml:space', 'class'];
-
-	const svg = svgFromCode(code);
-	const all = [svg, ...svg.querySelectorAll('*')];
-
-	svg.querySelectorAll('metadata, title, desc').forEach(e => e.remove());
-	const walker = document.createTreeWalker(svg, NodeFilter.SHOW_COMMENT);
-	const comments = [];
-	while (walker.nextNode()) comments.push(walker.currentNode);
-	comments.forEach(c => c.remove());
-
-	for (const el of all) {
-		for (const a of [...el.attributes]) {
-			if (junk.includes(a.name) || a.name.startsWith('data-') || (a.name === 'style' && !a.value.trim())) el.removeAttribute(a.name);
-		}
-		for (const a of geo) {
-			if (el.hasAttribute(a)) el.setAttribute(a, el.getAttribute(a).replace(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi, num));
-		}
-	}
-	for (const a of ['x', 'y', 'width', 'height', 'viewBox']) svg.removeAttribute(a);
-
-	const host = document.createElement('div');
-	host.style.cssText = 'position:absolute;left:-99999px;visibility:hidden';
-	host.appendChild(svg);
-	document.body.appendChild(host);
-	const b = svg.getBBox();
-	let pad = 0;
-	for (const el of svg.querySelectorAll('*')) {
-		const cs = getComputedStyle(el);
-		if (cs.stroke !== 'none') pad = Math.max(pad, parseFloat(cs.strokeWidth) / 2 || 0);
-	}
-	host.remove();
-
-	const x = Math.floor((b.x - pad) * 100) / 100;
-	const y = Math.floor((b.y - pad) * 100) / 100;
-	const w = Math.ceil((b.x + b.width + pad) * 100) / 100 - x;
-	const h = Math.ceil((b.y + b.height + pad) * 100) / 100 - y;
-
-	svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-	svg.setAttribute('viewBox', [x, y, w, h].map(num).join(' '));
-	svg.setAttribute('width', '100%');
-	svg.setAttribute('height', '100%');
-	svg.setAttribute('preserveAspectRatio', stretch ? 'none' : 'xMidYMid meet');
-	svg.style.display = 'block';
-	return svg.outerHTML;
-}
-function svgFromCode(code) {
-	const t = document.createElement('template');
-	t.innerHTML = code.trim();
-	return t.content.firstElementChild;
-}
 function toPoints(shape, samples) {
 	if (shape && shape.kind && shape.data) return toPoints(shape.data, samples);
 	if (typeof SVGGeometryElement !== 'undefined' && shape instanceof SVGGeometryElement) {
@@ -872,28 +690,24 @@ function toPoints(shape, samples) {
 }
 function toPolygon(shape, samples) {
 	if (typeof SVGGeometryElement !== 'undefined' && shape instanceof SVGGeometryElement) {
-		const len = shape.getTotalLength();
-		const pts = [];
+		const len = shape.getTotalLength(), pts = [];
 		for (let i = 0; i < samples; i++) {
 			const p = shape.getPointAtLength((len * i) / samples);
 			pts.push([p.x, p.y]);
 		}
 		return pts;
 	}
-	if (Array.isArray(shape)) {
-		return shape.map(p => (Array.isArray(p) ? [p[0], p[1]] : [p.x, p.y]));
-	}
+	if (Array.isArray(shape)) return shape.map(p => (Array.isArray(p) ? [p[0], p[1]] : [p.x, p.y]));
 	if (shape && Array.isArray(shape.points)) return toPolygon(shape.points, samples);
 	if (shape && typeof shape.r === 'number') {
-		const { r, cx = 0, cy = 0 } = shape;
-		const pts = [];
+		const { r, cx = 0, cy = 0 } = shape, pts = [];
 		for (let i = 0; i < samples; i++) {
 			const a = (2 * Math.PI * i) / samples;
 			pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
 		}
 		return pts;
 	}
-	throw new Error('Unsupported shape: use a point list, {r, cx, cy}, or an SVG geometry element');
+	throw new Error('Unsupported shape');
 }
 function toSvgRoot(svg) {
 	if (typeof svg === 'string') {
@@ -910,23 +724,18 @@ function toSvgRoot(svg) {
 }
 function traceOuter(mask, W, H) {
 	const fg = (x, y) => x >= 0 && y >= 0 && x < W && y < H && mask[y * W + x] === 1;
-	const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]]; // clockwise on screen
+	const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 	let sx = -1, sy = -1;
 	outer: for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (fg(x, y)) { sx = x; sy = y; break outer; }
 	if (sx < 0) return [];
-
 	const contour = [[sx, sy]];
-	let cx = sx, cy = sy;
-	let bi = 4;                         // background neighbour we came from: west
-	let first = null;
+	let cx = sx, cy = sy, bi = 4, first = null;
 	for (let guard = 0; guard < 4 * W * H; guard++) {
 		let found = false;
 		for (let k = 1; k <= 8; k++) {
-			const i = (bi + k) % 8;
-			const nx = cx + DIRS[i][0], ny = cy + DIRS[i][1];
+			const i = (bi + k) % 8, nx = cx + DIRS[i][0], ny = cy + DIRS[i][1];
 			if (fg(nx, ny)) {
-				const pi = (i + 7) % 8;       // previously examined (background) neighbour
-				const px = cx + DIRS[pi][0], py = cy + DIRS[pi][1];
+				const pi = (i + 7) % 8, px = cx + DIRS[pi][0], py = cy + DIRS[pi][1];
 				if (!first) first = [nx, ny];
 				else if (cx === sx && cy === sy && nx === first[0] && ny === first[1]) return contour;
 				const dx = px - nx, dy = py - ny;
@@ -937,10 +746,7 @@ function traceOuter(mask, W, H) {
 				break;
 			}
 		}
-		if (!found) return contour;       // isolated pixel
+		if (!found) return contour;
 	}
 	return contour;
 }
-
-
-

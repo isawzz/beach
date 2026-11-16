@@ -4,6 +4,9 @@ var DA = {};
 var M = {};
 var UI = {};
 const NS = 'http://www.w3.org/2000/svg'; //in tess.js
+const GT_GAMES = 'aristo badger bluff clickgame dinogame dodogame emoticount ferro reversi setgame simplegame spotit ttt'.split(' ');
+
+// swap a stub for the real function (showSettings) to go live
 
 const MeepleLetters=[  
   "flag_afghanistan",
@@ -266,8 +269,6 @@ const Meeples = [
   "worm",
   "yellow_square"
 ]
-
-
 var PolyClips = {
   diamond: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
   hex: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
@@ -291,14 +292,12 @@ var PolyClips = {
   triRight: 'polygon(0% 0%, 100% 50%, 0% 100%)',
   trileft: 'polygon(0% 50%, 100% 0%, 100% 100%)',
   triLeft: 'polygon(0% 50%, 100% 0%, 100% 100%)',
-}
   // splayup: 'polygon(0% 70%, 100% 70%, 100% 100%, 0% 100%)',
   // splayleft: 'polygon(0% 0%, 15% 0%, 15% 100%, 0% 100%)',
   // splay: 'polygon(0% 0%, 20% 0%, 20% 100%, 0% 100%)',
   // splayright: 'polygon(80% 0%, 100% 0%, 100% 100%, 80% 100%)',
   // splaydown: 'polygon(0% 0%, 100% 0%, 100% 30%, 0% 30%)',
-
-
+}
 const CLR_HSL_CACHE = new Map();
 const CLR_LIN = Array.from({ length: 256 }, (_, i) => { let v = i / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
 const CLR_SPACES = {

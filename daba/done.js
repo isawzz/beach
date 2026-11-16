@@ -1,21 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function createBgaLayout(dParent) {
   dParent.innerHTML = '';
 
@@ -144,80 +128,12 @@ function findDuplicateValuesInDict(dict) {
 
   return [...duplicates];
 }
-function getDA(key) {
-  if (isdef(DA[key])) return DA[key];
-  let loc = window.location.href;
-  DA.isMoxito = loc.includes('moxito.online');
-  DA.isLocalhost = loc.startsWith('http:/' + '/localhost');
-  DA.isLive = loc.startsWith('http:/' + '/127.');
-  DA.isLocal = DA.isLocalhost || DA.isLive;
-  DA.pageDir = loc.substring(0, loc.lastIndexOf('/') + 1);
-  DA.serverRoot = DA.pageDir.replace(/[^/]+\/$/, '');
-  DA.project = stringAfterLast(stringBeforeLast(loc, '/'), '/'); //console.log('project', DA.project);
-  let phpdir = DA.project == 'day' ? 'common' : DA.project;
-  DA.staticUrl = DA.isLocal ? `http://localhost/${SERVERDIR}/` : DA.serverRoot;
-  DA.phpUrl = DA.isLocal ? `http://localhost/${SERVERDIR}/${phpdir}/ppph/` : (DA.pageDir + 'ppph/');
-  DA.dbUrl = DA.isLocal ? `http://localhost/${SERVERDIR}/${phpdir}/ppph/api.php` : (DA.pageDir + 'ppph/api.php');
-  DA.flaskUrl = (DA.isLocal ? 'http://localhost:5000/' : 'https://moxito.online/flaskgame0/');
-  DA.nodeUrl = (DA.isLocal ? 'http://localhost:3000/' : 'https://games.moxito.online/');
-  return DA[key];
-}
-async function loadAssets() {
-  if (M.config) return;
-	let t = Date.now();
-  M = await loadJson('y/m.json');
-  M.config = await loadYaml('y/config.yaml');
-  M.images = await loadYaml('y/all_image_files.yaml');
-  // M.emo = await loadYaml('y/diemo.yaml');
-  M.emo = await loadJson('y/diemo.json');
-  M.emogroup = await loadYaml('y/digroup.yaml');
-  M.emokeys = Object.keys(M.emo).sort();
-  M.fa = await loadYaml('y/fadi.yaml');
-  M.fakeys = Object.keys(M.fa).sort();
-	t = Date.now() - t; 
-  // console.log('old assets',t);
-	t = Date.now();
-  M.shapes = await loadJson('y/eshapes.json');
-	t = Date.now() - t; 
-  // console.log('assets:shapes',t);
-  t = Date.now();
-	M.shapeKeys = Object.keys(M.shapes).sort();
-
-  Object.freeze(M);
-	t = Date.now() - t; 
-  // console.log('sort keys',t);
-}
-async function loadJson(path) {
-  let res = await fetch(getDA('staticUrl') + path);
-  if (!res.ok) throw new Error(`fetchText: ${res.status} ${path}`);
-  return await res.json();
-}
-async function loadImage(path) {
-  return await new Promise((resolve, reject) => {
-    let img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, img });
-    img.onerror = (err) => reject(new Error('Failed to load image from src: ' + path));
-    img.src = path;
-  });
-}
-async function loadText(path) {
-  let res = await fetch(getDA('staticUrl') + path);
-  if (!res.ok) throw new Error(`fetchText: ${res.status} ${path}`);
-  return await res.text();
-}
-async function loadYamlTimed(url) {
-  let t = performance.now();
-  const text = await (await fetch(getDA('staticUrl') + url)).text();
-  const tFetch = performance.now() - t;
-  t = performance.now();
-  const obj = YAML.parse(text);                       // or whatever parser loadYaml uses
-  console.log(url, `${(text.length / 1024).toFixed(0)} KB`, `fetch ${tFetch.toFixed(0)} ms`, `parse ${(performance.now() - t).toFixed(0)} ms`);
-  return obj;
-}
-async function loadYaml(path) {
-  let txt = await loadText(path);
-  return YAML.parse(txt);
+function getScreenDistance(child, newParent) {
+  child = toElem(child);
+  newParent = toElem(newParent);
+  let rChild = child.getBoundingClientRect();
+  let rNewParent = newParent.getBoundingClientRect();
+  return [rNewParent.left - rChild.left + 50, rNewParent.top - rChild.top];
 }
 function logBoardObjectClicks(board, svg) {
   analyzeBoard(board);
@@ -327,6 +243,4 @@ function sortColorsByLabDistance(colors) {
 
   return sorted;
 }
-function toElem(d) { return isString(d) ? mBy(d) : d; }
-
 

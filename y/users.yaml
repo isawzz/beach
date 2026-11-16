@@ -340,3 +340,11 @@ wolferl:
       level: 7
     reversi:
       strategy: random
+martin:
+  name: martin
+  color: '#9c3c25'
+  imgKey: ../assets/img/users/martin.jpg
+  games:
+    setgame:
+      countdown: 0
+      hint: 0
